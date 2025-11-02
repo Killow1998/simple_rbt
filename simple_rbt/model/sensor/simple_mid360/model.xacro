@@ -1,0 +1,126 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    
+    <xacro:macro name="simple_mid360" params="parent_link xyz rpy">
+        
+        <link name="livox_link">
+            <inertial>
+                <mass value="0.1"/>
+                <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
+            </inertial>
+
+            <collision name="lidar_collision">
+                <geometry>
+                    <box size="0.05 0.05 0.05"/>
+                </geometry>
+            </collision>
+
+            <visual name="lidar_visual">
+                <geometry>
+                    <box size="0.05 0.05 0.05"/>
+                </geometry>
+                <material name="dark_gray">
+                    <color rgba="0.2 0.2 0.2 1"/>
+                </material>
+            </visual>
+        </link>
+
+        <link name="imu_link">
+            <inertial>
+                <mass value="0.01"/>
+                <inertia ixx="1e-6" ixy="0.0" ixz="0.0" iyy="1e-6" iyz="0.0" izz="1e-6"/>
+            </inertial>
+
+            <visual name="imu_visual">
+                <geometry>
+                    <box size="0.01 0.01 0.01"/>
+                </geometry>
+                <material name="red_imu">
+                    <color rgba="0.8 0.2 0.2 1"/>
+                </material>
+            </visual>
+        </link>
+
+        <joint name="livox_mount_joint" type="fixed">
+            <parent link="${parent_link}"/>
+            <child link="livox_link"/>
+            <origin xyz="${xyz}" rpy="${rpy}"/>
+        </joint>
+
+        <joint name="livox_imu_joint" type="fixed">
+            <parent link="livox_link"/>
+            <child link="imu_link"/>
+            <origin xyz="0.011 0.02329 -0.04412" rpy="0 0 0"/>
+        </joint>
+
+        <gazebo reference="livox_link">
+            <sensor type="ray" name="laser_livox">
+                <pose>0 0 0.05 0 0 0</pose>
+                <visualize>false</visualize>
+                <always_on>true</always_on>
+                <update_rate>10</update_rate>
+
+                <plugin name="gazebo_ros_laser_controller" filename="liblivox_laser_simulation.so">
+                    <ray>
+                        <scan>
+                            <horizontal>
+                                <samples>100</samples>
+                                <resolution>1</resolution>
+                                <min_angle>-3.1415926535897931</min_angle>
+                                <max_angle>3.1415926535897931</max_angle>
+                            </horizontal>
+                            <vertical>
+                                <samples>50</samples>
+                                <resolution>1</resolution>
+                                <min_angle>-3.1415926535897931</min_angle>
+                                <max_angle>3.1415926535897931</max_angle>
+                            </vertical>
+                        </scan>
+                        <range>
+                            <min>0.1</min>
+                            <max>40</max>
+                            <resolution>1</resolution>
+                        </range>
+                        <noise>
+                            <type>gaussian</type>
+                            <mean>0.0</mean>
+                            <stddev>0.0</stddev>
+                        </noise>
+                    </ray>
+
+                    <visualize>true</visualize>
+                    <samples>20000</samples>
+                    <downsample>1</downsample>
+                    <csv_file_name>mid360-real-centr.csv</csv_file_name>
+                    <publish_pointcloud_type>3</publish_pointcloud_type>
+                    <ros_topic>/livox/lidar</ros_topic>
+                    <frameName>livox_link</frameName>
+                </plugin>
+            </sensor>
+            <material>Gazebo/DarkGray</material>
+        </gazebo>
+
+        <gazebo reference="imu_link">
+            <sensor name="imu_sensor" type="imu">
+                <pose>0 0 0 0 0 0</pose> 
+                <always_on>true</always_on>
+                <update_rate>200</update_rate>
+                <visualize>true</visualize>
+                <topic>__default_topic__</topic>
+
+                <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+                    <topicName>/livox/imu</topicName>
+                    <bodyName>imu_link</bodyName>
+                    <updateRateHZ>200.0</updateRateHZ>
+                    <gaussianNoise>0.0</gaussianNoise>
+                    <xyzOffset>0 0 0</xyzOffset>
+                    <rpyOffset>0 0 0</rpyOffset>
+                    <frameName>imu_link</frameName>
+                </plugin>
+            </sensor>
+            <material>Gazebo/Red</material>
+        </gazebo>
+        
+    </xacro:macro>
+
+</robot>

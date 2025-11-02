@@ -1,0 +1,130 @@
+<?xml version="1.0"?>
+<robot name="scout_mini"
+    xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <xacro:arg name="robot_namespace" default="/" />
+    <xacro:arg name="urdf_extras" default="empty.urdf" />
+
+    <xacro:include filename="$(find simple_rbt)/model/sensor/simple_mid360/model.xacro" />
+    <xacro:include filename="$(find simple_rbt)/model/sensor/simple_front_camera/model.xacro" />
+    
+    <xacro:include filename="$(find scout_description)/urdf/scout_mini_wheel_1.xacro" />
+    <xacro:include filename="$(find scout_description)/urdf/scout_mini_wheel_2.xacro" />
+    <xacro:include filename="$(find scout_description)/urdf/scout_mini_wheel_3.xacro" />
+    <xacro:include filename="$(find scout_description)/urdf/scout_mini_wheel_4.xacro" />
+
+    <xacro:property name="M_PI" value="3.14159"/>
+
+    <xacro:property name="base_x_size" value="0.6200000" />
+    <xacro:property name="base_y_size" value="0.585000" />
+    <xacro:property name="base_z_size" value="0.235000" />
+
+    <xacro:property name="wheelbase" value="0.463951"/>
+    <xacro:property name="track" value="0.416503"/>
+    <xacro:property name="wheel_vertical_offset" value="-0.100998" />
+
+    <xacro:property name="wheel_diameter" value="0.16" />
+    <xacro:property name="wheel_width" value="0.084" />
+
+    <xacro:property name="wheel_length" value="0.8e-01" />
+    <xacro:property name="wheel_radius" value="1.600e-01" />
+
+    <link name="base_link">
+        <inertial>
+            <origin
+                xyz="0.0 0.0 0.0"
+                rpy="0 0 0" />
+            <mass
+                value="10" />
+            <inertia ixx="0.1354" ixy="0" ixz="0"
+             iyy="0.1354" iyz="0" izz="0.2667"/>
+        </inertial>
+        <visual>
+            <origin
+                    xyz="0 0 0.0"
+                    rpy="1.57 0 -1.57" />
+            <geometry>
+                <mesh filename="package://scout_description/meshes/scout_mini_base_link2.dae" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin
+                    xyz="0 0 0"
+                    rpy="0 0 0" />
+          <geometry>
+              <box size="0.4 0.4 0.05"/>
+          </geometry>
+        </collision>
+    </link>
+
+    <link name="box_link">
+        <inertial>
+            <origin
+                xyz="0.0 0.0 0.0"
+                rpy="0 0 0" />
+            <mass
+                value="5" />
+            <inertia 
+                ixx="0.054166666667" 
+                ixy="0" 
+                ixz="0"
+                iyy="0.075" 
+                iyz="0"
+                izz="0.054166666667"/>
+            </inertial>
+        <visual>
+            <origin
+                    xyz="0.0 0.0 0.0"
+                    rpy="0.0 0.0 3.14" />
+            <geometry>
+                <mesh filename="package://scout_description/meshes/box_link.STL" />
+            </geometry>
+            <material name = "red">
+            <color rgba="1 1 1 1" />
+            </material>
+        </visual>
+        <collision>
+            <origin
+                    xyz="0 0 0.1"
+                    rpy="1.57 0 1.57" />
+          <geometry>
+            <box size="0.3 0.2 0.3"/>
+          </geometry>
+        </collision>
+    </link> 
+
+    <joint name="box_joint" type="fixed">
+        <origin xyz="0 0 0.055" rpy="0 0 3.14" />
+        <parent link="base_link" />
+        <child link="box_link" />
+    </joint>
+
+    <xacro:simple_mid360
+      parent_link="base_link"
+      xyz="0 0 0.23" 
+      rpy="0 0 0"
+    />
+
+    <xacro:simple_front_camera
+      parent_link="base_link"
+      xyz="0.2 0 0.16" 
+      rpy="0 0 0"
+    />
+
+    <xacro:scout_mini_wheel_1 wheel_prefix="front_left" wheel_diameter="${wheel_diameter}" wheel_width="${wheel_width}">
+        <origin xyz="${wheelbase/2} ${track/2} ${wheel_vertical_offset}" rpy="-1.57 0 0" />
+    </xacro:scout_mini_wheel_1>
+    <xacro:scout_mini_wheel_2 wheel_prefix="rear_left" wheel_diameter="${wheel_diameter}" wheel_width="${wheel_width}">
+        <origin xyz="${-wheelbase/2} ${track/2} ${wheel_vertical_offset}" rpy="-1.57 0 0" />
+    </xacro:scout_mini_wheel_2>
+    <xacro:scout_mini_wheel_3 wheel_prefix="front_right" wheel_diameter="${wheel_diameter}" wheel_width="${wheel_width}">
+        <origin xyz="${wheelbase/2} ${-track/2} ${wheel_vertical_offset+0.001}" rpy="1.57 0 0" />
+    </xacro:scout_mini_wheel_3>
+    <xacro:scout_mini_wheel_4 wheel_prefix="rear_right" wheel_diameter="${wheel_diameter}" wheel_width="${wheel_width}">
+        <origin xyz="${-wheelbase/2} ${-track/2} ${wheel_vertical_offset+0.001}" rpy="1.57 0 0" />
+    </xacro:scout_mini_wheel_4>
+
+    <xacro:include filename="$(arg urdf_extras)" />
+
+    <xacro:include filename="$(find scout_description)/urdf/scout_mini.gazebo" />
+</robot>

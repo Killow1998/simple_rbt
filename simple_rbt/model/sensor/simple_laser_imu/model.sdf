@@ -1,0 +1,132 @@
+<?xml version='1.0'?>
+<sdf version="1.6">
+  <model name="simple_laser_imu">
+
+    <link name="laser_link">
+      <pose>0 0 0 0 0 0</pose>
+      <inertial>
+        <mass>0.1</mass>
+        <inertia>
+          <ixx>0.0001</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>0.0001</iyy>
+          <iyz>0.0</iyz>
+          <izz>0.0001</izz>
+        </inertia>
+      </inertial>
+
+      <visual name="laser_visual">
+        <geometry>
+          <cylinder>
+            <radius>0.03</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.2 0.2 0.8 1</ambient>
+          <diffuse>0.3 0.3 0.8 1</diffuse>
+        </material>
+      </visual>
+
+      <collision name="laser_collision">
+        <geometry>
+          <cylinder>
+            <radius>0.03</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+      </collision>
+
+      <sensor type="ray" name="laser_sensor">
+        <pose>0 0 0 0 0 0</pose>
+        <always_on>true</always_on>
+        <update_rate>10</update_rate>
+        <visualize>true</visualize>
+
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>720</samples>
+              <resolution>1</resolution>
+              <min_angle>-3.141592653589793</min_angle>
+              <max_angle>3.141592653589793</max_angle>
+            </horizontal>
+          </scan>
+          <range>
+            <min>0.12</min>
+            <max>8.0</max>
+            <resolution>0.01</resolution>
+          </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.01</stddev>
+          </noise>
+        </ray>
+
+        <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_laser.so">
+          <topicName>/laser/scan</topicName>
+          <frameName>laser_link</frameName>
+        </plugin>
+      </sensor>
+    </link>
+
+    ---
+
+    <link name="imu_link">
+      <pose>0 0 -0.06 0 0 0</pose>
+      <inertial>
+        <mass>0.01</mass>
+        <inertia>
+          <ixx>1e-6</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>1e-6</iyy>
+          <iyz>0.0</iyz>
+          <izz>1e-6</izz>
+        </inertia>
+      </inertial>
+
+      <visual name="imu_visual">
+        <geometry>
+          <box>
+            <size>0.01 0.01 0.01</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.8 0.2 0.2 1</ambient>
+          <diffuse>0.8 0.3 0.3 1</diffuse>
+        </material>
+      </visual>
+
+      <sensor name="imu_sensor" type="imu">
+        <pose>0 0 0 0 0 0</pose>
+        <always_on>true</always_on>
+        <update_rate>200</update_rate>
+        <visualize>true</visualize>
+        <topic>__default_topic__</topic>
+
+        <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+          <topicName>/laser/imu</topicName>
+          <bodyName>imu_link</bodyName>
+          <updateRateHZ>200.0</updateRateHZ>
+          <gaussianNoise>0.0</gaussianNoise>
+          <xyzOffset>0 0 0</xyzOffset>
+          <rpyOffset>0 0 0</rpyOffset>
+          <frameName>imu_link</frameName>
+        </plugin>
+      </sensor>
+    </link>
+
+    ---
+
+    <joint name="laser_imu_joint" type="fixed">
+      <parent>laser_link</parent>
+      <child>imu_link</child>
+      <pose>0 0 -0.06 0 0 0</pose>
+    </joint>
+
+    <static>false</static>
+  </model>
+</sdf>
