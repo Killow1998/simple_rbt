@@ -138,11 +138,96 @@
     <child link="laser" />
 </joint>
 
+<!-- Kinect -->
+<link name = "kinect2_dock">
+  <visual>
+   <geometry>
+    <!-- <box size=".01 .25 .07"/>-->
+    <box size="0.001 0.001 0.001"/>
+   </geometry>
+   <origin rpy = "0 0 0" xyz = "0 0 0"/>
+  </visual>
+</link>
+<joint name="kinect_height" type="fixed">
+  <parent link="base_link"/>
+  <child link="kinect2_dock"/>
+  <origin xyz="0.145 -0.013 1.37" rpy="0 0 0"/> 
+</joint>
+
+<link name = "kinect2_head_frame">
+  <visual>
+   <geometry>
+    <box size="0.001 0.001 0.001"/>
+   </geometry>
+   <origin xyz = "0 0 0" rpy = "0 0 0"/>
+  </visual>
+</link>
+<!--kinect_pitch -->
+<joint name="kinect_pitch" type="fixed">
+  <origin xyz="0 0 0" rpy="0 0.5 0" /> 
+  <parent link="kinect2_dock" />
+  <child link="kinect2_head_frame" />
+</joint>
+
+<link name = "kinect2_front_frame">
+  <visual>
+   <geometry>
+    <box size="0.001 0.001 0.001"/>
+   </geometry>
+   <origin xyz = "0 0 0" rpy = "0 0 0"/>
+  </visual>
+</link>
+<joint name="kinect_head" type="fixed">
+  <origin xyz="0 0 0" rpy=" 0 1.57 0" /> 
+  <parent link="kinect2_head_frame" />
+  <child link="kinect2_front_frame" />
+</joint>
+<link name = "kinect2_ir_optical_frame">
+  <visual>
+   <geometry>
+    <!-- <box size=".25 .04 .07"/>-->
+    <box size="0.001 0.001 0.001"/>
+   </geometry>
+   <origin xyz = "0 0 0" rpy = "0 0 0"/>
+  </visual>
+</link>
+<joint name="kinect_ir_trans" type="fixed">
+  <origin xyz="0 0 0" rpy="0 0 -1.57" /> 
+  <parent link="kinect2_front_frame" />
+  <child link="kinect2_ir_optical_frame" />
+</joint>
+
+<link name = "kinect2_camera_frame">
+  <visual>
+   <geometry>
+    <box size="0.001 0.001 0.001"/>
+   </geometry>
+   <origin rpy = "0 0 0" xyz = "0 0 0" />
+  </visual>
+</link>
+<joint name="kinect_camra_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="3.1415926 0 -1.5707963" />
+    <parent link="kinect2_ir_optical_frame" />
+    <child link="kinect2_camera_frame" />
+</joint>
+
+<link name = "kinect2_rgb_optical_frame">
+  <visual>
+   <geometry>
+    <box size="0.001 0.001 0.001"/>
+   </geometry>
+   <origin rpy = "0 0 0" xyz = "0 0 0" />
+  </visual>
+</link>
+<joint name="kinect_hd_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 1.5707963 0" />
+    <parent link="kinect2_camera_frame" />
+    <child link="kinect2_rgb_optical_frame" />
+</joint>
 
 <!-- Gazebo plugin for WPR -->
 <gazebo>
   <plugin name="base_controller" filename="libwpr_plugin.so">
-    <robotNamespace>/wpb_home</robotNamespace>
     <publishOdometryTf>false</publishOdometryTf>
     <commandTopic>cmd_vel</commandTopic>
     <odometryTopic>odom_wheel</odometryTopic>
@@ -161,7 +246,7 @@
     <ray>
       <scan>
         <horizontal>
-          <samples>360</samples>
+          <samples>720</samples>
           <resolution>1</resolution>
           <min_angle>-3.14159265</min_angle>
           <max_angle>3.14159265</max_angle>
@@ -179,11 +264,111 @@
       </noise>
     </ray>
     <plugin name="rplidar_ros_controller" filename="libgazebo_ros_laser.so">
-      <robotNamespace>/wpb_home</robotNamespace>
-      <topicName>scan</topicName>
+      <topicName>laser/scan</topicName>
       <frameName>laser</frameName>
     </plugin>
   </sensor>
+</gazebo>
+
+<!-- Gazebo plugin for Kinect v2 -->
+<gazebo reference="kinect2_head_frame">
+  <sensor type="depth" name="kinect2_depth_sensor" >
+    <always_on>true</always_on>
+    <update_rate>10.0</update_rate>
+    <camera name="kinect2_depth_sensor">
+      <horizontal_fov>1.221730456</horizontal_fov>
+      <image>
+          <width>512</width>
+          <height>424</height>
+          <format>B8G8R8</format>
+      </image>
+      <clip>
+          <near>0.5</near>
+          <far>6.0</far>
+      </clip>
+      <noise>
+          <type>gaussian</type>
+          <mean>0.1</mean>
+          <stddev>0.07</stddev>
+      </noise>
+    </camera>
+    <plugin name="kinect2_depth_control" filename="libgazebo_ros_openni_kinect.so">
+        <cameraName>kinect2/sd</cameraName>
+        <alwaysOn>true</alwaysOn>
+        <updateRate>20.0</updateRate>
+        <imageTopicName>image_ir_rect</imageTopicName>
+        <depthImageTopicName>image_depth_rect</depthImageTopicName>
+        <pointCloudTopicName>points</pointCloudTopicName>
+        <cameraInfoTopicName>depth_camera_info</cameraInfoTopicName>
+        <frameName>kinect2_ir_optical_frame</frameName>
+        <pointCloudCutoff>0.5</pointCloudCutoff>
+        <pointCloudCutoffMax>6.0</pointCloudCutoffMax>
+        <baseline>0.1</baseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+    </plugin>
+  </sensor>
+</gazebo>
+<gazebo reference="kinect2_rgb_optical_frame">
+    <sensor type="camera" name="kinect2_rgb_sensor">
+        <always_on>true</always_on>
+        <update_rate>20.0</update_rate>
+        <camera name="kinect2_rgb_sensor">
+          <horizontal_fov>1.221730456</horizontal_fov>
+          <image>
+              <width>1920</width>
+              <height>1080</height>
+              <format>B8G8R8</format>
+          </image>
+          <clip>
+              <near>0.2</near>
+              <far>10.0</far>
+          </clip>
+          <noise>
+              <type>gaussian</type>
+              <mean>0.0</mean>
+              <stddev>0.007</stddev>
+          </noise>
+        </camera>
+        <plugin name="kinect2_rgb_controller" filename="libgazebo_ros_camera.so">
+          <alwaysOn>true</alwaysOn>
+          <update_rate>20.0</update_rate>
+          <cameraName>kinect2/hd</cameraName>
+          <imageTopicName>image_color_rect</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>kinect2_rgb_optical_frame</frameName>
+        </plugin>
+    </sensor>
+</gazebo>
+
+<gazebo reference="kinect2_head_frame">
+    <sensor type="camera" name="kinect2_qhd_rgb_sensor">
+        <always_on>true</always_on>
+        <update_rate>20.0</update_rate>
+        <camera name="kinect2_qhd_rgb_sensor">
+          <horizontal_fov>1.221730456</horizontal_fov>
+          <image>
+              <width>960</width>
+              <height>540</height>
+              <format>R8G8B8</format>
+          </image>
+          <clip>
+              <near>0.2</near>
+              <far>10.0</far>
+          </clip>
+        </camera>
+        <plugin name="kinect2_qhd_rgb_controller" filename="libgazebo_ros_camera.so">
+          <alwaysOn>true</alwaysOn>
+          <update_rate>20.0</update_rate>
+          <cameraName>kinect2/qhd</cameraName>
+          <imageTopicName>image_color_rect</imageTopicName>
+          <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+          <frameName>kinect2_head_frame</frameName>
+        </plugin>
+    </sensor>
 </gazebo>
 
 <!-- IMU plugin for 'body_link' -->
@@ -195,7 +380,6 @@
     <visualize>true</visualize>
     <topic>__default_topic__</topic>
     <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
-      <robotNamespace>/wpb_home</robotNamespace>
       <topicName>imu/data</topicName>
       <bodyName>body_link</bodyName>
       <updateRateHZ>100.0</updateRateHZ>

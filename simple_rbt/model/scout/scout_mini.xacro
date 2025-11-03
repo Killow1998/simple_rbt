@@ -44,7 +44,7 @@
                     xyz="0 0 0.0"
                     rpy="1.57 0 -1.57" />
             <geometry>
-                <mesh filename="package://scout_description/meshes/scout_mini_base_link2.dae" />
+                <mesh filename="package://scout_description/meshes/scout_mini_base_link.dae" />
             </geometry>
         </visual>
         <collision>
@@ -126,5 +126,5 @@
 
     <xacro:include filename="$(arg urdf_extras)" />
 
-    <xacro:include filename="$(find scout_description)/urdf/scout_mini.gazebo" />
+    <xacro:include filename="$(find simple_rbt)/model/scout/scout_mini.gazebo" />
 </robot>

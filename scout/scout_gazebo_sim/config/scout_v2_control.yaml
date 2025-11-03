@@ -12,7 +12,7 @@ scout_motor_fr_controller:
   type: velocity_controllers/JointVelocityController
   joint: front_right_wheel
   pid:
-    p: 5.0
+    p: 100.0
     i: 20.0
     i_clamp: 100.0
 
@@ -20,7 +20,7 @@ scout_motor_fl_controller:
   type: velocity_controllers/JointVelocityController
   joint: front_left_wheel
   pid:
-    p: 5.0
+    p: 100.0
     i: 20.0
     i_clamp: 100.0
 
@@ -28,7 +28,7 @@ scout_motor_rl_controller:
   type: velocity_controllers/JointVelocityController
   joint: rear_left_wheel
   pid:
-    p: 5.0
+    p: 100.0
     i: 20.0
     i_clamp: 100.0
 
@@ -36,6 +36,6 @@ scout_motor_rr_controller:
   type: velocity_controllers/JointVelocityController
   joint: rear_right_wheel
   pid:
-    p: 5.0
+    p: 100.0
     i: 20.0
     i_clamp: 100.0

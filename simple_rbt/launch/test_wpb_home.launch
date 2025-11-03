@@ -1,5 +1,5 @@
 <launch>
-
+  <group ns="wpb_home">
   <arg name="world_file" default="$(find simple_rbt)/world/empty.world"/>
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -16,6 +16,6 @@
   <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
-
+  </group>
 </launch>
 
