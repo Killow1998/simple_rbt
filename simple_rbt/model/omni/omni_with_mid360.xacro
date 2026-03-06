@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="omni_with_mid360">
+
+  <!-- Include Omni Base -->
+  <xacro:include filename="$(find simple_rbt)/model/omni/omni_robot.urdf.xacro"/>
+
+  <!-- Include Mid360 Sensor -->
+  <xacro:include filename="$(find simple_rbt)/model/sensor/simple_mid360/model.xacro"/>
+
+  <xacro:simple_mid360 
+    parent_link="base_link" 
+    xyz="0.0 0.0 0.05" 
+    rpy="0 0 0"
+  />
+
+</robot>

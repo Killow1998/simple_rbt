@@ -14,7 +14,7 @@
     <arg name="headless" default="false" />
     <arg name="debug" default="false" />
 
-    <arg name="urdf_extras" default="$(find scout_description)/urdf/empty.urdf"/>
+    <arg name="urdf_extras" default="$(find simple_rbt)/model/scout/urdf/empty.urdf"/>
 
     <param name="robot_description" command="$(find xacro)/xacro '$(find simple_rbt)/model/scout/scout_mini.xacro'
         robot_namespace:=$(arg robot_namespace)
@@ -30,7 +30,7 @@
               -model 'scout$(arg robot_namespace)'" />
 
     <!-- Load joint controller configurations from YAML file to parameter server -->
-    <rosparam file="$(find scout_gazebo_sim)/config/scout_v2_control.yaml" command="load"/>
+    <rosparam file="$(find simple_rbt)/config/scout_v2_control.yaml" command="load"/>
 
     <!-- load the controllers -->
     <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="scout_state_controller scout_motor_fr_controller scout_motor_fl_controller scout_motor_rl_controller scout_motor_rr_controller"/>

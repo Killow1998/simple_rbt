@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:macro name="camera_bracket_trans_v0" params="prefix">
+    <transmission name="${prefix}_camera_bracket_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${prefix}_camera_bracket_joint">
+	<hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      </joint>
+	<actuator name="${prefix}_camera_bracket_motor">
+	  <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+	  <mechanicalReduction>30</mechanicalReduction>
+        </actuator>
+    </transmission>
+  </xacro:macro>
+</robot>

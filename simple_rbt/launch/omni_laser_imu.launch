@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- Omni Robot with Laser & IMU -->
+    <param name="robot_description" command="$(find xacro)/xacro '$(find simple_rbt)/model/omni/omni_with_laser_imu.xacro'" />
+
+    <arg name="x" default="0.0"/>
+    <arg name="y" default="0.0"/>
+    <arg name="z" default="0.16"/>
+    <arg name="yaw" default="0.0"/>
+
+    <node name="spawn_omni_model" pkg="gazebo_ros" type="spawn_model" args="-x $(arg x)
+        -y $(arg y)
+        -z $(arg z)
+        -Y $(arg yaw)
+        -unpause
+        -urdf
+        -param robot_description
+        -model omni" />
+
+    <rosparam file="$(find simple_rbt)/config/omni_control.yaml" command="load"/>
+
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" 
+        respawn="false" output="screen" args="joint_state_controller first_wheel_controller second_wheel_controller third_wheel_controller"/>
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+    <node name="omni_commander" pkg="simple_rbt" type="omni_commander.py" output="screen"/>
+</launch>

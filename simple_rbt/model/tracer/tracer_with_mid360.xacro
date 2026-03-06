@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="tracer_with_mid360">
 
-  <xacro:include filename="$(find tracer_description)/urdf/tracer_v1.xacro"/>
+  <xacro:include filename="$(find simple_rbt)/model/tracer/urdf/tracer_v1.xacro"/>
 
   <xacro:include filename="$(find simple_rbt)/model/sensor/simple_mid360/model.xacro"/>
 

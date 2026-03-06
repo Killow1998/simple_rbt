@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="omni_with_laser_imu">
+  <xacro:include filename="$(find simple_rbt)/model/omni/omni_robot.urdf.xacro"/>
+  <xacro:include filename="$(find simple_rbt)/model/sensor/simple_laser_imu/model.xacro"/>
+  <xacro:simple_laser_imu parent_link="base_link" xyz="0.0 0.0 0.05" rpy="0 0 0" />
+</robot>

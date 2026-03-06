@@ -2,7 +2,7 @@
 
 
 <robot xmlns:xacro="http://ros.org/wiki/xacro">
-    <xacro:include filename="$(find scout_description)/urdf/scout_wheel.gazebo" />
+    <xacro:include filename="$(find simple_rbt)/model/scout/urdf/scout_wheel.gazebo" />
 
     <!-- Actuator configurations -->
     <xacro:scout_wheel_transmission wheel_prefix="front_right" />
@@ -128,6 +128,43 @@
             <covariance_y>0.000100</covariance_y>
             <covariance_yaw>0.010000</covariance_yaw>
         </plugin>
+    </gazebo>
+
+    <!-- Wheel friction: fdir1 = rolling direction, mu1 high for traction, mu2 low for skid-steering -->
+    <gazebo reference="front_left_wheel_link">
+        <mu1>1.0</mu1>
+        <mu2>0.3</mu2>
+        <kp>100000.0</kp>
+        <kd>1000.0</kd>
+        <fdir1>1 0 0</fdir1>
+        <minDepth>0.003</minDepth>
+    </gazebo>
+
+    <gazebo reference="front_right_wheel_link">
+        <mu1>1.0</mu1>
+        <mu2>0.3</mu2>
+        <kp>100000.0</kp>
+        <kd>1000.0</kd>
+        <fdir1>1 0 0</fdir1>
+        <minDepth>0.003</minDepth>
+    </gazebo>
+
+    <gazebo reference="rear_left_wheel_link">
+        <mu1>1.0</mu1>
+        <mu2>0.3</mu2>
+        <kp>100000.0</kp>
+        <kd>1000.0</kd>
+        <fdir1>1 0 0</fdir1>
+        <minDepth>0.003</minDepth>
+    </gazebo>
+
+    <gazebo reference="rear_right_wheel_link">
+        <mu1>1.0</mu1>
+        <mu2>0.3</mu2>
+        <kp>100000.0</kp>
+        <kd>1000.0</kd>
+        <fdir1>1 0 0</fdir1>
+        <minDepth>0.003</minDepth>
     </gazebo>
 
     <!-- <gazebo>

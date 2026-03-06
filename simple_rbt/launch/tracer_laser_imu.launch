@@ -14,7 +14,7 @@
     <arg name="headless" default="false" />
     <arg name="debug" default="false" />
 
-    <arg name="urdf_extras" default="$(find tracer_description)/urdf/empty.urdf"/>
+    <arg name="urdf_extras" default="$(find simple_rbt)/model/tracer/urdf/empty.urdf"/>
 
     <param name="robot_description" command="$(find xacro)/xacro '$(find simple_rbt)/model/tracer/tracer_with_laser_imu.xacro'
         robot_namespace:=$(arg robot_namespace)
@@ -31,13 +31,13 @@
               -model 'tracer$(arg robot_namespace)'" />
 
     <!-- Load joint controller configurations from YAML file to parameter server -->
-    <rosparam file="$(find tracer_gazebo_sim)/config/tracer_v1_control.yaml" command="load"/>
+    <rosparam file="$(find simple_rbt)/config/tracer_v1_control.yaml" command="load"/>
 
     <!-- load the controllers -->
     <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="tracer_state_controller tracer_motor_r_controller tracer_motor_l_controller "/>
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 
-    <node name="tracer_skid_steer_controller" pkg="tracer_gazebo_sim" type="tracer_skid_steer_controller">
+    <node name="tracer_skid_steer_controller" pkg="simple_rbt" type="tracer_skid_steer_controller">
         <param name="robot_namespace" type="string" value="$(arg robot_namespace)" />
     </node>
 
