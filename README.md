@@ -1,6 +1,6 @@
 # simple_rbt
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. WPR Home with Laser Camera IMU
 
@@ -118,7 +118,39 @@ roslaunch simple_rbt omni_mid360.launch
 # roslaunch simple_rbt omni_front_cam_imu.launch
 ```
 
-## 🙏 Thanks
+---
+
+### 8. Go2W (High-Level Controller)
+
+**Terminal 1 (Gazebo World):**
+```bash
+source devel/setup.bash
+roslaunch simple_rbt gazebo_empty_world.launch
+```
+
+**Terminal 2 (Spawn Model & High-Level GUI):**
+```bash
+source devel/setup.bash
+roslaunch simple_rbt go2w_mid360_cam_high.launch
+```
+
+---
+
+### 9. Go2W (Low-Level Joint Controller)
+
+**Terminal 1 (Gazebo World):**
+```bash
+source devel/setup.bash
+roslaunch simple_rbt gazebo_empty_world.launch
+```
+
+**Terminal 2 (Spawn Model & Joint GUI):**
+```bash
+source devel/setup.bash
+roslaunch simple_rbt go2w_mid360_cam_low.launch
+```
+
+## Thanks
 
 * **WPR Simulation:** [https://github.com/6-robot/wpr_simulation](https://github.com/6-robot/wpr_simulation)
 * **UGV Gazebo Sim:** [https://github.com/agilexrobotics/ugv_gazebo_sim](https://github.com/agilexrobotics/ugv_gazebo_sim)
@@ -126,3 +158,4 @@ roslaunch simple_rbt omni_mid360.launch
 * **Mid360 Simulation Plugin:** [https://github.com/fratopa/Mid360_simulation_plugin](https://github.com/fratopa/Mid360_simulation_plugin)
 * **Limo Simulator:** [https://github.com/limo-agx/limo_simulator](https://github.com/limo-agx/limo_simulator)
 * **Omni Wheel Robot GazeboSim:** [https://github.com/KairongWu/Omni_wheel_robot_GazeboSim](https://github.com/KairongWu/Omni_wheel_robot_GazeboSim)
+* **Unitree Go2W ROS2:** [https://github.com/Sam-Mag1/unitree_go2w_ros2](https://github.com/Sam-Mag1/unitree_go2w_ros2)

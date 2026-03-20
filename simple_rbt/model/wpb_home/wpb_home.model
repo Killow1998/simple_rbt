@@ -371,7 +371,19 @@
     </sensor>
 </gazebo>
 
-<!-- IMU plugin for 'body_link' -->
+<!-- IMU link and plugin -->
+<link name="imu_link">
+  <inertial>
+    <mass value="0.001"/>
+    <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+  </inertial>
+</link>
+<joint name="imu_joint" type="fixed">
+  <parent link="body_link"/>
+  <child link="imu_link"/>
+  <origin xyz="0 0 0" rpy="0 0 0"/>
+</joint>
+
 <gazebo reference="body_link">
   <gravity>true</gravity>
   <sensor name="imu_sensor" type="imu">

@@ -58,5 +58,7 @@ target_link_libraries(dummy_cmd_vel ${catkin_LIBRARIES})
 # Omni Commander Script
 catkin_install_python(PROGRAMS
   scripts/omni_commander.py
+  scripts/go2w_high_level_publisher.py
+  scripts/go2w_joint_publisher.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

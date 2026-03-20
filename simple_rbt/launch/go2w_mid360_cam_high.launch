@@ -1,0 +1,29 @@
+<launch>
+    <!-- initial pose -->
+    <arg name="x" default="0.0"/>
+    <arg name="y" default="0.0"/>
+    <arg name="z" default="0.8"/>
+    <arg name="yaw" default="0.0"/>
+
+    <param name="robot_description" command="$(find xacro)/xacro '$(find simple_rbt)/model/go2w/go2w.urdf.xacro'" />
+
+    <node name="spawn_go2w_model" pkg="gazebo_ros" type="spawn_model" args="-x $(arg x)
+              -y $(arg y)
+              -z $(arg z)
+              -Y $(arg yaw)
+              -unpause
+              -urdf
+              -param robot_description
+              -model go2w" />
+
+    <!-- Load joint controller configurations from YAML file to parameter server -->
+    <rosparam file="$(find simple_rbt)/config/go2w_control.yaml" command="load"/>
+
+    <!-- load the controllers -->
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"
+          args="joint_state_controller joint_group_effort_controller joint_group_velocity_controller"/>
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+
+    <node name="go2w_high_level_publisher" pkg="simple_rbt" type="go2w_high_level_publisher.py" output="screen" />
+</launch>

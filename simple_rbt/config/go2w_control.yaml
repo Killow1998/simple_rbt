@@ -1,0 +1,43 @@
+joint_state_controller:
+  type: joint_state_controller/JointStateController
+  publish_rate: 50
+
+joint_group_effort_controller:
+  type: joint_trajectory_controller/JointTrajectoryController
+  joints:
+    - FL_hip_joint
+    - FL_thigh_joint
+    - FL_calf_joint
+    - FR_hip_joint
+    - FR_thigh_joint
+    - FR_calf_joint
+    - RL_hip_joint
+    - RL_thigh_joint
+    - RL_calf_joint
+    - RR_hip_joint
+    - RR_thigh_joint
+    - RR_calf_joint
+  gains:
+    FL_hip_joint:    {p: 100.0, i: 0.2, d: 1.0, i_clamp: 2.5}
+    FL_thigh_joint:  {p: 100.0, i: 0.2, d: 1.0, i_clamp: 2.5}
+    FL_calf_joint:   {p: 100.0, i: 0.2, d: 1.0, i_clamp: 2.5}
+    FR_hip_joint:    {p: 100.0, i: 0.2, d: 1.0, i_clamp: 2.5}
+    FR_thigh_joint:  {p: 100.0, i: 0.2, d: 1.0, i_clamp: 2.5}
+    FR_calf_joint:   {p: 100.0, i: 0.2, d: 1.0, i_clamp: 2.5}
+    RL_hip_joint:    {p: 100.0, i: 0.2, d: 1.0, i_clamp: 2.5}
+    RL_thigh_joint:  {p: 100.0, i: 0.2, d: 1.0, i_clamp: 2.5}
+    RL_calf_joint:   {p: 100.0, i: 0.2, d: 1.0, i_clamp: 2.5}
+    RR_hip_joint:    {p: 100.0, i: 0.2, d: 1.0, i_clamp: 2.5}
+    RR_thigh_joint:  {p: 100.0, i: 0.2, d: 1.0, i_clamp: 2.5}
+    RR_calf_joint:   {p: 100.0, i: 0.2, d: 1.0, i_clamp: 2.5}
+  constraints:
+    goal_time: 0.6
+    stopped_velocity_tolerance: 0.02
+
+joint_group_velocity_controller:
+  type: velocity_controllers/JointGroupVelocityController
+  joints:
+    - FL_foot_joint
+    - FR_foot_joint
+    - RL_foot_joint
+    - RR_foot_joint

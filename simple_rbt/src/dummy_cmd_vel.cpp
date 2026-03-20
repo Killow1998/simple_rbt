@@ -5,11 +5,15 @@ int main(int argc, char **argv)
 {
   ros::init(argc, argv, "dummy_cmd_vel_publisher");
   ros::NodeHandle n;
+  ros::NodeHandle pnh("~");
 
-  ros::Publisher cmd_pub = n.advertise<geometry_msgs::Twist>("dummy_twist", 10);
+  std::string topic_name = "cmd_vel";
+  pnh.param<std::string>("topic", topic_name, topic_name);
+
+  ros::Publisher cmd_pub = n.advertise<geometry_msgs::Twist>(topic_name, 10);
 
   ros::Rate loop_rate(10);
-geometry_msgs::Twist msg;
+  geometry_msgs::Twist msg;
   while (ros::ok())
   {
     cmd_pub.publish(msg);
