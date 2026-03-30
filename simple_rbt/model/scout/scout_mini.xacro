@@ -3,6 +3,7 @@
     xmlns:xacro="http://ros.org/wiki/xacro">
 
     <xacro:arg name="robot_namespace" default="/" />
+    <xacro:arg name="sensor_namespace" default="scout" />
     <xacro:arg name="urdf_extras" default="empty.urdf" />
 
     <xacro:include filename="$(find simple_rbt)/model/sensor/simple_mid360/model.xacro" />
@@ -103,12 +104,14 @@
       parent_link="base_link"
       xyz="0 0 0.23" 
       rpy="0 0 0"
+      sensor_namespace="$(arg sensor_namespace)"
     />
 
     <xacro:simple_front_camera
       parent_link="base_link"
       xyz="0.2 0 0.16" 
       rpy="0 0 0"
+      sensor_namespace="$(arg sensor_namespace)"
     />
 
     <xacro:scout_mini_wheel_1 wheel_prefix="front_left" wheel_diameter="${wheel_diameter}" wheel_width="${wheel_width}">

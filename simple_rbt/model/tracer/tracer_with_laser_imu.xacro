@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="tracer_with_laser_imu">
+  <xacro:arg name="sensor_namespace" default="tracer"/>
 
   <xacro:include filename="$(find simple_rbt)/model/tracer/urdf/tracer_v1.xacro"/>
 
@@ -9,6 +10,7 @@
     parent_link="base_link" 
     xyz="0.0 0 0.03" 
     rpy="0 0 0"
+    sensor_namespace="$(arg sensor_namespace)"
   />
 
 </robot>

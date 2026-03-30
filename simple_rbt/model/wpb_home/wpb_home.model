@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<robot name="wpb_home_gazebo">
+<robot name="wpb_home_gazebo" xmlns:xacro="http://ros.org/wiki/xacro">
+<xacro:arg name="sensor_namespace" default="wpb_home"/>
 
 <link name="base_footprint">
   <visual>
@@ -264,6 +265,7 @@
       </noise>
     </ray>
     <plugin name="rplidar_ros_controller" filename="libgazebo_ros_laser.so">
+      <robotNamespace>$(arg sensor_namespace)</robotNamespace>
       <topicName>laser/scan</topicName>
       <frameName>laser</frameName>
     </plugin>
@@ -293,6 +295,7 @@
       </noise>
     </camera>
     <plugin name="kinect2_depth_control" filename="libgazebo_ros_openni_kinect.so">
+        <robotNamespace>$(arg sensor_namespace)</robotNamespace>
         <cameraName>kinect2/sd</cameraName>
         <alwaysOn>true</alwaysOn>
         <updateRate>20.0</updateRate>
@@ -334,6 +337,7 @@
           </noise>
         </camera>
         <plugin name="kinect2_rgb_controller" filename="libgazebo_ros_camera.so">
+          <robotNamespace>$(arg sensor_namespace)</robotNamespace>
           <alwaysOn>true</alwaysOn>
           <update_rate>20.0</update_rate>
           <cameraName>kinect2/hd</cameraName>
@@ -361,6 +365,7 @@
           </clip>
         </camera>
         <plugin name="kinect2_qhd_rgb_controller" filename="libgazebo_ros_camera.so">
+          <robotNamespace>$(arg sensor_namespace)</robotNamespace>
           <alwaysOn>true</alwaysOn>
           <update_rate>20.0</update_rate>
           <cameraName>kinect2/qhd</cameraName>
@@ -392,6 +397,7 @@
     <visualize>true</visualize>
     <topic>__default_topic__</topic>
     <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+      <robotNamespace>$(arg sensor_namespace)</robotNamespace>
       <topicName>imu/data</topicName>
       <bodyName>body_link</bodyName>
       <updateRateHZ>100.0</updateRateHZ>

@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="limo_with_front_cam_imu">
+  <xacro:arg name="sensor_namespace" default="limo"/>
   <xacro:include filename="$(find simple_rbt)/model/limo/urdf/limo_ackerman.xacro"/>
   <xacro:include filename="$(find simple_rbt)/model/sensor/simple_front_cam_imu/model.xacro"/>
-  <xacro:simple_front_cam_imu parent_link="base_link" xyz="0.06 0.0 0.05" rpy="0 0 0" />
+  <xacro:simple_front_cam_imu parent_link="base_link" xyz="0.06 0.0 0.05" rpy="0 0 0" sensor_namespace="$(arg sensor_namespace)" />
 </robot>

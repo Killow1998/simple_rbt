@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro" name="go2w">
+  <xacro:arg name="sensor_namespace" default="go2w"/>
   <!-- Gloabal parameters -->
   <xacro:include filename="$(find simple_rbt)/model/go2w/urdf/const.xacro"/>
 
@@ -317,6 +318,7 @@
     parent_link="body"
     xyz="0.28945 0 -0.046825"
     rpy="${PI} 2.8782 0"
+    sensor_namespace="$(arg sensor_namespace)"
   />
 
   <!-- Front Camera -->
@@ -324,6 +326,7 @@
     parent_link="body"
     xyz="0.325 0 0.043"
     rpy="0 0 0"
+    sensor_namespace="$(arg sensor_namespace)"
   />
 
   <xacro:macro name="go2w_transmission" params="joint_name interface">

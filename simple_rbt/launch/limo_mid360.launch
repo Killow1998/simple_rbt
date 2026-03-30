@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <launch>
+    <arg name="sensor_namespace" default="limo"/>
     <!-- Limo Ackermann with Mid360 -->
-    <param name="robot_description" command="$(find xacro)/xacro '$(find simple_rbt)/model/limo/limo_with_mid360.xacro'" />
+    <param name="robot_description" command="$(find xacro)/xacro '$(find simple_rbt)/model/limo/limo_with_mid360.xacro'
+        sensor_namespace:=$(arg sensor_namespace)" />
 
     <arg name="x" default="0.0"/>
     <arg name="y" default="0.0"/>
@@ -28,4 +30,8 @@
 
     <!-- We do not include limo_control/launch/control.launch as it uses ackermann_msgs and standard ROS control, 
          we will use gazebo plugin directly or standard cmd_vel topic -->
+
+    <node name="battery_state_publisher" pkg="simple_rbt" type="static_battery_pub.py" ns="$(arg sensor_namespace)" output="screen">
+        <param name="frame_id" type="string" value="base_link" />
+    </node>
 </launch>

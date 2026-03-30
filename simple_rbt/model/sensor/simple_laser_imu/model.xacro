@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro"> 
     
-    <xacro:macro name="simple_laser_imu" params="parent_link xyz rpy">
+    <xacro:macro name="simple_laser_imu" params="parent_link xyz rpy sensor_namespace">
         
         <link name="imu_link">
             <inertial>
@@ -72,7 +72,8 @@
                 </ray>
 
                 <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_laser.so">
-                    <topicName>/laser/scan</topicName>
+                    <robotNamespace>${sensor_namespace}</robotNamespace>
+                    <topicName>laser/scan</topicName>
                     <frameName>laser_link</frameName>
                 </plugin>
             </sensor>
@@ -86,7 +87,8 @@
                 <visualize>true</visualize>
 
                 <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
-                    <topicName>/laser/imu</topicName>
+                    <robotNamespace>${sensor_namespace}</robotNamespace>
+                    <topicName>laser/imu</topicName>
                     <bodyName>imu_link</bodyName>
                     <updateRateHZ>200.0</updateRateHZ>
                     <gaussianNoise>0.0</gaussianNoise>

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
     
-    <xacro:macro name="simple_mid360" params="parent_link xyz rpy">
+    <xacro:macro name="simple_mid360" params="parent_link xyz rpy sensor_namespace">
         
         <link name="livox_link">
             <inertial>
@@ -61,6 +61,7 @@
                 <update_rate>10</update_rate>
 
                 <plugin name="gazebo_ros_laser_controller" filename="liblivox_laser_simulation.so">
+                    <robotNamespace>${sensor_namespace}</robotNamespace>
                     <ray>
                         <scan>
                             <horizontal>
@@ -93,7 +94,7 @@
                     <downsample>1</downsample>
                     <csv_file_name>mid360-real-centr.csv</csv_file_name>
                     <publish_pointcloud_type>3</publish_pointcloud_type>
-                    <ros_topic>/livox/lidar</ros_topic>
+                    <ros_topic>livox/lidar</ros_topic>
                     <frameName>livox_link</frameName>
                 </plugin>
             </sensor>
@@ -109,7 +110,8 @@
                 <topic>__default_topic__</topic>
 
                 <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
-                    <topicName>/livox/imu</topicName>
+                    <robotNamespace>${sensor_namespace}</robotNamespace>
+                    <topicName>livox/imu</topicName>
                     <bodyName>imu_link</bodyName>
                     <updateRateHZ>200.0</updateRateHZ>
                     <gaussianNoise>0.0</gaussianNoise>

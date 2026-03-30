@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
     
-    <xacro:macro name="simple_front_cam_imu" params="parent_link xyz rpy">
+    <xacro:macro name="simple_front_cam_imu" params="parent_link xyz rpy sensor_namespace">
         
         <link name="camera_link">
             <inertial>
@@ -73,9 +73,10 @@
                 </camera>
 
                 <plugin name="camera_controller" filename="libgazebo_ros_camera.so">
-                    <cameraName>front_camera</cameraName>
-                    <imageTopicName>/camera/image_raw</imageTopicName>
-                    <cameraInfoTopicName>/camera/camera_info</cameraInfoTopicName>
+                    <robotNamespace>${sensor_namespace}</robotNamespace>
+                    <cameraName>camera</cameraName>
+                    <imageTopicName>image_raw</imageTopicName>
+                    <cameraInfoTopicName>camera_info</cameraInfoTopicName>
                     <frameName>camera_link</frameName>
                     <updateRate>30.0</updateRate>
                     <alwaysOn>true</alwaysOn>
@@ -93,7 +94,8 @@
                 <visualize>true</visualize>
 
                 <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
-                    <topicName>/camera/imu</topicName>
+                    <robotNamespace>${sensor_namespace}</robotNamespace>
+                    <topicName>camera/imu</topicName>
                     <bodyName>imu_link</bodyName>
                     <updateRateHZ>200.0</updateRateHZ>
                     <gaussianNoise>0.0</gaussianNoise>

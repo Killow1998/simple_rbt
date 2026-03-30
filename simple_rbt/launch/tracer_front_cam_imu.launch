@@ -7,6 +7,7 @@
     <arg name="yaw" default="0.0"/>
 
     <arg name="robot_namespace" default=""/>
+    <arg name="sensor_namespace" default="tracer"/>
 
     <arg name="paused" default="true" />
     <arg name="use_sim_time" default="true" />
@@ -18,6 +19,7 @@
 
     <param name="robot_description" command="$(find xacro)/xacro '$(find simple_rbt)/model/tracer/tracer_with_front_cam_imu.xacro'
         robot_namespace:=$(arg robot_namespace)
+        sensor_namespace:=$(arg sensor_namespace)
         urdf_extras:=$(arg urdf_extras)" />
 
     <!-- load the model -->
@@ -41,4 +43,8 @@
         <param name="robot_namespace" type="string" value="$(arg robot_namespace)" />
     </node>
 
+
+    <node name="battery_state_publisher" pkg="simple_rbt" type="static_battery_pub.py" ns="$(arg sensor_namespace)" output="screen">
+        <param name="frame_id" type="string" value="base_link" />
+    </node>
 </launch>

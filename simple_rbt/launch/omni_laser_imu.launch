@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <launch>
+    <arg name="sensor_namespace" default="omni"/>
     <!-- Omni Robot with Laser & IMU -->
-    <param name="robot_description" command="$(find xacro)/xacro '$(find simple_rbt)/model/omni/omni_with_laser_imu.xacro'" />
+    <param name="robot_description" command="$(find xacro)/xacro '$(find simple_rbt)/model/omni/omni_with_laser_imu.xacro'
+        sensor_namespace:=$(arg sensor_namespace)" />
 
     <arg name="x" default="0.0"/>
     <arg name="y" default="0.0"/>
@@ -24,4 +26,8 @@
 
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
     <node name="omni_commander" pkg="simple_rbt" type="omni_commander.py" output="screen"/>
+
+    <node name="battery_state_publisher" pkg="simple_rbt" type="static_battery_pub.py" ns="$(arg sensor_namespace)" output="screen">
+        <param name="frame_id" type="string" value="base_link" />
+    </node>
 </launch>

@@ -7,7 +7,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   sensor_msgs
-  move_base_msgs 
   actionlib
   tf
   tf2
@@ -60,5 +59,6 @@ catkin_install_python(PROGRAMS
   scripts/omni_commander.py
   scripts/go2w_high_level_publisher.py
   scripts/go2w_joint_publisher.py
+  scripts/static_battery_pub.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

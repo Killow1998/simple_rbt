@@ -21,6 +21,35 @@
 #include <sensor_msgs/PointCloud2.h>
 
 namespace gazebo {
+namespace {
+std::string TrimSlashes(const std::string &value) {
+  size_t start = 0;
+  while (start < value.size() && value[start] == '/') {
+    ++start;
+  }
+
+  size_t end = value.size();
+  while (end > start && value[end - 1] == '/') {
+    --end;
+  }
+
+  return value.substr(start, end - start);
+}
+
+std::string ResolveRosTopic(const std::string &robot_namespace,
+                            const std::string &topic) {
+  if (topic.empty() || topic.front() == '/') {
+    return topic;
+  }
+
+  const auto clean_namespace = TrimSlashes(robot_namespace);
+  if (clean_namespace.empty()) {
+    return topic;
+  }
+
+  return "/" + clean_namespace + "/" + topic;
+}
+} // namespace
 
 GZ_REGISTER_SENSOR_PLUGIN(LivoxPointsPlugin)
 
@@ -69,9 +98,14 @@ void LivoxPointsPlugin::Load(gazebo::sensors::SensorPtr _parent,
 
   int argc = 0;
   char **argv = nullptr;
-  auto curr_scan_topic = sdf->Get<std::string>("ros_topic");
+  const auto curr_scan_topic = sdf->Get<std::string>("ros_topic");
+  std::string robot_namespace;
+  if (sdf->HasElement("robotNamespace")) {
+    robot_namespace = sdf->Get<std::string>("robotNamespace");
+  }
+  const auto resolved_scan_topic = ResolveRosTopic(robot_namespace, curr_scan_topic);
   frameName = sdf->Get<std::string>("frameName");
-  ROS_INFO_STREAM("ros topic name:" << curr_scan_topic);
+  ROS_INFO_STREAM("ros topic name:" << resolved_scan_topic);
   ROS_INFO_STREAM("ros frame id: " << frameName);
 
   raySensor = _parent;
@@ -106,21 +140,24 @@ void LivoxPointsPlugin::Load(gazebo::sensors::SensorPtr _parent,
 
   publishPointCloudType = sdfPtr->Get<int>("publish_pointcloud_type");
   ROS_INFO_STREAM("publish_pointcloud_type: " << publishPointCloudType);
-  ros::init(argc, argv, curr_scan_topic);
+  if (!ros::isInitialized()) {
+    ros::init(argc, argv, "livox_laser_simulation",
+              ros::init_options::NoSigintHandler | ros::init_options::AnonymousName);
+  }
   rosNode.reset(new ros::NodeHandle);
   switch (publishPointCloudType) {
   case SENSOR_MSG_POINT_CLOUD:
     rosPointPub =
-        rosNode->advertise<sensor_msgs::PointCloud>(curr_scan_topic, 5);
+        rosNode->advertise<sensor_msgs::PointCloud>(resolved_scan_topic, 5);
     break;
   case SENSOR_MSG_POINT_CLOUD2_POINTXYZ:
   case SENSOR_MSG_POINT_CLOUD2_LIVOXPOINTXYZRTLT:
     rosPointPub =
-        rosNode->advertise<sensor_msgs::PointCloud2>(curr_scan_topic, 5);
+        rosNode->advertise<sensor_msgs::PointCloud2>(resolved_scan_topic, 5);
     break;
   case livox_laser_simulation_CUSTOM_MSG:
     rosPointPub =
-        rosNode->advertise<livox_ros_driver2::CustomMsg>(curr_scan_topic, 5);
+        rosNode->advertise<livox_ros_driver2::CustomMsg>(resolved_scan_topic, 5);
     break;
   default:
     break;

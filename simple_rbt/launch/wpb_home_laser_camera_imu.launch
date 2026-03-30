@@ -1,4 +1,7 @@
 <launch>
+  <arg name="model" default="$(find simple_rbt)/model/wpb_home/wpb_home.model"/>
+  <arg name="sensor_namespace" default="wpb_home"/>
+
   <!-- <arg name="world_file" default="$(find simple_rbt)/world/empty.world"/>
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -9,12 +12,15 @@
     <arg name="verbose" value="true"/>
   </include> -->
 
-  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-file $(find simple_rbt)/model/wpb_home/wpb_home.model  -urdf -model wpb_home" />
-
-  <arg name="model" default="$(find simple_rbt)/model/wpb_home/wpb_home.model"/>
-  <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />
+  <param name="robot_description" command="$(find xacro)/xacro '$(arg model)'
+      sensor_namespace:=$(arg sensor_namespace)" />
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model wpb_home" />
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 
+
+    <node name="battery_state_publisher" pkg="simple_rbt" type="static_battery_pub.py" ns="$(arg sensor_namespace)" output="screen">
+        <param name="frame_id" type="string" value="base_link" />
+    </node>
 </launch>
 

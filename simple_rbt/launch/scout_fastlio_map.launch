@@ -1,0 +1,17 @@
+<launch>
+  <arg name="sensor_namespace" default="scout" />
+  <arg name="slam_namespace" default="$(arg sensor_namespace)/slam" />
+  <arg name="world_frame" default="odom_wheel" />
+  <arg name="body_frame" default="base_link" />
+  <arg name="rviz" default="false" />
+  <arg name="slam_delay" default="0.0" />
+
+  <include file="$(find fast_lio)/launch/mapping_mid360_namespaced.launch">
+    <arg name="sensor_namespace" value="$(arg sensor_namespace)" />
+    <arg name="slam_namespace" value="$(arg slam_namespace)" />
+    <arg name="world_frame" value="$(arg world_frame)" />
+    <arg name="body_frame" value="$(arg body_frame)" />
+    <arg name="rviz" value="$(arg rviz)" />
+    <arg name="slam_delay" value="$(arg slam_delay)" />
+  </include>
+</launch>

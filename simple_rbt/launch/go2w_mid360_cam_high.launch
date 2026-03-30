@@ -4,8 +4,10 @@
     <arg name="y" default="0.0"/>
     <arg name="z" default="0.8"/>
     <arg name="yaw" default="0.0"/>
+    <arg name="sensor_namespace" default="go2w"/>
 
-    <param name="robot_description" command="$(find xacro)/xacro '$(find simple_rbt)/model/go2w/go2w.urdf.xacro'" />
+    <param name="robot_description" command="$(find xacro)/xacro '$(find simple_rbt)/model/go2w/go2w.urdf.xacro'
+        sensor_namespace:=$(arg sensor_namespace)" />
 
     <node name="spawn_go2w_model" pkg="gazebo_ros" type="spawn_model" args="-x $(arg x)
               -y $(arg y)
@@ -26,4 +28,8 @@
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 
     <node name="go2w_high_level_publisher" pkg="simple_rbt" type="go2w_high_level_publisher.py" output="screen" />
+
+    <node name="battery_state_publisher" pkg="simple_rbt" type="static_battery_pub.py" ns="$(arg sensor_namespace)" output="screen">
+        <param name="frame_id" type="string" value="body" />
+    </node>
 </launch>
