@@ -61,11 +61,11 @@
             <wheelSeparation>0.172</wheelSeparation>
             <wheelDiameter>0.09</wheelDiameter>
             <robotBaseFrame>base_footprint</robotBaseFrame>
-            <commandTopic>cmd_vel</commandTopic>
+            <commandTopic>$(arg robot_namespace)/cmd_vel</commandTopic>
             <torque>50</torque>
             <broadcastTF>true</broadcastTF>
-            <odometryTopic>odom</odometryTopic>
-            <odometryFrame>odom</odometryFrame>
+            <odometryTopic>$(arg robot_namespace)/odom_wheel</odometryTopic>
+            <odometryFrame>$(arg robot_namespace)/odom_wheel</odometryFrame>
             <covariance_x>0.000100</covariance_x>
             <covariance_y>0.000100</covariance_y>
             <covariance_yaw>0.010000</covariance_yaw>

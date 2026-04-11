@@ -3,7 +3,7 @@
     <arg name="sensor_namespace" default="omni"/>
     <!-- Omni Robot with Laser & IMU -->
     <param name="robot_description" command="$(find xacro)/xacro '$(find simple_rbt)/model/omni/omni_with_laser_imu.xacro'
-        sensor_namespace:=$(arg sensor_namespace)" />
+        sensor_namespace:=$(arg sensor_namespace) robot_namespace:=$(arg sensor_namespace)" />
 
     <arg name="x" default="0.0"/>
     <arg name="y" default="0.0"/>
@@ -19,13 +19,18 @@
         -param robot_description
         -model omni" />
 
-    <rosparam file="$(find simple_rbt)/config/omni_control.yaml" command="load"/>
+    <rosparam file="$(find simple_rbt)/config/omni_control.yaml" command="load" ns="$(arg sensor_namespace)"/>
 
-    <node name="controller_spawner" pkg="controller_manager" type="spawner" 
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" ns="$(arg sensor_namespace)" 
         respawn="false" output="screen" args="joint_state_controller first_wheel_controller second_wheel_controller third_wheel_controller"/>
 
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
-    <node name="omni_commander" pkg="simple_rbt" type="omni_commander.py" output="screen"/>
+    <node name="omni_commander" pkg="simple_rbt" type="omni_commander.py" output="screen">
+        <remap from="/cmd_vel" to="/$(arg sensor_namespace)/cmd_vel"/>
+        <remap from="/first_wheel_controller/command" to="/$(arg sensor_namespace)/first_wheel_controller/command"/>
+        <remap from="/second_wheel_controller/command" to="/$(arg sensor_namespace)/second_wheel_controller/command"/>
+        <remap from="/third_wheel_controller/command" to="/$(arg sensor_namespace)/third_wheel_controller/command"/>
+    </node>
 
     <node name="battery_state_publisher" pkg="simple_rbt" type="static_battery_pub.py" ns="$(arg sensor_namespace)" output="screen">
         <param name="frame_id" type="string" value="base_link" />

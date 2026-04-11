@@ -120,7 +120,7 @@
             <wheelDiameter>0.16</wheelDiameter>
             <robotBaseFrame>base_link</robotBaseFrame>
             <torque>1000</torque>
-            <commandTopic>cmd_vel</commandTopic>
+            <commandTopic>$(arg robot_namespace)/cmd_vel</commandTopic>
             <broadcastTF>false</broadcastTF>
             <odometryTopic>odom_wheel</odometryTopic>
             <odometryFrame>odom_wheel</odometryFrame>
@@ -169,9 +169,9 @@
 
     <!-- <gazebo>
         <plugin name="object_controller" filename="libgazebo_ros_planar_move.so">
-            <commandTopic>cmd_vel</commandTopic>
-            <odometryTopic>odom</odometryTopic>
-            <odometryFrame>odom</odometryFrame>
+            <commandTopic>$(arg robot_namespace)/cmd_vel</commandTopic>
+            <odometryTopic>$(arg robot_namespace)/odom_wheel</odometryTopic>
+            <odometryFrame>$(arg robot_namespace)/odom_wheel</odometryFrame>
             <odometryRate>20.0</odometryRate>
             <robotBaseFrame>base_footprint</robotBaseFrame>
         </plugin>

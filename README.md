@@ -159,3 +159,7 @@ roslaunch simple_rbt go2w_mid360_cam_low.launch
 * **Limo Simulator:** [https://github.com/limo-agx/limo_simulator](https://github.com/limo-agx/limo_simulator)
 * **Omni Wheel Robot GazeboSim:** [https://github.com/KairongWu/Omni_wheel_robot_GazeboSim](https://github.com/KairongWu/Omni_wheel_robot_GazeboSim)
 * **Unitree Go2W ROS2:** [https://github.com/Sam-Mag1/unitree_go2w_ros2](https://github.com/Sam-Mag1/unitree_go2w_ros2)
+## Dependencies
+```bash
+sudo apt install -y python3-rosdep python3-catkin-tools libyaml-cpp-dev libopencv-dev libboost-system-dev libboost-thread-dev ros-noetic-xacro ros-noetic-gazebo-ros-pkgs ros-noetic-gazebo-ros-control ros-noetic-ros-control ros-noetic-ros-controllers ros-noetic-controller-manager ros-noetic-joint-state-controller ros-noetic-joint-trajectory-controller ros-noetic-velocity-controllers ros-noetic-cv-bridge ros-noetic-image-transport ros-noetic-tf2 ros-noetic-tf2-ros ros-noetic-tf2-geometry-msgs
+```

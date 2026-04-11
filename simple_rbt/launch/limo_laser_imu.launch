@@ -3,7 +3,7 @@
     <arg name="sensor_namespace" default="limo"/>
     <!-- Limo Ackermann with Laser & IMU -->
     <param name="robot_description" command="$(find xacro)/xacro '$(find simple_rbt)/model/limo/limo_with_laser_imu.xacro'
-        sensor_namespace:=$(arg sensor_namespace)" />
+        sensor_namespace:=$(arg sensor_namespace) robot_namespace:=$(arg sensor_namespace)" />
 
     <arg name="x" default="0.0"/>
     <arg name="y" default="0.0"/>
@@ -26,7 +26,7 @@
             limo_fl_steering_hinge_controller limo_fr_steering_hinge_controller"/>
 
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
-    <node name="dummy_zero_cmd_vel" pkg="simple_rbt" type="dummy_cmd_vel" />
+    <node name="dummy_zero_cmd_vel" pkg="simple_rbt" type="dummy_cmd_vel"><remap from="cmd_vel" to="/$(arg sensor_namespace)/cmd_vel" /></node>
 
     <node name="battery_state_publisher" pkg="simple_rbt" type="static_battery_pub.py" ns="$(arg sensor_namespace)" output="screen">
         <param name="frame_id" type="string" value="base_link" />
