@@ -1,205 +1,66 @@
 # simple_rbt
 
-## MuJoCo prototype (Jammy / ROS 2 Humble)
+MuJoCo、C++17、ROS 2 Humble 機器人模擬器。輸入速度指令，輸出物理運動、MID360 雷達／IMU、雙相機、里程計和 TF。
+目前支援 Go2、Go2W、雙輪差速參考模型、Scout Mini、FR-mini、Ridgeback、Ranger Mini。
+純輪式底盤使用平地、坡道、連續起伏；Go2／Go2W 另有樓梯及階躍起伏。
 
-The new [MuJoCo simulator](mujoco_sim/README.md) runs seven configurations: Go2,
-Go2W, a simple differential-drive base, Scout Mini, FR-mini, Ridgeback R100 and
-Ranger Mini 3.0. Pure wheel chassis use flat ground, ramps and continuous hills;
-legged models also retain stairs and step-cell roughness. The default runtime is now
-C++17: controllers, physics scheduling, MID360 CPU/native CUDA ray casting,
-IMU, perspective RGB/depth, panoramic RGB/range and the desktop viewer.
-Its optional ROS 2 transport accepts `/<robot>/cmd_vel` and publishes Livox messages,
-images, odometry, clock and TF. See the linked guide for tested commands and
-current limits; the legacy robot collection has not all been migrated.
-The [C++ migration record](mujoco_sim/docs/cpp-runtime-validation-20261013.md)
-contains equivalence, complete-course acceptance and CPU/RAM measurements.
-The current [architecture and ablation record](mujoco_sim/docs/cpp-architecture-ablation-20261013.md)
-records the module split, unchanged physics, fault-detection experiments and repeated
-full ROS comparisons. Peak process RSS fell by 8.7–13.2 MiB for the three measured
-wheel chassis; the small CPU differences do not establish a speedup. Those measurements
-precede the subsequent differential-drive caster classification fix. The final version
-preserves chassis-ground collision checks and passes all 31 formal checks for each
-of the seven robots, plus 10 CTest cases and 392 Python tests with 65 subtests.
-Python remains available through `mujoco_sim/run-python.sh` for reference tests and
-offline model preparation; the normal launcher does not start Python.
-The latest [deployment and full ROS validation](mujoco_sim/docs/deployment-validation-20261013.md)
-records Go2 startup/torque/material comparisons and Go2W's complete multi-terrain,
-sensor, ROS and real-time acceptance. Go2's higher-terrain speed limits remain explicit.
-The current [MID360 alignment](mujoco_sim/docs/mid360-validation-20261013.md)
-adds the device's nominal internal IMU geometry, 200 Hz sampling, explicit raw/SI
-outputs and per-point moving LiDAR. Historical snapshot results remain separate.
-The [wheel-chassis deployment record](mujoco_sim/docs/wheel-chassis-validation-20261013.md)
-covers Ackermann, passive-roller Mecanum and four-module steering, their named ROS
-interfaces, continuous-surface acceptance and measured resource use. These are
-contact-driven engineering models, not calibrated hardware replicas.
-The historical [Scout Mini first-stage record](mujoco_sim/docs/scout-mini-validation-20261013.md)
-preserves its earlier terrain results; step traversal is no longer a wheel-chassis requirement.
+## 從這裡開始
 
 ```bash
-./mujoco_sim/setup.sh
-./mujoco_sim/run.sh --robot go2w --terrain stairs --backend warp --cmd .6 0 0 --duration 15 --sensors full --camera-hz 10 --realtime
+# 首次準備 SDK、模型及建置
+./setup.sh
+
+# 已有 SDK／資產時，只建置本專案訊息與 C++
+./setup.sh --native-only
+
+# 完整感測器、即時運行及桌面視窗
+./run.sh --robot fr_mini --cmd .3 0 0 --sensors full \
+  --backend cuda --camera-hz 10 --realtime --viewer --duration 10
+
+./run.sh --help
 ```
 
-## Legacy Gazebo / ROS 1 Quick Start
+加上 `--ros2` 後，速度由 `/<robot>/cmd_vel` 接收，超過 0.5 秒沒有新指令即停車。
+正常執行入口 `run.sh` 啟動 C++；Python 留作離線準備與獨立對照。
+完整依賴、ROS 介面、控制模式和已知運動限制見 [操作說明](docs/python-reference.md)及[原生建置](docs/runtime.md)。
 
-### 1. WPR Home with Laser Camera IMU
+## 資料夾分工
 
-**Terminal 1 (Gazebo World):**
+```text
+simple_rbt/
+├── CMakeLists.txt          C++ 建置入口
+├── setup.sh / run.sh       準備與啟動入口
+├── src/                    物理、控制器、感測器、ROS 與排程
+├── include/simple_rbt/     C++ 模組介面
+├── assets/                 共用模型、策略、參數與扫描資料
+├── tests/                  C++ 邊界與傳輸測試
+├── tools/                  資產準備、量測與聯合驗收
+├── reference/python/       獨立 Python 對照實作及其測試
+├── ros2_interfaces/        相容的 Livox 訊息定義，沒有硬體驅動
+├── third_party/            固定版本 headers 與原授權
+├── docs/                   操作、設計與已完成驗證
+├── build/                  本機編譯結果（不進 Git）
+└── output/                 實驗、量測及測試輸出（不進 Git）
+```
+
+[assets/README.md](assets/README.md)說明共用資產；`.vendor/` 存放按 manifest 準備的模型網格，
+`.venv/` 提供 MuJoCo／ONNX Runtime 的 SDK 與對照工具。兩者不進 Git。
+新增同控制器的模型修改登記及資料；新增控制律放在獨立控制器實作，見[模組說明](docs/runtime.md)。
+
+## 驗證與舊版本
+
 ```bash
-source devel/setup.bash
-roslaunch simple_rbt gazebo_empty_world.launch
+source tools/ros_env.sh
+ctest --test-dir build/native --output-on-failure
+PYTHONPATH=reference/python .venv/bin/python -m pytest reference/python/tests
+.venv/bin/python tools/validate_full_run.py --runtime cpp --robot fr_mini \
+  --terrain ramp --control-mode native --speed .6 --output output/full-fr-new
 ```
 
-**Terminal 2 (Spawn Model):**
-```bash
-source devel/setup.bash
-roslaunch simple_rbt wpb_home_laser_camera_imu.launch
-```
+輸出目錄須是新目錄。GPU 與 live ROS 對照測試需要相應環境；完整配置與結果見[驗證文件](docs/README.md)。
+[結構整理記錄](docs/repository-layout-20261014.md)說明此次搬遷與重新驗證。
 
----
-
-### 2. Tracer with Laser IMU
-
-**Terminal 1 (Gazebo World):**
-```bash
-source devel/setup.bash
-roslaunch simple_rbt gazebo_empty_world.launch
-```
-
-**Terminal 2 (Spawn Model):**
-```bash
-source devel/setup.bash
-roslaunch simple_rbt tracer_laser_imu.launch
-```
-
----
-
-### 3. Tracer with Mid360
-
-**Terminal 1 (Gazebo World):**
-```bash
-source devel/setup.bash
-roslaunch simple_rbt gazebo_empty_world.launch
-```
-
-**Terminal 2 (Spawn Model):**
-```bash
-source devel/setup.bash
-roslaunch simple_rbt tracer_mid360.launch
-```
-
----
-
-### 4. Tracer with Camera IMU
-
-**Terminal 1 (Gazebo World):**
-```bash
-source devel/setup.bash
-roslaunch simple_rbt gazebo_empty_world.launch
-```
-
-**Terminal 2 (Spawn Model):**
-```bash
-source devel/setup.bash
-roslaunch simple_rbt tracer_front_cam_imu.launch
-```
-
----
-
-### 5. Scout Mini
-
-**Terminal 1 (Gazebo World):**
-```bash
-source devel/setup.bash
-roslaunch simple_rbt gazebo_empty_world.launch
-```
-
-**Terminal 2 (Spawn Model):**
-```bash
-source devel/setup.bash
-roslaunch simple_rbt scout_mini.launch
-```
-
----
-
-### 6. Limo
-
-**Terminal 1 (Gazebo World):**
-```bash
-source devel/setup.bash
-roslaunch simple_rbt gazebo_empty_world.launch
-```
-
-**Terminal 2 (Spawn Model & Controllers):**
-```bash
-source devel/setup.bash
-# Choose one of the sensor configurations:
-roslaunch simple_rbt limo_mid360.launch
-# roslaunch simple_rbt limo_laser_imu.launch
-# roslaunch simple_rbt limo_front_cam_imu.launch
-```
-
----
-
-### 7. Omni Wheel Robot
-
-**Terminal 1 (Gazebo World):**
-```bash
-source devel/setup.bash
-roslaunch simple_rbt gazebo_empty_world.launch
-```
-
-**Terminal 2 (Spawn Model & Controllers):**
-```bash
-source devel/setup.bash
-# Choose one of the sensor configurations:
-roslaunch simple_rbt omni_mid360.launch
-# roslaunch simple_rbt omni_laser_imu.launch
-# roslaunch simple_rbt omni_front_cam_imu.launch
-```
-
----
-
-### 8. Go2W (High-Level Controller)
-
-**Terminal 1 (Gazebo World):**
-```bash
-source devel/setup.bash
-roslaunch simple_rbt gazebo_empty_world.launch
-```
-
-**Terminal 2 (Spawn Model & High-Level GUI):**
-```bash
-source devel/setup.bash
-roslaunch simple_rbt go2w_mid360_cam_high.launch
-```
-
----
-
-### 9. Go2W (Low-Level Joint Controller)
-
-**Terminal 1 (Gazebo World):**
-```bash
-source devel/setup.bash
-roslaunch simple_rbt gazebo_empty_world.launch
-```
-
-**Terminal 2 (Spawn Model & Joint GUI):**
-```bash
-source devel/setup.bash
-roslaunch simple_rbt go2w_mid360_cam_low.launch
-```
-
-## Thanks
-
-* **WPR Simulation:** [https://github.com/6-robot/wpr_simulation](https://github.com/6-robot/wpr_simulation)
-* **UGV Gazebo Sim:** [https://github.com/agilexrobotics/ugv_gazebo_sim](https://github.com/agilexrobotics/ugv_gazebo_sim)
-* **Livox ROS Driver2:** [https://github.com/Livox-SDK/livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2)
-* **Mid360 Simulation Plugin:** [https://github.com/fratopa/Mid360_simulation_plugin](https://github.com/fratopa/Mid360_simulation_plugin)
-* **Limo Simulator:** [https://github.com/limo-agx/limo_simulator](https://github.com/limo-agx/limo_simulator)
-* **Omni Wheel Robot GazeboSim:** [https://github.com/KairongWu/Omni_wheel_robot_GazeboSim](https://github.com/KairongWu/Omni_wheel_robot_GazeboSim)
-* **Unitree Go2W ROS2:** [https://github.com/Sam-Mag1/unitree_go2w_ros2](https://github.com/Sam-Mag1/unitree_go2w_ros2)
-## Dependencies
-```bash
-sudo apt install -y python3-rosdep python3-catkin-tools libyaml-cpp-dev libopencv-dev libboost-system-dev libboost-thread-dev ros-noetic-xacro ros-noetic-gazebo-ros-pkgs ros-noetic-gazebo-ros-control ros-noetic-ros-control ros-noetic-ros-controllers ros-noetic-controller-manager ros-noetic-joint-state-controller ros-noetic-joint-trajectory-controller ros-noetic-velocity-controllers ros-noetic-cv-bridge ros-noetic-image-transport ros-noetic-tf2 ros-noetic-tf2-ros ros-noetic-tf2-geometry-msgs
-```
+舊 Gazebo／ROS 1 的 `simple_rbt/`、MID360 插件及硬體 driver 保存在
+[archive_gazebo](https://github.com/Killow1998/simple_rbt/tree/archive_gazebo)。
+目前程式只保留其中實際使用的扫描 CSV，以及原樣的 `CustomMsg`／`CustomPoint` 訊息定義。
+`livox_ros_driver2` 的訊息包名保留是為了相容現有 ROS 使用者，並不代表模擬器啟動了硬體驅動。

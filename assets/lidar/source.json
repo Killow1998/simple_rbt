@@ -1,0 +1,11 @@
+{
+  "source_repository": "https://github.com/Killow1998/simple_rbt",
+  "source_commit": "64385758c95ba729b41faa0a9a7c72657f112c49",
+  "source_path": "mid360_sim/livox_laser_simulation/scan_mode/mid360-real-centr.csv",
+  "source_blob_sha1": "e01356a3b4371fa3fa7ec1e4d4d1fe1fbb12fadf",
+  "sha256": "aa486c66092af45eab59fccb1119421470ba01981434b75d04367dd374576553",
+  "bytes": 25399988,
+  "sample_rows": 800000,
+  "license_status": "The original mid360_sim checkout has no LICENSE file; its package.xml declares TODO. No new license is asserted.",
+  "migration": "Verbatim data copy; scan generation, point order and timing remain unchanged."
+}
