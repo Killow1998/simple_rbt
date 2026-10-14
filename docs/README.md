@@ -1,11 +1,10 @@
-# 文件入口
+# Documentation / 文档
 
-- [原生建置與模組](runtime.md)：C++、必要依賴、模組邊界及輸出格式。
-- [操作與 Python 對照](python-reference.md)：車型、控制模式、ROS topic、傳感器與重跑方法。
-- [資產分工](../assets/README.md)：模型、權重、參數和原始扫描資料。
-- [此次結構整理](repository-layout-20261014.md)：目錄搬遷、相容性與重新驗證。
-- [架構與消融](cpp-architecture-ablation-20261013.md)：模組拆分、記憶體 A/B、故障注入及腳輪修正。
+- [C++ runtime / C++ 运行环境](runtime.md)：构建依赖、模块边界、运行参数和输出格式。
+- [Usage and Python reference / 使用与 Python 对照](python-reference.md)：机器人、控制模式、ROS 接口、传感器与验证方法。
+- [Noetic Docker E2E / Noetic Docker 端到端测试](noetic.md)：跨版本控制、传感器数据和完整运行验收。
+- [Assets / 运行资源](../assets/README.md)：模型、权重、参数和扫描数据。
+- [Architecture and ablation / 架构与消融](cpp-architecture-ablation-20261013.md)：模块拆分、内存 A/B、故障注入与脚轮修正的验证记录。
 
-其他帶日期的文件保存當時的版本、路徑、場景及數據，不能當作今日版本的新測量。
-舊路徑可以在 [archive_gazebo](https://github.com/Killow1998/simple_rbt/tree/archive_gazebo)
-及 Git 歷史中復原；本機既有 `output/` 實驗資料不隨此整理刪除。
+Dated reports record the tested version and conditions at that time. They do not replace current usage instructions.
+带日期的报告记录当时的版本和测试条件，当前操作以使用文档为准。

@@ -1,68 +1,70 @@
 # simple_rbt C++ runtime
 
-`../run.sh` 現在啟動 `build/native/simple-rbt-native`。物理、控制器、LiDAR、相機及 ROS 2 都在 C++ 程序內執行，不啟動 Python，也不使用 Warp／LLVM runtime。原 Python 實作由 `../reference/python/run.sh` 保留，供獨立對照。
+`../run.sh` 现在启动 `build/native/simple-rbt-native`。物理、控制器、LiDAR、相机及 ROS 2 都在 C++ 程序内执行，不启动 Python，也不使用 Warp／LLVM runtime。原 Python 实现由 `../reference/python/run.sh` 保留，供独立对照。
 
-支援 7 台機器人：`go2`、`go2w`、`diffdrive`、`scout_mini`、`fr_mini`、`ridgeback`、`ranger_mini`。Go2 的 RobotLab／HIMLoco／legacy 是控制器選項，不另算機器人。輪式場景使用 `flat`、`ramp`、`hills`；`tracked` 預設模式含理想模擬器速度／航向回授，`native` 關閉這層外部回授，保留各底盤自身控制器。
+支持 7 台机器人：`go2`、`go2w`、`diffdrive`、`scout_mini`、`fr_mini`、`ridgeback`、`ranger_mini`。Go2 的 RobotLab／HIMLoco／legacy 是控制器选项，不另算机器人。轮式场景使用 `flat`、`ramp`、`hills`；`tracked` 默认模式含理想模拟器速度／航向反馈，`native` 关闭这层外部反馈，保留各底盘自身控制器。
 
-以下命令從 repository 根目錄執行：
+Ranger Mini 在本轮短时前进/倒退复测中，`tracked` 模式明显失速；`native` 模式正常。当前优先使用 `--control-mode native`，具体数据和测试条件见 [Noetic 测试说明](noetic.md)。
+
+以下命令从 repository 根目录执行：
 
 ```bash
-# Jammy 已有 SDK、模型及策略資產時，直接編譯
+# Jammy 已有 SDK、模型及策略资产时，直接编译
 ./setup.sh --native-only
 
-# 透視＋全景相機、逐點運動 LiDAR，以及 GUI
+# 透视＋全景相机、逐点运动 LiDAR，以及 GUI
 ./run.sh --robot fr_mini --cmd .3 0 0 \
   --sensors full --backend cuda --camera-hz 10 --realtime --viewer --duration 10
 
-# 純 CPU LiDAR；不開相機或 GUI
+# 纯 CPU LiDAR；不开相机或 GUI
 ./run.sh --robot scout_mini --cmd .3 0 0 \
   --sensors lidar --backend cpu --duration 10
 
 ./run.sh --help
 ```
 
-首次準備 SDK／模型可執行 `./setup.sh`，它會準備鎖定的 `.venv` 套件與策略資產，再建置 C++。C++ 直接連結 `.venv` 內的 MuJoCo／ONNX Runtime 共享庫與 MuJoCo headers；套件目錄需要保留，但執行時不需要 Python 解譯器。
+首次准备 SDK／模型可执行 `./setup.sh`，它会准备锁定的 `.venv` 套件与策略资产，再构建 C++。C++ 直接连结 `.venv` 内的 MuJoCo／ONNX Runtime 共享库与 MuJoCo headers；套件目录需要保留，但执行时不需要 Python 解释器。
 
-建置使用 Jammy 現有 GCC（C++17）、CMake ≥3.22、CUDA 12.9、ROS 2 Humble／`livox_ros_driver2` 訊息套件，以及 EGL／OpenGL、GLFW、PNG、TinyXML2、OpenSSL、pkg-config。預設 CUDA compiler 是 `/usr/local/cuda-12.9/bin/nvcc`、host compiler 是 `/usr/bin/g++`，此次重新建置沿用已運行版本的 CUDA 架構 cache `52`；可在已載入 ROS 環境的 CMake 配置中，用 `-DCMAKE_CUDA_ARCHITECTURES=<架構號>` 明確指定其他架構（例如此台機器的 `120`）。compiler 路徑也可由同名 CMake cache 變數覆寫。目前建置包含 CUDA，即使執行時選擇 CPU LiDAR 也需要 CUDA toolkit。
+构建使用 Jammy 现有 GCC（C++17）、CMake ≥3.22、CUDA 12.9、ROS 2 Humble／`livox_ros_driver2` 讯息套件，以及 EGL／OpenGL、GLFW、PNG、TinyXML2、OpenSSL、pkg-config。默认 CUDA compiler 是 `/usr/local/cuda-12.9/bin/nvcc`、host compiler 是 `/usr/bin/g++`，此次重新构建沿用已运行版本的 CUDA 架构 cache `52`；可在已载入 ROS 环境的 CMake 配置中，用 `-DCMAKE_CUDA_ARCHITECTURES=<架构号>` 明确指定其他架构（例如此台机器的 `120`）。compiler 路径也可由同名 CMake cache 变数覆写。目前构建包含 CUDA，即使执行时选择 CPU LiDAR 也需要 CUDA toolkit。
 
-`setup.sh` 先從 `ros2_interfaces/livox_ros_driver2` 建置原樣訊息定義，安裝到 `build/ros_interfaces/install/livox_ros_driver2`，再建置 `build/native`。不需要 Livox 硬體 SDK、PCL 或原 workspace driver。`tools/ros_env.sh` 設定本地訊息 prefix；可以用 `SIMPLE_RBT_LIVOX_PREFIX` 明確覆寫。`SIMPLE_RBT_BUILD_JOBS` 預設為 2，`SIMPLE_RBT_CPU_THREADS` 為 1，`ROS_DOMAIN_ID` 為 83，`ROS_LOCALHOST_ONLY` 為 1。
+`setup.sh` 先从 `ros2_interfaces/livox_ros_driver2` 构建原样讯息定义，安装到 `build/ros_interfaces/install/livox_ros_driver2`，再构建 `build/native`。不需要 Livox 硬体 SDK、PCL 或原 workspace driver。`tools/ros_env.sh` 设定本地讯息 prefix；可以用 `SIMPLE_RBT_LIVOX_PREFIX` 明确覆写。`SIMPLE_RBT_BUILD_JOBS` 默认为 2，`SIMPLE_RBT_CPU_THREADS` 为 1，`ROS_DOMAIN_ID` 为 83，`ROS_LOCALHOST_ONLY` 为 1。
 
-加入 `--ros2` 後，速度指令改由 `/<robot>/cmd_vel` 接收，取代 `--cmd`；超過 0.5 s 沒有新指令就停車。GUI 支援滑鼠調整視角及 Esc 關閉。`--realtime` 控制即時節奏，並不保證任意場景都能達到即時性能。
+加入 `--ros2` 后，速度指令改由 `/<robot>/cmd_vel` 接收，取代 `--cmd`；超过 0.5 s 没有新指令就停车。GUI 支持滑鼠调整视角及 Esc 关闭。`--realtime` 控制即时节奏，并不保证任意场景都能达到即时性能。
 
-`--sensors physics|lidar|full` 分別選擇物理／加 LiDAR／再加雙相機；IMU 都保留。預設是 `lidar`、CPU backend、rolling 掃描；相機開啟後預設 1 Hz，可用 `--camera-hz 10`。MID360 設定為 10 Hz、每幀 20,000 條原始 CSV 射線、200 kHz 合成點時序，IMU 為 200 Hz。`rolling` 逐點插值剛體 pose，輸出各點採集當刻的局部座標，尚未 deskew；場景僅含靜態環境且排除完整機器人自身遮擋。CUDA 支援目前地形的 plane／box，其他幾何會拒絕，不會悄悄略過。`snapshot` 是幀末快照，offset 全零，與 rolling 在 metadata 中分開標示；`--backend warp` 僅是原生 CUDA 的相容名稱。
+`--sensors physics|lidar|full` 分别选择物理／加 LiDAR／再加双相机；IMU 都保留。默认是 `lidar`、CPU backend、rolling 扫描；相机开启后默认 1 Hz，可用 `--camera-hz 10`。MID360 设定为 10 Hz、每帧 20,000 条原始 CSV 射线、200 kHz 合成点时序，IMU 为 200 Hz。`rolling` 逐点插值刚体 pose，输出各点采集当刻的局部座标，尚未 deskew；场景仅含静态环境且排除完整机器人自身遮挡。CUDA 支持目前地形的 plane／box，其他几何会拒绝，不会悄悄略过。`snapshot` 是帧末快照，offset 全零，与 rolling 在 metadata 中分开标示；`--backend warp` 仅是原生 CUDA 的相容名称。
 
-| 檔案 | 職責 |
+| 文件 | 职责 |
 | --- | --- |
-| `src/core.cpp`、`src/scene.cpp` | 物理步進、模型／地形裝配與感測點 |
-| `src/robots.cpp` | `RobotSpec` 登記、命令能力／限幅與預設控制器 |
-| `src/controller.cpp`、`src/controllers/` | 控制器建立入口及七個控制實作 |
-| `src/controller_policy.cpp`、`src/tracking.cpp` | ONNX 策略執行、可關閉的外層速度／航向回授 |
-| `src/random.cpp` | 與 NumPy 1.26.4 單一 uint64 seed 相容的 SeedSequence＋PCG64 |
-| `src/lidar.cpp`、`src/lidar_cuda.cu` | CSV、pose history、獨立 `mj_ray` CPU 參照與原生 CUDA 射線 |
-| `src/cameras.cpp` | EGL 透視 RGB／Z-depth、全景 RGB／徑向深度 |
-| `src/ros_bridge.cpp` | rclcpp、Livox／IMU／影像訊息、命名空間與超時停車 |
-| `src/runtime.cpp`、`src/viewer.cpp` | 感測器排程與 GLFW GUI |
-| `src/artifacts.cpp`、`src/resources.cpp` | 輸出檔案與程序資源量測 |
-| `src/course.cpp`、`src/course_geometry.cpp` | 無 DDS 的路線／速度／接觸／摩擦判定 |
-| `src/full_run.cpp` | 實際運行的證據聚合、雜湊及驗收握手 |
-| `tools/`、`tests/` | 離線模型匯出及獨立 oracle；不由模擬 runtime 啟動 |
+| `src/core.cpp`、`src/scene.cpp` | 物理步进、模型／地形装配与感测点 |
+| `src/robots.cpp` | `RobotSpec` 登记、命令能力／限幅与默认控制器 |
+| `src/controller.cpp`、`src/controllers/` | 控制器建立入口及七个控制实现 |
+| `src/controller_policy.cpp`、`src/tracking.cpp` | ONNX 策略执行、可关闭的外层速度／航向反馈 |
+| `src/random.cpp` | 与 NumPy 1.26.4 单一 uint64 seed 相容的 SeedSequence＋PCG64 |
+| `src/lidar.cpp`、`src/lidar_cuda.cu` | CSV、pose history、独立 `mj_ray` CPU 参照与原生 CUDA 射线 |
+| `src/cameras.cpp` | EGL 透视 RGB／Z-depth、全景 RGB／径向深度 |
+| `src/ros_bridge.cpp` | rclcpp、Livox／IMU／图像讯息、命名空间与超时停车 |
+| `src/runtime.cpp`、`src/viewer.cpp` | 传感器调度与 GLFW GUI |
+| `src/artifacts.cpp`、`src/resources.cpp` | 输出文件与程序资源量测 |
+| `src/course.cpp`、`src/course_geometry.cpp` | 无 DDS 的路线／速度／接触／摩擦判定 |
+| `src/full_run.cpp` | 实际运行的证据聚合、哈希及验收握手 |
+| `tools/`、`tests/` | 离线模型汇出及独立 oracle；不由模拟 runtime 启动 |
 
-CMake 分別建立 robots、random、core、LiDAR、cameras、ROS、course、evidence 函式庫。
-相機與雷達測試各自連結所需庫；路線判定測試不建立 DDS、不依賴圖形或 CUDA。
-`Controller` 保留控制實作邊界，PImpl 隔離 SDK／資源生命週期，`RunObserver` 接收真實運行證據；
-這些仍有用途。新增採用現有關節／控制器 schema 的同型模型可登記 `RobotSpec` 與模型 catalog；
-新增控制律仍需對應實作和 factory 登記，不能視為任意車型只改資料即可接入。
+CMake 分别建立 robots、random、core、LiDAR、cameras、ROS、course、evidence 库。
+相机与雷达测试各自连结所需库；路线判定测试不建立 DDS、不依赖图形或 CUDA。
+`Controller` 保留控制实现边界，PImpl 隔离 SDK／资源生命周期，`RunObserver` 接收真实运行证据；
+这些仍有用途。新增采用现有关节／控制器 schema 的同型模型可登记 `RobotSpec` 与模型 catalog；
+新增控制律仍需对应实现和 factory 登记，不能视为任意车型只改数据即可接入。
 
-模型／策略來源與 SHA 保存在 `assets/catalog.json` 及既有 `../assets/manifests/` manifests。ONNX Runtime 1.19.2、nlohmann/json 3.11.3 headers 的版本、來源、SHA 與 MIT 許可見 [third_party/manifest.json](../third_party/manifest.json) 及相鄰 LICENSE；SeedSequence／PCG 的 MIT 與 NumPy glue 的 BSD 許可保留在 `src/random.cpp`。
+模型／策略来源与 SHA 保存在 `assets/catalog.json` 及既有 `../assets/manifests/` manifests。ONNX Runtime 1.19.2、nlohmann/json 3.11.3 headers 的版本、来源、SHA 与 MIT 许可见 [third_party/manifest.json](../third_party/manifest.json) 及相邻 LICENSE；SeedSequence／PCG 的 MIT 与 NumPy glue 的 BSD 许可保留在 `src/random.cpp`。
 
-輸出預設放在新建的 `output/mujoco/native-*`，或由 `--output NEW_DIRECTORY` 指定；已存在的目錄會拒絕。包含 `summary.json`、`compiled-model.xml`、trajectory／SI IMU CSV，以及最後一幀的 LiDAR、相機資料。LiDAR 欄位分別儲存為 `.npy`，深度亦為獨立 `.npy`，RGB 為 PNG，外參及時序見相鄰 metadata JSON；格式與 Python 的 NPZ 封裝不同。`--summary-only` 略過逐步 CSV 與感測器檔案，保留 summary 和模型。
+输出默认放在新建的 `output/mujoco/native-*`，或由 `--output NEW_DIRECTORY` 指定；已存在的目录会拒绝。包含 `summary.json`、`compiled-model.xml`、trajectory／SI IMU CSV，以及最后一帧的 LiDAR、相机数据。LiDAR 字段分别储存为 `.npy`，深度亦为独立 `.npy`，RGB 为 PNG，外参及时序见相邻 metadata JSON；格式与 Python 的 NPZ 封装不同。`--summary-only` 略过逐步 CSV 与传感器文件，保留 summary 和模型。
 
-2026-10-13 的版本七台各通過 31/31 正式完整 ROS 路線檢查；CTest 10/10、Python 392 tests＋65 subtests 通過，無 skip。
-雙輪參考模型的正常腳輪接地誤判已修正：依既有車型能力與明確腳輪角色分類，沒有按機器人名字分支。
-真正車殼接觸仍被攔截，原 50° 傾角與 0.1 m 高度門檻保留；87 條原生邊界斷言驗證正常支撐與錯誤碰撞。
-該版本的 binary SHA、源碼身份和逐案結果見下方階段紀錄；此次目錄整理的重新驗證另見[結構整理](repository-layout-20261014.md)。
-修正前優化快照另有相機 16/16 fixtures 通過，32 組深度逐位元相同；RGB 最大差 1 灰階。四場景共 320 萬條
-CUDA／獨立 CPU 射線結果一致；FR-mini 完整感測器 GUI 亦完成實際運行。
-範圍、三台輪式車交錯 A/B 資源數據、兩個實際故障變異及擴展實驗見
-[架構整理與消融紀錄](cpp-architecture-ablation-20261013.md)。
-[C++ runtime 遷移紀錄](cpp-runtime-validation-20261013.md)保留前一階段結果。
+2026-10-13 的版本七台各通过 31/31 正式完整 ROS 路线检查；CTest 10/10、Python 392 tests＋65 subtests 通过，无 skip。
+双轮参考模型的正常脚轮接地误判已修正：依既有车型能力与明确脚轮角色分类，没有按机器人名字分支。
+真正车壳接触仍被拦截，原 50° 倾角与 0.1 m 高度门槛保留；87 条原生边界断言验证正常支撑与错误碰撞。
+该版本的 binary SHA、源码身份和逐案结果见下方阶段纪录；此次目录整理的重新验证另见[结构整理](repository-layout-20261014.md)。
+修正前优化快照另有相机 16/16 fixtures 通过，32 组深度逐比特相同；RGB 最大差 1 灰阶。四场景共 320 万条
+CUDA／独立 CPU 射线结果一致；FR-mini 完整传感器 GUI 亦完成实际运行。
+范围、三台轮式车交错 A/B 资源数据、两个实际故障变异及扩展实验见
+[架构整理与消融纪录](cpp-architecture-ablation-20261013.md)。
+[C++ runtime 迁移纪录](cpp-runtime-validation-20261013.md)保留前一阶段结果。
