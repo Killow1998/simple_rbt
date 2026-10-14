@@ -4,7 +4,7 @@
 
 支持 7 台机器人：`go2`、`go2w`、`diffdrive`、`scout_mini`、`fr_mini`、`ridgeback`、`ranger_mini`。Go2 的 RobotLab／HIMLoco／legacy 是控制器选项，不另算机器人。轮式场景使用 `flat`、`ramp`、`hills`；`tracked` 默认模式含理想模拟器速度／航向反馈，`native` 关闭这层外部反馈，保留各底盘自身控制器。
 
-Ranger Mini 在本轮短时前进/倒退复测中，`tracked` 模式明显失速；`native` 模式正常。当前优先使用 `--control-mode native`，具体数据和测试条件见 [Noetic 测试说明](noetic.md)。
+纯轮式底盘在 `tracked` 模式收到完整零速度指令时，直接交给底盘刹车并清除反馈积分；不会用停车误差生成新的转向指令。Go2／Go2W 保留站立所需的零速度反馈。Ranger Mini 短时倒车失速已修复，实测结果见 [Noetic 测试说明](noetic.md)。
 
 以下命令从 repository 根目录执行：
 

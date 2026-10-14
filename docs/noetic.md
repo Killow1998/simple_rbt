@@ -46,11 +46,23 @@ Noetic 案例使用平地；多地形路线由 `tools/validate_full_run.py` 验�
 
 Bridge source / 桥接器来源：[ros2/ros1_bridge](https://github.com/ros2/ros1_bridge/tree/689a932499befbd1ec3cb273a1054430e55a43c3).
 
-## Control-mode limit / 控制模式限制
+## Ranger Mini tracking fix / Ranger Mini 反馈控制修复 — 2026-10-14
 
-Ranger Mini's existing `tracked` mode fails the short forward/reverse probe: a 0.3 m/s forward command produced about 0.033 m/s, and a -0.25 m/s reverse command produced about +0.002 m/s. In the same Noetic test with `native`, measured speeds were about +0.299 and -0.249 m/s. The simulator/controller implementation is unchanged in this documentation and interoperability-test update.
+The previous failure came from outer feedback converting a zero target into tiny motion commands during settling. Swerve modules kept changing direction and the alignment gate withheld wheel drive. The same model worked in native mode. Pure wheel chassis now pass a full zero target to their physical brakes and clear feedback memory; Go2/Go2W retain stance feedback. Geometry, torque limits and steering alignment protection are unchanged.
 
-Ranger Mini 现有 `tracked` 模式未通过短时前进/倒退检查：0.3 m/s 前进指令的实测速度约 0.033 m/s，-0.25 m/s 倒退指令的实测速度约 +0.002 m/s。同一 Noetic 测试切换为 `native` 后，实测约为 +0.299 和 -0.249 m/s。本轮文档与互通测试没有修改模拟器或控制器实现。
+此前的故障来自外层反馈：稳定阶段的零速度指令被微小误差变成运动指令，舵轮不断改变方向，对齐保护持续阻止驱动。同一个模型在 native 模式正常。现在纯轮式底盘收到完整零指令时，直接执行物理刹车并清除反馈记忆；Go2/Go2W 保留站立反馈。几何、扭矩限制和舵轮对齐保护没有修改。
+
+The Noetic tracked probe now measures +0.309 m/s for a +0.30 command, -0.256 m/s for a -0.25 command, and about 2e-9 m/s after command timeout. Ranger Mini, Scout Mini, FR Mini and Ridgeback each passed 46/46 checks with full sensors and 10 Hz cameras; RTF was 0.999942–0.999964. The C++ physical regression also checks lateral, spin, compound motion and restart after braking. CTest passed 11/11, C++/Python trajectory comparisons passed 10/10, and the affected Python controller/integration tests passed 89/89, including the Go2W ramp regression.
+
+Noetic 的 tracked 复测：+0.30 m/s 指令实测 +0.309 m/s，-0.25 m/s 指令实测 -0.256 m/s，指令超时停车后约 2e-9 m/s。Ranger Mini、Scout Mini、FR Mini、Ridgeback 在完整传感器、10 Hz 相机配置下各通过 46/46 检查，RTF 为 0.999942–0.999964。C++ 物理回归还覆盖横移、原地转向、组合运动和刹车后重启；CTest 11/11、C++/Python 轨迹对照 10/10、相关 Python 控制器及集成测试 89/89 均通过，包含 Go2W 坡道回归。
+
+Local evidence / 本机证据：[tracked ROS report / 反馈模式 ROS 报告](../output/noetic-tracked-fix-20261014/summary.json), [ablation / 消融对照](../output/ranger-tracked-fix-20261014/ablation-before.json), [C++ physical phases / C++ 物理阶段](../output/ranger-tracked-fix-20261014/physics-phases.jsonl), [trajectory parity / 轨迹等价](../output/ranger-fix-parity-20261014/summary.json).
+
+Ranger Mini also passed 31/31 formal route checks on both standard ramp and continuous hills at a 0.6 m/s target in tracked mode, with full sensors and ROS commands. RTF was about 1.000; terminal mean speed was below 3e-6 m/s. These checks establish the tested simulator routes, not hardware performance or untested terrain levels.
+
+Ranger Mini 在 tracked 模式、0.6 m/s 目标速度、完整传感器和 ROS 指令下，标准坡道与连续波浪地形均通过 31/31 正式路线检查；RTF 约 1.000，终点停车平均速度低于 3e-6 m/s。结果仅覆盖已测模拟器路线，不代表实车性能或未测难度。
+
+Route evidence / 路线证据：[ramp / 坡道](../output/ranger-fix-ramp-20261014/report.json), [hills / 连续起伏](../output/ranger-fix-hills-20261014/report.json).
 
 ## Verified on Jammy / Jammy 验证结果 — 2026-10-14
 

@@ -90,6 +90,9 @@ struct Simulation::Impl {
     if (!spec.allows_lateral)
       tracker.limits[1] = .6;
     tracker.lateral = spec.allows_lateral;
+    // Pure wheel chassis have physical joint brakes; legged policies still
+    // need chassis feedback while holding a zero-speed stance.
+    tracker.brake_on_zero = spec.continuous_terrain;
     scene_xml = build_scene(o, catalog, controller, terrain);
     mjVFS vfs;
     mj_defaultVFS(&vfs);

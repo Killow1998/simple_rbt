@@ -101,6 +101,11 @@ target_compile_definitions(simple-rbt-native PRIVATE SIMPLE_RBT_PROJECT_ROOT="${
 target_link_libraries(simple-rbt-native PRIVATE simple_rbt_core simple_rbt_lidar simple_rbt_cameras simple_rbt_ros simple_rbt_evidence glfw PkgConfig::GL PNG::PNG)
 
 enable_testing()
+add_executable(tracked_braking tests/tracked_braking.cpp)
+target_compile_definitions(tracked_braking PRIVATE SIMPLE_RBT_PROJECT_ROOT="${PROJECT_WORKSPACE}")
+target_link_libraries(tracked_braking PRIVATE simple_rbt_core)
+add_test(NAME tracked_braking COMMAND tracked_braking)
+set_tests_properties(tracked_braking PROPERTIES LABELS "core;robot_ranger_mini" TIMEOUT 20)
 add_executable(camera_oracle tests/camera_oracle.cpp)
 target_link_libraries(camera_oracle PRIVATE simple_rbt_cameras)
 add_executable(lidar_oracle tests/lidar_oracle.cpp)

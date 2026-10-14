@@ -10,6 +10,17 @@ double clamp(double x, double lo, double hi) {
 Vec3 CommandTracker::update(const Vec3 &target, const Vec3 &linear,
                             const Vec3 &angular, double yaw, double dt) {
   Vec3 velocity{linear[0], linear[1], angular[2]};
+  // A stop must reach the native brake unchanged. Tiny feedback corrections
+  // otherwise keep swerve modules steering and can prevent drive alignment.
+  if (brake_on_zero && target == Vec3{}) {
+    integral = correction = {};
+    filtered = velocity;
+    initialized = heading_set = true;
+    heading = yaw;
+    turning = false;
+    updates++;
+    return {};
+  }
   if (!initialized) {
     filtered = velocity;
     initialized = true;

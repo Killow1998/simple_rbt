@@ -22,12 +22,16 @@ class CommandTracker:
     vx/vy/yaw-rate are low-pass filtered (0.10 s), and the correction integrator
     uses conditional anti-windup. While turning, heading hold disengages; when
     a turn stops, the current heading becomes the next straight-line reference.
+    With brake_on_zero, a full zero target passes through to the native brake
+    and clears corrections. Legged stance feedback keeps the default behavior.
     """
 
     def __init__(self, *, hold_heading=True, filter_time_s=.10,
                  kp=(.8, .8, 1.), ki=(.8, .8, .5), heading_kp=1.5,
-                 command_limits=(1., .6, 1.), correction_limits=(.4, .3, .6)):
+                 command_limits=(1., .6, 1.), correction_limits=(.4, .3, .6),
+                 brake_on_zero=False):
         self.hold_heading = bool(hold_heading)
+        self.brake_on_zero = bool(brake_on_zero)
         self.filter_time_s = float(filter_time_s)
         self.kp = np.asarray(kp, dtype=float)
         self.ki = np.asarray(ki, dtype=float)
@@ -72,6 +76,17 @@ class CommandTracker:
         if not np.isfinite(np.concatenate((target, linear, gyro, [heading_yaw, dt]))).all() or dt <= 0:
             raise ValueError("Tracker inputs must be finite and dt positive")
         velocity = np.array([linear[0], linear[1], gyro[2]])
+        if self.brake_on_zero and not np.any(target):
+            self.integral.fill(0.)
+            self.filtered_velocity = velocity.copy()
+            self.heading_reference = float(heading_yaw)
+            self._turning = False
+            self.last_error = -velocity
+            self.correction.fill(0.)
+            self.last_output.fill(0.)
+            self.requested_target = target.copy()
+            self.update_count += 1
+            return np.zeros(3)
         if self.filtered_velocity is None:
             self.filtered_velocity = velocity.copy()
         alpha = 1. if self.filter_time_s == 0 else -math.expm1(-dt / self.filter_time_s)

@@ -219,6 +219,7 @@ class Simulation:
                 self.command_tracker = CommandTracker(command_limits=self.command_limits)
             else:
                 self.command_tracker = CommandTracker()
+            self.command_tracker.brake_on_zero = robot in WHEEL_MODELS
         self.steps = 0
 
     @property
