@@ -1,0 +1,171 @@
+{
+  "sources": {
+    "rl_sar": {
+      "url": "https://github.com/fan-ziqi/rl_sar",
+      "commit": "36bac3930bca95239de9bcfade283832e6ee4409"
+    },
+    "rl_sar_zoo": {
+      "url": "https://github.com/fan-ziqi/rl_sar_zoo",
+      "commit": "d4cca961c70c9265e92a58639f1fe9aaccb2ad0f"
+    }
+  },
+  "vendor_directory": "rl_sar-go2w",
+  "files": [
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/go2w.xml",
+      "path": "mjcf/go2w.xml",
+      "bytes": 16916,
+      "sha256": "a17198047a92470cf616863a65d58482b7765f57c345dd3e3f70310b8bc773b4"
+    },
+    {
+      "source": "rl_sar",
+      "source_path": "policy/go2w/robot_lab/policy.pt",
+      "path": "policy.pt",
+      "bytes": 796120,
+      "sha256": "eda0c490dfc75428fb6706d50924ebe2a91fca40ef21fae8747565699c81a2ac"
+    },
+    {
+      "source": "rl_sar",
+      "source_path": "policy/go2w/robot_lab/config.yaml",
+      "path": "config.yaml",
+      "bytes": 2232,
+      "sha256": "cb4c80a3f3ee1a37b7fa099e6c2581c91fafe00df7ce1ed5885ec16196f3d700"
+    },
+    {
+      "source": "rl_sar",
+      "source_path": "policy/go2w/base.yaml",
+      "path": "base.yaml",
+      "bytes": 1764,
+      "sha256": "b7ab3eef1c05b19af84121c96a54e11511a7594411a287db9ee9bb1004d82776"
+    },
+    {
+      "source": "rl_sar",
+      "source_path": "LICENSE",
+      "path": "LICENSE",
+      "bytes": 11342,
+      "sha256": "6c18491053290fe1bada9775674b2b14493c4f0fdeab41e013dd5d4c82461d57"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/base_0.obj",
+      "path": "mjcf/assets/base_0.obj",
+      "bytes": 1330465,
+      "sha256": "8cdc53719002a5ee737d867904e534a6d6fa930b616bdcc1b3131e577d4e46c0"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/base_1.obj",
+      "path": "mjcf/assets/base_1.obj",
+      "bytes": 811791,
+      "sha256": "39d2f4724ff64dd5a0640c308fd98902a2946660a8d033ec8dbf368fd5af0dd6"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/base_2.obj",
+      "path": "mjcf/assets/base_2.obj",
+      "bytes": 294090,
+      "sha256": "29cae463f95d678e4ede863c36c9b19b0d356b8340412add10670d70bdcc3095"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/base_3.obj",
+      "path": "mjcf/assets/base_3.obj",
+      "bytes": 379093,
+      "sha256": "f51ba43bf300e68957a0c1aa83eaf3e4926f4ac7e64a0d6c33ae5d21fcbcf5f6"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/base_4.obj",
+      "path": "mjcf/assets/base_4.obj",
+      "bytes": 7776234,
+      "sha256": "49ddec0129546e5dd2075d5beacf7f207baa2860aeff7626818e64d2efbf3821"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/hip_0.obj",
+      "path": "mjcf/assets/hip_0.obj",
+      "bytes": 2863864,
+      "sha256": "cc29932ab4d251ce3f72389ec4c1f757e44eee138b87e772b648c2bc76b506cd"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/hip_1.obj",
+      "path": "mjcf/assets/hip_1.obj",
+      "bytes": 2767918,
+      "sha256": "3fd5bd9b2ef6abe622c0739d3c67eaa1679b19b47132951972c4892a779ea7cf"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/thigh_0.obj",
+      "path": "mjcf/assets/thigh_0.obj",
+      "bytes": 2841868,
+      "sha256": "bb3edfe6a7b04f4f4dff1ce7b05d426ddce941e276cc6372fb542055893c71ec"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/thigh_1.obj",
+      "path": "mjcf/assets/thigh_1.obj",
+      "bytes": 1491320,
+      "sha256": "3a631822f9f7d2114b1b79dcdff5abf95103630abb7d91d1f3b8b18117132ed2"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/thigh_mirror_0.obj",
+      "path": "mjcf/assets/thigh_mirror_0.obj",
+      "bytes": 2817674,
+      "sha256": "07abaedce761f1dd48647384ac14ba1959276bc78d5a2a62051e8f1c6093933b"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/thigh_mirror_1.obj",
+      "path": "mjcf/assets/thigh_mirror_1.obj",
+      "bytes": 1482261,
+      "sha256": "db984a3e983eabbc9b38183427cca9ab0bb3bdb049f9eab030e06edda36579d6"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/calf_mirror_0.obj",
+      "path": "mjcf/assets/calf_mirror_0.obj",
+      "bytes": 876538,
+      "sha256": "6dc0406207a1c08a5953fd5962aca1a270fd06593d30d100205e05c1b32d4af2"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/calf_mirror_1.obj",
+      "path": "mjcf/assets/calf_mirror_1.obj",
+      "bytes": 327261,
+      "sha256": "f84f5af90b914633165beb3a5493ee499169144c5797dcf04c6eb5842f74b31a"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/calf.stl",
+      "path": "mjcf/assets/calf.stl",
+      "bytes": 2247484,
+      "sha256": "2aee434b80da010deebb11c8538d593f7901a169cc34916350902746e591437e"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/calf_mirror.stl",
+      "path": "mjcf/assets/calf_mirror.stl",
+      "bytes": 1652384,
+      "sha256": "528b471bfc60b6e72dbb162b34eefebced994bea82aaf58eda91f090219cd911"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/foot.obj",
+      "path": "mjcf/assets/foot.obj",
+      "bytes": 1144729,
+      "sha256": "df9e78a7c0110d02557439010f2a5f11f0ec4fd907b32704145dbd6aa7affc0b"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2w_description/mjcf/assets/wheel.stl",
+      "path": "mjcf/assets/wheel.stl",
+      "bytes": 906584,
+      "sha256": "51c95e80dcd41c0cf1a9575d4d7c2c89855848f7fa2c4bf28f2f10c2e3d639e2"
+    }
+  ],
+  "policy_status": "experimental; historical native 10s park drift 0.219321m failed 0.20m gate; no certified rough/stair envelope",
+  "upstream_license": "rl_sar policy/config code: Apache-2.0 (copied LICENSE). rl_sar_zoo model repository: no root LICENSE found at pinned commit; CAD/mesh-specific provenance unresolved; fetched meshes remain ignored local assets."
+}

@@ -1,0 +1,20 @@
+{
+  "source_sha256": "eda0c490dfc75428fb6706d50924ebe2a91fca40ef21fae8747565699c81a2ac",
+  "onnx_sha256": "d6773ed965b3f58b014aed006a0bd2ed1afcb843f4768e5b210e8f27a839e3e7",
+  "onnx_bytes": 785063,
+  "torch_version": "2.7.0+cu128",
+  "onnxruntime_version": "1.26.0",
+  "opset": 17,
+  "comparisons": 128,
+  "max_absolute_error": 0.00164794921875,
+  "max_normalized_linf_error": 1.461941845030625e-06,
+  "acceptance": "Linf/(1+reference Linf) <= 2e-6; absolute errors reported separately",
+  "per_scale_max_absolute_error": {
+    "0.0": 9.08970832824707e-07,
+    "1.0": 3.62396240234375e-05,
+    "10.0": 0.000247955322265625,
+    "100.0": 0.00164794921875
+  },
+  "precision_note": "A prior componentwise atol=rtol=2e-5 comparison failed on cancellation at synthetic scale10 (absolute1.37e-4); normwise float32 comparison used, not bit equivalence.",
+  "passed": true
+}

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "simple-rbt-mujoco"
+version = "0.1.0"
+description = "ROS-independent MuJoCo robot simulation with optional ROS 2 transport"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24,<2", "mujoco>=3.2,<4", "onnxruntime>=1.19,<1.20", "mujoco-lidar>=0.1", "Pillow>=10"]
+
+[project.scripts]
+simple-rbt-mujoco = "simple_rbt_mujoco.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["simple_rbt_mujoco*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

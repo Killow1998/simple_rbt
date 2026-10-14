@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "model_version": "ridgeback-r100-passive-rollers-v1",
+  "identity": {
+    "manufacturer": "Clearpath Robotics",
+    "product": "Ridgeback R100",
+    "representation": "Procedural collision-driven base with four hub motors and forty passive roller hinges"
+  },
+  "sources": {
+    "product_url": "https://clearpathrobotics.com/ridgeback-indoor-robot-platform/",
+    "product_html_sha256": "c6687e648fa555b06651adcdba00519204fa20aefcd0fcb4b5704f7bcd2dfebe",
+    "retrieved_date": "2026-10-13",
+    "official_ros2_commit": "69b6da109b14117b5fb693789747317a52ff973f",
+    "files": [
+      {
+        "url": "https://github.com/clearpathrobotics/clearpath_common/blob/69b6da109b14117b5fb693789747317a52ff973f/clearpath_platform_description/urdf/r100/r100.urdf.xacro",
+        "sha256": "2288f2d88566067a78195ce7d4b6f5ebe11bcf5fb6c7e5ea7a60e8c580ed22e1"
+      },
+      {
+        "url": "https://github.com/clearpathrobotics/clearpath_common/blob/69b6da109b14117b5fb693789747317a52ff973f/clearpath_platform_description/urdf/r100/drivetrain/wheels.urdf.xacro",
+        "sha256": "b530154e4d879d9521588c6641dc6a63ba7680b5a36a49e39f5b19079acd16f7"
+      },
+      {
+        "url": "https://github.com/clearpathrobotics/clearpath_common/blob/69b6da109b14117b5fb693789747317a52ff973f/clearpath_platform_description/urdf/r100/drivetrain/wheels/mecanum.urdf.xacro",
+        "sha256": "9f95ecf434ef2547463a0eabe0b96a03197d2f1b5421fda73ea8a99e84c10e2b"
+      },
+      {
+        "url": "https://github.com/clearpathrobotics/clearpath_common/blob/69b6da109b14117b5fb693789747317a52ff973f/clearpath_platform_description/urdf/r100/rocker.urdf.xacro",
+        "sha256": "02f06b6ae61c6aa76a7f25f58b9e5f66112d0d6e8c8fcfcf42e2d08a8480dcde"
+      },
+      {
+        "url": "https://github.com/clearpathrobotics/clearpath_common/blob/69b6da109b14117b5fb693789747317a52ff973f/clearpath_control/config/r100/control/omni_4wd.yaml",
+        "sha256": "47c8dfcd07ece198039e71bb46af6428ab94373bf5ee5f7c1b781afa8fe20f44"
+      },
+      {
+        "url": "https://github.com/clearpathrobotics/clearpath_common/blob/69b6da109b14117b5fb693789747317a52ff973f/clearpath_platform_description/package.xml",
+        "sha256": "a4f3d2d0fe5b30e50b131f9837ec74fdab15162f3f35f9b44f65f3c1acc988a1"
+      }
+    ]
+  },
+  "manufacturer_specifications": {
+    "overall_dimensions_m": [
+      0.96,
+      0.793,
+      0.311
+    ],
+    "mass_kg": 135.0,
+    "max_payload_kg": 100.0,
+    "max_speed_m_s": 1.1,
+    "obstacle_clearance_m": 0.018,
+    "scope": "Published hardware specifications, not simulator achievements"
+  },
+  "implemented_geometry": {
+    "wheel_radius_m": 0.0759,
+    "wheel_width_m": 0.079,
+    "wheelbase_m": 0.638,
+    "track_m": 0.551,
+    "hub_xy_m": [
+      [
+        0.319,
+        0.2755
+      ],
+      [
+        0.319,
+        -0.2755
+      ],
+      [
+        -0.319,
+        0.2755
+      ],
+      [
+        -0.319,
+        -0.2755
+      ]
+    ],
+    "wheel_order": [
+      "front_left",
+      "front_right",
+      "rear_left",
+      "rear_right"
+    ],
+    "hub_axis": [
+      0,
+      1,
+      0
+    ],
+    "positive_hub_speed_drives": "+X",
+    "rollers_per_wheel": 10,
+    "roller_geometry": "axisymmetric ellipsoid",
+    "roller_axis_angle_deg": 45,
+    "bottom_roller_axis_slope_y_per_x": [
+      -1,
+      1,
+      1,
+      -1
+    ],
+    "roller_center_radius_m": 0.06,
+    "roller_short_semiaxis_m": 0.0159,
+    "roller_long_semiaxis_m": 0.05355081698723186,
+    "nominal_base_origin_height_m": 0.1339,
+    "central_chassis_dimensions_m": [
+      0.96,
+      0.42,
+      0.216
+    ],
+    "full_width_top_deck_m": [
+      0.96,
+      0.793,
+      0.0691
+    ],
+    "nominal_central_bottom_height_m": 0.0259
+  },
+  "control": {
+    "controller": "mecanum",
+    "physics_period_s": 0.005,
+    "native_body_velocity_feedback": false,
+    "wheel_velocity_gain_nm_per_rad_s": 8.0,
+    "hub_torque_limit_nm": 20.0,
+    "hub_speed_limit_rad_s": 14.492753623188408,
+    "simulator_command_limits_vx_vy_wz": [
+      1.0,
+      0.6,
+      1.0
+    ],
+    "kinematics": "[vx-vy-k*wz,vx+vy+k*wz,vx+vy-k*wz,vx-vy+k*wz]/r; k=.319+.2755",
+    "saturation": "All hub targets uniformly scaled to the max absolute wheel rate; passive rollers have no actuator",
+    "scope": "Original simulator wheel servo, not Clearpath firmware. Command limits are conservative implementation bounds, not manufacturer limits."
+  },
+  "engineering_assumptions": {
+    "mass": "135 kg follows current product page. Pinned URDF chassis165.304 + rockers2*10.267 + wheels4*2.5 =195.838 kg contradicts that page; upstream masses are not blindly combined. This model uses123kg centralbody+2kg deck+4*(1.5kg hub+10*.1kg rollers).",
+    "inertia": "Primitive-derived mass distributions/inertias, not measured hardware tensors. Only total mass and upstream nominal 2.5kg wheel mass are reference values.",
+    "rollers": "Ten freely hinged ellipsoid barrel rollers per wheel. Count and profile are engineering approximations, not measured Clearpath CAD. Roller envelope may overlap internally; robot self-collisions are disabled, environment collisions remain fully physical. Radial envelope varies slightly with wheel phase.",
+    "contact": "All wheel rollers use isotropic sliding friction .8 in both tangents, condim3. No mu2=0 Gazebo shortcut. Small passive-bearing viscous damping .00001 Nm/(rad/s) and hub damping .02 are estimates.",
+    "hub": "Physical hub radius .038m stays off flat ground; normal rolling contact is carried by the passive rollers.",
+    "suspension": "Axles rigidly attached; pinned ROS2 rocker joints are fixed, and no real suspension compliance is reproduced.",
+    "chassis": "Narrow central collision box plus full-width elevated deck approximate wheel wells. No vendor mesh is copied; shell details omitted.",
+    "motor": "kv8 velocity servo and +/-20Nm bound are estimates, not published motor/current limits; battery/thermal/firmware dynamics omitted.",
+    "sensors": "IMU mount uses pinned offset transformed to the central-box base origin; ideal massless LiDAR/camera mounts are project placements, not vendor hardware.",
+    "physics": "Free base, no pose or velocity assignment and no external body force in control; wheel-floor contact is the only source of chassis actuation."
+  },
+  "license_and_assets": {
+    "third_party_meshes_copied": false,
+    "third_party_code_copied": false,
+    "reference_package_license": "BSD declared by pinned clearpath_platform_description/package.xml",
+    "geometry": "Original procedural primitives based on public factual dimensions"
+  }
+}

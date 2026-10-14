@@ -1,0 +1,550 @@
+{
+  "sources": {
+    "rl_sar": {
+      "url": "https://github.com/fan-ziqi/rl_sar",
+      "commit": "36bac3930bca95239de9bcfade283832e6ee4409"
+    },
+    "rl_sar_zoo": {
+      "url": "https://github.com/fan-ziqi/rl_sar_zoo",
+      "commit": "d4cca961c70c9265e92a58639f1fe9aaccb2ad0f"
+    }
+  },
+  "vendor_directory": "rl_sar-go2",
+  "files": [
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/go2.xml",
+      "path": "mjcf/go2.xml",
+      "bytes": 14881,
+      "sha256": "2014a3d76e30f17ab9447d8a67bd015291f74fa4d71ae30d005f1a32bd693d4b"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/base_0.obj",
+      "path": "mjcf/assets/base_0.obj",
+      "bytes": 1330465,
+      "sha256": "8cdc53719002a5ee737d867904e534a6d6fa930b616bdcc1b3131e577d4e46c0"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/base_1.obj",
+      "path": "mjcf/assets/base_1.obj",
+      "bytes": 811791,
+      "sha256": "39d2f4724ff64dd5a0640c308fd98902a2946660a8d033ec8dbf368fd5af0dd6"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/base_2.obj",
+      "path": "mjcf/assets/base_2.obj",
+      "bytes": 294090,
+      "sha256": "29cae463f95d678e4ede863c36c9b19b0d356b8340412add10670d70bdcc3095"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/base_3.obj",
+      "path": "mjcf/assets/base_3.obj",
+      "bytes": 379093,
+      "sha256": "f51ba43bf300e68957a0c1aa83eaf3e4926f4ac7e64a0d6c33ae5d21fcbcf5f6"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/base_4.obj",
+      "path": "mjcf/assets/base_4.obj",
+      "bytes": 7776234,
+      "sha256": "49ddec0129546e5dd2075d5beacf7f207baa2860aeff7626818e64d2efbf3821"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/hip_0.obj",
+      "path": "mjcf/assets/hip_0.obj",
+      "bytes": 2863864,
+      "sha256": "cc29932ab4d251ce3f72389ec4c1f757e44eee138b87e772b648c2bc76b506cd"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/hip_1.obj",
+      "path": "mjcf/assets/hip_1.obj",
+      "bytes": 2767918,
+      "sha256": "3fd5bd9b2ef6abe622c0739d3c67eaa1679b19b47132951972c4892a779ea7cf"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/thigh_0.obj",
+      "path": "mjcf/assets/thigh_0.obj",
+      "bytes": 2841868,
+      "sha256": "bb3edfe6a7b04f4f4dff1ce7b05d426ddce941e276cc6372fb542055893c71ec"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/thigh_1.obj",
+      "path": "mjcf/assets/thigh_1.obj",
+      "bytes": 1491320,
+      "sha256": "3a631822f9f7d2114b1b79dcdff5abf95103630abb7d91d1f3b8b18117132ed2"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/thigh_mirror_0.obj",
+      "path": "mjcf/assets/thigh_mirror_0.obj",
+      "bytes": 2817674,
+      "sha256": "07abaedce761f1dd48647384ac14ba1959276bc78d5a2a62051e8f1c6093933b"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/thigh_mirror_1.obj",
+      "path": "mjcf/assets/thigh_mirror_1.obj",
+      "bytes": 1482261,
+      "sha256": "db984a3e983eabbc9b38183427cca9ab0bb3bdb049f9eab030e06edda36579d6"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/calf_0.obj",
+      "path": "mjcf/assets/calf_0.obj",
+      "bytes": 877174,
+      "sha256": "4a818cd563c5b7e2a271504442d05fd777d38cbaa028d4a10ad29c9f87bb355e"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/calf_1.obj",
+      "path": "mjcf/assets/calf_1.obj",
+      "bytes": 326865,
+      "sha256": "51950c3a153ae3208592df86ea11c9d6756f8f645ebca5caf6910c61aeb03817"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/calf_mirror_0.obj",
+      "path": "mjcf/assets/calf_mirror_0.obj",
+      "bytes": 876538,
+      "sha256": "6dc0406207a1c08a5953fd5962aca1a270fd06593d30d100205e05c1b32d4af2"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/calf_mirror_1.obj",
+      "path": "mjcf/assets/calf_mirror_1.obj",
+      "bytes": 327261,
+      "sha256": "f84f5af90b914633165beb3a5493ee499169144c5797dcf04c6eb5842f74b31a"
+    },
+    {
+      "source": "rl_sar_zoo",
+      "source_path": "go2_description/mjcf/assets/foot.obj",
+      "path": "mjcf/assets/foot.obj",
+      "bytes": 1144729,
+      "sha256": "df9e78a7c0110d02557439010f2a5f11f0ec4fd907b32704145dbd6aa7affc0b"
+    },
+    {
+      "source": "rl_sar",
+      "source_path": "LICENSE",
+      "path": "LICENSE",
+      "bytes": 11342,
+      "sha256": "6c18491053290fe1bada9775674b2b14493c4f0fdeab41e013dd5d4c82461d57"
+    },
+    {
+      "source": "rl_sar",
+      "source_path": "policy/go2/base.yaml",
+      "path": "base.yaml",
+      "bytes": 1381,
+      "sha256": "78e9b9c2be72544ab334362535ab876630808f87170ec3e38c56f9817cd53d02"
+    },
+    {
+      "source": "rl_sar",
+      "source_path": "policy/go2/himloco/config.yaml",
+      "path": "himloco/config.yaml",
+      "bytes": 1741,
+      "sha256": "532288a873f4df859bdb8c79afb0906b966558809b5515ad2191403087f81cf1"
+    },
+    {
+      "source": "rl_sar",
+      "source_path": "policy/go2/himloco/himloco.pt",
+      "path": "himloco/himloco.pt",
+      "bytes": 991615,
+      "sha256": "d9945f85a39944aaf241a67f7d2b25a15326a0222d0e503aeb05a7f188430509"
+    },
+    {
+      "source": "rl_sar",
+      "source_path": "policy/go2/robot_lab/config.yaml",
+      "path": "robot_lab/config.yaml",
+      "bytes": 1845,
+      "sha256": "8bf3e6f7e69b82ffacc21053c2edd78495d6479eec48c3bc0512d5f1e8678457"
+    },
+    {
+      "source": "rl_sar",
+      "source_path": "policy/go2/robot_lab/policy.pt",
+      "path": "robot_lab/policy.pt",
+      "bytes": 769376,
+      "sha256": "9f14cb95e74ac9e5e30954da0fc0c33eaa41e337852ebed19fcee869279ade0b"
+    }
+  ],
+  "controllers": {
+    "himloco": {
+      "model_name": "himloco.pt",
+      "num_observations": 45,
+      "observations": [
+        "commands",
+        "ang_vel",
+        "gravity_vec",
+        "dof_pos",
+        "dof_vel",
+        "actions"
+      ],
+      "observations_history": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "observations_history_priority": "time",
+      "clip_obs": 100.0,
+      "clip_actions_lower": [
+        -100,
+        -100,
+        -100,
+        -100,
+        -100,
+        -100,
+        -100,
+        -100,
+        -100,
+        -100,
+        -100,
+        -100
+      ],
+      "clip_actions_upper": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        100
+      ],
+      "rl_kp": [
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40,
+        40
+      ],
+      "rl_kd": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "fixed_kp": [
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60,
+        60
+      ],
+      "fixed_kd": [
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5
+      ],
+      "num_of_dofs": 12,
+      "action_scale": [
+        0.125,
+        0.25,
+        0.25,
+        0.125,
+        0.25,
+        0.25,
+        0.125,
+        0.25,
+        0.25,
+        0.125,
+        0.25,
+        0.25
+      ],
+      "wheel_indices": [],
+      "lin_vel_scale": 2.0,
+      "ang_vel_scale": 0.25,
+      "dof_pos_scale": 1.0,
+      "dof_vel_scale": 0.05,
+      "commands_scale": [
+        2.0,
+        2.0,
+        0.25
+      ],
+      "torque_limits": [
+        33.5,
+        33.5,
+        33.5,
+        33.5,
+        33.5,
+        33.5,
+        33.5,
+        33.5,
+        33.5,
+        33.5,
+        33.5,
+        33.5
+      ],
+      "default_dof_pos": [
+        0.1,
+        0.8,
+        -1.5,
+        -0.1,
+        0.8,
+        -1.5,
+        0.1,
+        1.0,
+        -1.5,
+        -0.1,
+        1.0,
+        -1.5
+      ],
+      "joint_mapping": [
+        3,
+        4,
+        5,
+        0,
+        1,
+        2,
+        9,
+        10,
+        11,
+        6,
+        7,
+        8
+      ]
+    },
+    "robot_lab": {
+      "model_name": "policy.pt",
+      "num_observations": 45,
+      "observations": [
+        "ang_vel",
+        "gravity_vec",
+        "commands",
+        "dof_pos",
+        "dof_vel",
+        "actions"
+      ],
+      "observations_history": [],
+      "observations_history_priority": "time",
+      "clip_obs": 100.0,
+      "clip_actions_lower": [
+        -100.0,
+        -100.0,
+        -100.0,
+        -100.0,
+        -100.0,
+        -100.0,
+        -100.0,
+        -100.0,
+        -100.0,
+        -100.0,
+        -100.0,
+        -100.0
+      ],
+      "clip_actions_upper": [
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0,
+        100.0
+      ],
+      "rl_kp": [
+        20.0,
+        20.0,
+        20.0,
+        20.0,
+        20.0,
+        20.0,
+        20.0,
+        20.0,
+        20.0,
+        20.0,
+        20.0,
+        20.0
+      ],
+      "rl_kd": [
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5
+      ],
+      "fixed_kp": [
+        80.0,
+        80.0,
+        80.0,
+        80.0,
+        80.0,
+        80.0,
+        80.0,
+        80.0,
+        80.0,
+        80.0,
+        80.0,
+        80.0
+      ],
+      "fixed_kd": [
+        3.0,
+        3.0,
+        3.0,
+        3.0,
+        3.0,
+        3.0,
+        3.0,
+        3.0,
+        3.0,
+        3.0,
+        3.0,
+        3.0
+      ],
+      "num_of_dofs": 12,
+      "action_scale": [
+        0.125,
+        0.25,
+        0.25,
+        0.125,
+        0.25,
+        0.25,
+        0.125,
+        0.25,
+        0.25,
+        0.125,
+        0.25,
+        0.25
+      ],
+      "wheel_indices": [],
+      "lin_vel_scale": 2.0,
+      "ang_vel_scale": 0.25,
+      "dof_pos_scale": 1.0,
+      "dof_vel_scale": 0.05,
+      "commands_scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "torque_limits": [
+        23.5,
+        23.5,
+        23.5,
+        23.5,
+        23.5,
+        23.5,
+        23.5,
+        23.5,
+        23.5,
+        23.5,
+        23.5,
+        23.5
+      ],
+      "default_dof_pos": [
+        0.0,
+        0.8,
+        -1.5,
+        0.0,
+        0.8,
+        -1.5,
+        0.0,
+        0.8,
+        -1.5,
+        0.0,
+        0.8,
+        -1.5
+      ],
+      "joint_mapping": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ]
+    }
+  },
+  "policy_exports": {
+    "himloco": {
+      "source_sha256": "d9945f85a39944aaf241a67f7d2b25a15326a0222d0e503aeb05a7f188430509",
+      "onnx_file": "go2_himloco.onnx",
+      "onnx_sha256": "e0b6e3419fc5e159d9fb8ecaafd222731a58b4811b5a70d779f6ba5caa19f65c",
+      "onnx_bytes": 978170,
+      "opset": 17,
+      "exporter": "torch.onnx.export CPU TorchScript, input obs [1,270] HIM / [1,45] robot_lab, output actions [1,12]"
+    },
+    "robot_lab": {
+      "source_sha256": "9f14cb95e74ac9e5e30954da0fc0c33eaa41e337852ebed19fcee869279ade0b",
+      "onnx_file": "go2_robot_lab.onnx",
+      "onnx_sha256": "c8c3041d10d7d83919a99e1db3595f31174c1606184ee2dfff14e73b7f2d9e13",
+      "onnx_bytes": 758423,
+      "opset": 17,
+      "exporter": "torch.onnx.export CPU TorchScript, input obs [1,270] HIM / [1,45] robot_lab, output actions [1,12]"
+    }
+  },
+  "licensing": "rl_sar source is Apache-2.0. rl_sar_zoo has no explicit model-asset license located; meshes remain ignored local vendor assets.",
+  "sdk_joint_names": [
+    "FR_hip_joint",
+    "FR_thigh_joint",
+    "FR_calf_joint",
+    "FL_hip_joint",
+    "FL_thigh_joint",
+    "FL_calf_joint",
+    "RR_hip_joint",
+    "RR_thigh_joint",
+    "RR_calf_joint",
+    "RL_hip_joint",
+    "RL_thigh_joint",
+    "RL_calf_joint"
+  ]
+}

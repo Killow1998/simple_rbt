@@ -1,0 +1,44 @@
+[
+  {
+    "path": "mujoco_sim_cpp/third_party/onnxruntime/onnxruntime_c_api.h",
+    "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.19.2/include/onnxruntime/core/session/onnxruntime_c_api.h",
+    "sha256": "f4047359e0dbf2078fff0e88bfb806de3c2b8891a895ac0dffdc3dfcb8bb489b",
+    "bytes": 213633
+  },
+  {
+    "path": "mujoco_sim_cpp/third_party/onnxruntime/onnxruntime_cxx_api.h",
+    "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.19.2/include/onnxruntime/core/session/onnxruntime_cxx_api.h",
+    "sha256": "0db24679f4bd8f6eb56e52417c698e013c800546b3c657e2fa10ce4070e3734e",
+    "bytes": 109080
+  },
+  {
+    "path": "mujoco_sim_cpp/third_party/onnxruntime/onnxruntime_cxx_inline.h",
+    "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.19.2/include/onnxruntime/core/session/onnxruntime_cxx_inline.h",
+    "sha256": "8a46a163905754a54a8c558d634c8839f158857a4d8f23a322d9a757ce035753",
+    "bytes": 78459
+  },
+  {
+    "path": "mujoco_sim_cpp/third_party/onnxruntime/onnxruntime_float16.h",
+    "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.19.2/include/onnxruntime/core/session/onnxruntime_float16.h",
+    "sha256": "ecdcb4a53176c8b3bbcf674788fcf5ec923fb2b5c762c3f6cfb56fdb6c259aa1",
+    "bytes": 18154
+  },
+  {
+    "path": "mujoco_sim_cpp/third_party/nlohmann/json.hpp",
+    "source": "https://raw.githubusercontent.com/nlohmann/json/v3.11.3/single_include/nlohmann/json.hpp",
+    "sha256": "9bea4c8066ef4a1c206b2be5a36302f8926f7fdc6087af5d20b417d0cf103ea6",
+    "bytes": 919975
+  },
+  {
+    "path": "mujoco_sim_cpp/third_party/onnxruntime/LICENSE",
+    "source": "https://raw.githubusercontent.com/microsoft/onnxruntime/v1.19.2/LICENSE",
+    "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+    "bytes": 1073
+  },
+  {
+    "path": "mujoco_sim_cpp/third_party/nlohmann/LICENSE.MIT",
+    "source": "https://raw.githubusercontent.com/nlohmann/json/v3.11.3/LICENSE.MIT",
+    "sha256": "86b998c792894ccb911a1cb7994f7a9652894e7a094c0b5e45be2f553f45cf14",
+    "bytes": 1076
+  }
+]

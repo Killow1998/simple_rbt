@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "model_version": "scout-mini-current-spec-rounded-rigid-v2",
+  "identity": {
+    "manufacturer": "AgileX Robotics",
+    "product": "SCOUT MINI",
+    "variant": "conventional four-wheel skid steering; not Mini Omni and not full-size Scout",
+    "representation": "procedural box chassis and rounded ellipsoid tires; rigid suspension; functional simulation approximation"
+  },
+  "source": {
+    "product_url": "https://www.agilex.ai/page/68930913f34d776a0e9d147e",
+    "retrieved_date_local": "2026-10-13",
+    "retrieved_timezone": "America/Los_Angeles",
+    "retrieved_html_sha256": "90df87f1fd229af22e4668bfc5149356fcecaa9498d72d5ed05b0a51aaeb1107",
+    "scope": "Current product page factual dimensions and mass. This page is mutable; the downloaded HTML hash identifies the audited snapshot, not an immutable URL. No vendor mesh, webpage or SDK source code is redistributed."
+  },
+  "manufacturer_specifications": {
+    "overall_dimensions_m": [
+      0.612,
+      0.58,
+      0.245
+    ],
+    "wheelbase_m": 0.451,
+    "track_m": 0.49,
+    "ground_clearance_m": 0.115,
+    "curb_mass_kg": 23,
+    "rated_payload_kg": 10,
+    "max_linear_speed_m_s": 1.5,
+    "motor_power_w_each": 250,
+    "motor_count": 4,
+    "suspension": "independent suspension (not implemented in stage 1)",
+    "obstacle_height_unloaded_m": 0.05,
+    "obstacle_height_loaded_m": 0.04,
+    "slope_unloaded_deg": 22,
+    "slope_loaded_deg": 20,
+    "performance_claim_scope": "Reference manufacturer specification, NOT an achieved simulator acceptance result"
+  },
+  "implemented_geometry": {
+    "wheelbase_m": 0.451,
+    "track_m": 0.49,
+    "wheel_radius_m": 0.08,
+    "wheel_width_m": 0.09,
+    "chassis_box_dimensions_m": [
+      0.612,
+      0.4,
+      0.13
+    ],
+    "base_origin_height_above_flat_m": 0.18,
+    "wheel_axle_z_in_base_m": -0.1,
+    "chassis_bottom_above_flat_m": 0.115,
+    "chassis_top_above_flat_m": 0.245,
+    "wheel_order": [
+      "front_left",
+      "front_right",
+      "rear_left",
+      "rear_right"
+    ],
+    "wheel_joint_axis_base": [
+      0,
+      1,
+      0
+    ],
+    "positive_joint_speed_drives": "+X",
+    "base_frame_axes": "+X forward, +Y left, +Z up",
+    "chassis_collision_geom": "chassis",
+    "wheel_collision_geoms": [
+      "front_left_tire",
+      "front_right_tire",
+      "rear_left_tire",
+      "rear_right_tire"
+    ],
+    "tire_shape": "ellipsoid",
+    "tire_local_semiaxes_m": [
+      0.08,
+      0.08,
+      0.045
+    ],
+    "tire_inertia_principal_kg_m2": [
+      0.0022749999999999997,
+      0.0022749999999999997,
+      0.0032
+    ],
+    "tire_inertia_principal_frame": "same local frame as tire: local Z rotated to body +Y"
+  },
+  "engineering_assumptions": {
+    "wheel_radius": "0.08 m estimate, consistent with 0.16 m active collision diameter in older official Gazebo wheel file and ~0.0805 m inferred from current overall length and axle distance. Current product page does not separately publish a tire radius. Not a measured effective rolling radius.",
+    "wheel_width": "0.09 m inferred from overall width 0.58 minus track 0.49; not an independently published tire section width.",
+    "body_shape": "Single 0.612 x 0.400 x 0.130 m box; inner tire faces meet its sides. Actual shell details, bumpers and suspension arms omitted.",
+    "mass_distribution": "19 kg homogeneous chassis box plus four 1 kg wheels. Wheel inertia is explicitly retained from the v1 solid-cylinder approximation, NOT recalculated as a uniform ellipsoid; only the tire contact/visual surface changed. Only total 23 kg is manufacturer specified; per-body mass/inertia are estimates.",
+    "suspension": "Wheel axles fixed to chassis except rotation; real independent suspension omitted. Bump traction, unloading and rollover behavior are not hardware calibrated.",
+    "tires": "Rounded rigid ellipsoids with 80/80/45 mm local semiaxes and unchanged outer envelope; not a measured tire profile. Isotropic sliding coefficient 0.8 on BOTH contact tangents; torsional friction 0.005 m, rolling friction 0.0001 m. No near-zero lateral friction, anisotropic caster shortcut, pneumatic tire model or measured force-slip curve.",
+    "actuation": "Four ideal velocity servos, kv=4 N m/(rad/s), torque bounded at +/-8 N m each; rotor dynamics, current/battery/thermal behavior and firmware not modeled. This torque is a bounded simulation estimate, not a published hardware limit.",
+    "sensors": "Massless ideal sites; device IMU is added by core. No extra physical sensor payload included.",
+    "pose": "Free body driven only by wheel contact forces; no teleport, forced base velocity or external wrench control."
+  },
+  "control": {
+    "controller": "skid_steer",
+    "physics_period_s": 0.005,
+    "servo_update_period_s": 0.005,
+    "wheel_velocity_limit_rad_s": 18.75,
+    "wheel_torque_limit_nm": 8,
+    "velocity_gain_nm_per_rad_s": 4,
+    "kinematic_mapping": "left=(vx-track*effective_wz/2)/radius; right=(vx+track*effective_wz/2)/radius; repeat front/rear. effective_wz = requested_wz + optional gyro yaw PI correction.",
+    "saturation": "Joint targets uniformly scaled to max absolute 18.75 rad/s, preserving requested left/right ratio. Simulator state logs expose targets and actual joint rates.",
+    "lateral_command": "Unsupported; Simulation rejects nonzero user vy and suppresses tracker y output.",
+    "body_velocity_feedback": "Optional caller-provided ideal simulator feedback, separately reported. Native wheel mapping does not guarantee no-slip chassis tracking.",
+    "hardware_angular_speed_limit_rad_s": null,
+    "simulator_angular_command_limit_rad_s": 1.0,
+    "yaw_feedback": {
+      "enabled_by_default": true,
+      "source": "ideal MuJoCo gyro z at robot imu site",
+      "type": "bounded PI yaw-rate error compensation before wheel mapping",
+      "kp": 2.0,
+      "ki_per_s": 8.0,
+      "measurement_filter_time_s": 0.05,
+      "integral_limit_rad_s": 6.122448979591836,
+      "anti_windup": "Freeze yaw integral when wheel-rate saturation and its sign push farther into the bound; allow unwinding. Full zero velocity command resets the turn integral.",
+      "scope": "Simulator controller, not manufacturer firmware. It drives only wheel actuators and retains the same physical friction and torque limits. The compensated wheel differential can greatly exceed no-slip kinematics; actual slip and saturation must be logged."
+    }
+  },
+  "license_and_assets": {
+    "third_party_meshes_copied": false,
+    "third_party_code_copied": false,
+    "geometry": "Original procedural chassis box and rounded tire ellipsoids. Only factual public specifications used.",
+    "reference_legacy_package_license": "BSD as declared in scout_description/package.xml; legacy files were audited but not copied."
+  },
+  "legacy_audit": [
+    {
+      "repository": "https://github.com/agilexrobotics/scout_ros",
+      "commit": "01e07881cdc566c3a657e288c59a75577992d13e",
+      "files": {
+        "scout_description/urdf/scout_mini.urdf.xacro": "52bfea9b016ed8f5749060ffd10765c7c6dafefebbc0ddd510a8a4288242b629",
+        "scout_description/urdf/scout_mini_wheel.xacro": "47e62445ef798f74442d6310808a12ce5c3bc27033d917184c2619f65981037a",
+        "scout_description/package.xml": "2189cd4240b59d1d134508822528dd91cdf6061b708abfb517d69a11ab9c6f9e"
+      },
+      "rejected_parameters": "Base mass60 + four3 kg wheels =72kg; wheel_radius property .16 m, wheelbase .463951, track .416503, wheelSeparation4 in Gazebo. Not consistent with current23kg product; these dynamics and geometry are not imported."
+    },
+    {
+      "repository": "https://github.com/agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "file": "scout/scout_description/urdf/scout_mini_wheel_1.xacro",
+      "sha256": "b0f0a68637abfa2d095336dfb8a7327a8b0ba3958c0076fd3462448c22b4a52a",
+      "use": "Reference only for active cylinder collision radius .08 m and width .084 m. Does not independently certify dimensions of current Mini revision."
+    }
+  ],
+  "version_change": {
+    "previous_model_version": "scout-mini-current-spec-rigid-v1",
+    "change": "Only tire visual/contact geometry cylinder -> rounded ellipsoid. Original mass/inertia, axles, tire envelope, friction, 8 Nm torque bound, kv4 wheel servos, gyro yaw PI and 5 ms stepping are unchanged.",
+    "rationale": "Avoid sharp tire shoulders; isolated same-envelope comparison improves measured turning and first-riser engagement. This is not a claim of calibrated real tire shape.",
+    "comparison_report": "output/scout-mini-20261013/rounded-tire-probe/RESULTS.md",
+    "stair_limitation": "Both 4 cm and 5 cm repeated stair courses still timed out with rounded tires. This is not an obstacle-capability validation; neither rounded simulation nor the old cylinder baseline reproduces the manufacturer obstacle specification. Real suspension and tire compliance remain unmodeled.",
+    "historical_results": "The native and within-spec-steps output directories describe cylinder v1. New default validation must be recorded separately as rounded v2."
+  }
+}

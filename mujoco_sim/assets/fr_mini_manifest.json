@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "model_version": "fr-mini-ackermann-rigid-v1",
+  "identity": {
+    "manufacturer": "YUHESEN / Shenzhen Yuhesen Technology Co., Ltd.",
+    "product": "FR-mini",
+    "representation": "front Ackermann steering, two rear driven wheels; procedural geometry and rigid suspension"
+  },
+  "sources": [
+    {
+      "url": "https://www.yuhesen.com/cn/Product/FR-mini",
+      "retrieved_local_date": "2026-10-13",
+      "html_sha256": "578155a365dd979fea64e8613c10973c10dc04caacdfc970cbd863899030dcad",
+      "status": "Official current product page; mutable URL, hash pins the read snapshot"
+    },
+    {
+      "repository": "https://github.com/YUHESEN-Robot/Yuhesen-Robot-products-user-manuals-new",
+      "commit": "2536b6f0d655acb42fe562ec1c258944ae7291fa",
+      "path": "1.FR-Ackermann Steering UGV/FR-mini User Manual V1.0.3.pdf",
+      "sha256": "82377651bfa440bde42b29db73e8910e388877113560339dad7fbd8fda5e16a9",
+      "official_link_provenance": "https://www.yuhesen.com/cn/Download/ links this manufacturer repository",
+      "evidence": "Manual printed pp.4-6: front steering/rear drive, dimensions, mass, motors, minimum radius. Printed p.17: reported/commanded steering angle is the inner front wheel, not bicycle angle. CAN tables expose separate left/right rear wheel speeds."
+    }
+  ],
+  "manufacturer_specifications": {
+    "dimensions_length_width_height_m": [
+      0.615,
+      0.405,
+      0.19
+    ],
+    "curb_mass_kg": 18,
+    "payload_kg": 20,
+    "ground_clearance_m": 0.061,
+    "wheelbase_m": 0.4,
+    "wheel_track_m": 0.312,
+    "tire_diameter_m": 0.14,
+    "drive": "front Ackermann steering, rear motor drive",
+    "driving_motor_count": 2,
+    "driving_motor_power_w_each": 100,
+    "steering_motor_power_w": 65,
+    "max_speed_km_h": 6.5,
+    "minimum_turning_radius_m": 1.1,
+    "minimum_turning_radius_reference": "Not specified in manual; implementation interpretation below",
+    "braking": "motor braking/parking",
+    "suspension": "Product page and manual table state independent suspension; manual prose also calls rear suspension a solid axle. Actual suspension geometry is not reproduced.",
+    "claim_scope": "Reference manufacturer facts; no claim these are achieved/validated simulation limits"
+  },
+  "implemented_geometry": {
+    "base_reference": "Origin on rear axle centerline at chassis frame height; +X forward, +Y left, +Z up. vx/vy from base_origin therefore refer to rear axle, not geometric chassis center.",
+    "rear_axle_x_in_base_m": 0.0,
+    "front_axle_x_in_base_m": 0.4,
+    "chassis_center_x_in_base_m": 0.2,
+    "base_height_on_flat_m": 0.1255,
+    "axle_z_in_base_m": -0.0555,
+    "chassis_belly_dimensions_m": [
+      0.615,
+      0.2,
+      0.099
+    ],
+    "chassis_belly_position_m": [
+      0.2,
+      0,
+      -0.015
+    ],
+    "upper_deck_dimensions_m": [
+      0.615,
+      0.405,
+      0.03
+    ],
+    "upper_deck_position_m": [
+      0.2,
+      0,
+      0.0495
+    ],
+    "underside_height_on_flat_m": 0.061,
+    "roof_height_on_flat_m": 0.19,
+    "tire_shape": "rounded ellipsoid with cylinder-like inertia",
+    "tire_local_semiaxes_m": [
+      0.07,
+      0.07,
+      0.0225
+    ],
+    "tire_width_m": 0.045,
+    "wheel_order": [
+      "front_left",
+      "front_right",
+      "rear_left",
+      "rear_right"
+    ],
+    "all_positive_wheel_directions": "Forward along each wheel heading. Front wheel +Y hinge axes rotate with steering; rear +Y axes fixed.",
+    "sites_in_base_m": {
+      "base_origin": [
+        0,
+        0,
+        0
+      ],
+      "imu": [
+        0.2,
+        0,
+        0.04
+      ],
+      "lidar": [
+        0.2,
+        0,
+        0.09
+      ],
+      "camera_mount": [
+        0.515,
+        0,
+        0.045
+      ]
+    },
+    "site_rotations": "Identity body convention before optical camera conversion; device-specific MID360 IMU added by core"
+  },
+  "engineering_assumptions": {
+    "body_and_tires": "Original procedural contact boxes and rounded tires, no manufacturer CAD copied. 45 mm tire width, narrow underbody, upper deck, smooth tread/shoulder are unmeasured estimates.",
+    "suspension": "All axle positions are rigid; no double-wishbone travel, pneumatic compliance, anti-roll geometry or tire force-slip calibration. Intended first-stage scope is flat, ramps and continuous hills.",
+    "mass_distribution": "13 kg belly + 2 kg upper deck + four 0.65 kg wheels + two 0.20 kg steering knuckles = 18 kg. Only total mass is manufacturer specified. Box and cylinder-like wheel inertias are analytic estimates.",
+    "steering": "Two independent bounded position servos synthesize paired Ackermann angles. Real single steering actuator/tie-rod linkage is not mechanically reproduced. Steering axes pass through wheel centers, with no modeled scrub radius/caster/camber.",
+    "turn_limit": "Interpret published minimum radius 1.1 m as the rear axle center radius. This is an explicit convention, not an independently specified factory steering limit. Inner angle = atan(.4/(1.1-.312/2)). The ambiguous manual table entry Steering angle <=0.5 degrees is NOT treated as maximum travel.",
+    "friction": "Isotropic tire sliding friction .8 in both tangent directions; torsional .005 m and rolling .0001 m. No near-zero lateral friction shortcut.",
+    "rear_motor_servo": "kv=4 N m per rad/s, each torque bounded +/-4 N m. Angular speed capped by 6.5 km/h / .07 m. Values other than nominal rated power/top speed are simulator estimates; not motor current curves/firmware.",
+    "steering_servo": "kp40 N m/rad, kv2 N m per rad/s, each bounded +/-3 N m, limited to derived inner angle. Simulation actuator approximation, not real single65W linkage dynamics.",
+    "sensors": "Ideal massless sites. No payload, bias/noise or firmware replay; sensor pipeline provides separate provenance."
+  },
+  "control": {
+    "controller": "ackermann",
+    "physics_period_s": 0.005,
+    "update_period_s": 0.005,
+    "command_limits_vx_vy_wz": [
+      1.0,
+      0.0,
+      1.0
+    ],
+    "command_reference": "rear axle centerline; moving yaw command is converted into curvature wz/vx",
+    "validation": "Reject any nonzero vy; reject nonzero wz when abs(vx)<=1e-9. Finite moving commands above steering curvature are limited and explicitly logged.",
+    "max_curvature_1_m": 0.9090909090909091,
+    "maximum_inner_steering_angle_rad": 0.40079344857523475,
+    "wheel_rate_limit_rad_s": 25.79365079365079,
+    "rear_wheel_torque_limit_nm": 4.0,
+    "steering_torque_limit_nm": 3.0,
+    "ackermann": "delta_left=atan(L*k/(1-track*k/2)), delta_right=atan(L*k/(1+track*k/2)); signed k=wz/vx handles reverse. Rear speeds=(vx-wz*track/2)/radius and (vx+wz*track/2)/radius.",
+    "front_rolling": "Passive hinges. target_velocity first two entries are no-slip predictions for telemetry, never actuator commands.",
+    "actuator_indices_contract": "actuator_indices and drive_actuator_indices contain ONLY rear_left/rear_right velocity actuators. steering_actuator_indices separately contain front_left/front_right position actuators. wheel states and targets remain FL/FR/RL/RR.",
+    "stop": "Zero motor-speed command and centered steering; braking arises only from bounded rear wheel servo torque. No free-body velocity/force/pose writes.",
+    "feedback": "No body velocity or gyro feedback inside FrMiniController. Optional caller body tracker is reported separately; caller suppresses lateral output and bounds yaw by abs(vx)*max_curvature before controller."
+  },
+  "assets_and_license": {
+    "third_party_code_or_mesh_copied": false,
+    "geometry": "Original procedural primitives from factual public dimensions; no downloaded CAD/mesh/model code redistributed.",
+    "manual": "Read for factual configuration only, not copied into repository.",
+    "sdk_lookup": "Official download page links FR-mini-ros and FR-mini-ros2; GitHub API returned404 during this audit. Model does not depend on these unavailable endpoints."
+  }
+}

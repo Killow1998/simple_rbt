@@ -1,0 +1,25 @@
+<mujoco model="diffdrive">
+      <compiler angle="radian" />
+      <option timestep="0.004" integrator="implicitfast" />
+      <default><geom friction="1 0.005 0.001" /><joint damping="0.05" /></default>
+      <worldbody><body name="base" pos="0 0 0.16">
+        <freejoint />
+        <geom name="chassis" type="box" size=".23 .15 .06" mass="8" rgba=".2 .4 .8 1" />
+        <site name="base_origin" /><site name="imu" pos="0 0 .07" />
+        <site name="lidar" pos="0 0 .15" /><site name="camera_mount" pos=".24 0 .08" />
+        <geom name="front_caster_collision" type="sphere" size=".025" pos=".18 0 -.13" mass=".01" friction=".001 .001 .001" />
+        <geom name="rear_caster_collision" type="sphere" size=".025" pos="-.18 0 -.13" mass=".01" friction=".001 .001 .001" />
+        <body name="left_wheel" pos="0 .18 -.04">
+          <joint name="left" type="hinge" axis="0 1 0" />
+          <geom type="cylinder" size=".12 .025" quat=".70710678 .70710678 0 0" mass=".3" rgba=".1 .1 .1 1" />
+        </body>
+        <body name="right_wheel" pos="0 -.18 -.04">
+          <joint name="right" type="hinge" axis="0 1 0" />
+          <geom type="cylinder" size=".12 .025" quat=".70710678 .70710678 0 0" mass=".3" rgba=".1 .1 .1 1" />
+        </body>
+      <site name="mid360_imu" size="0.002" class="main" pos="0.010999999999999999 0.023290000000000002 0.10588" quat="1 0 0 0" /></body></worldbody>
+      <actuator><velocity joint="left" kv="3" forcelimited="true" forcerange="-8 8" />
+        <velocity joint="right" kv="3" forcelimited="true" forcerange="-8 8" /></actuator>
+      <sensor><gyro name="gyro" site="imu" /><accelerometer name="accelerometer" site="imu" />
+        <velocimeter name="base_linvel" site="base_origin" /><gyro name="base_angvel" site="base_origin" /><gyro name="mid360_gyro" site="mid360_imu" /><accelerometer name="mid360_accelerometer" site="mid360_imu" /></sensor>
+    </mujoco>

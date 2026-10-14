@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "model_version": "ranger-mini-3-current-spec-swerve-rigid-v1",
+  "identity": {
+    "manufacturer": "AgileX Robotics",
+    "product": "RANGER MINI 3.0",
+    "variant": "four independently steered and driven conventional wheels; not Mini V1/V2, full-size Ranger or mecanum",
+    "representation": "procedural two-box chassis, four steering modules and rounded rigid ellipsoid tires; no suspension"
+  },
+  "source": {
+    "product_url": "https://www.agilex.ai/page/6908c1285e78cfa260412be9",
+    "retrieved_date_local": "2026-10-13",
+    "retrieved_timezone": "America/Los_Angeles",
+    "retrieved_html_sha256": "94752d4f8c9f2321355e396a28ddf080191b4bdbae069a90682f040e4aecac26",
+    "scope": "Current Mini 3.0 product page factual specifications. Mutable page snapshot identified by hash; no manufacturer assets or code copied."
+  },
+  "manufacturer_specifications": {
+    "wheelbase_m": 0.494,
+    "track_m": 0.370,
+    "ground_clearance_m": 0.105,
+    "curb_mass_kg": 73,
+    "rated_payload_kg": 120,
+    "max_linear_speed_m_s": 2,
+    "drive_motor_count": 4,
+    "drive_motor_power_w_each": 350,
+    "steering_motor_count": 4,
+    "steering_motor_power_w_each": 100,
+    "slope_deg_loaded_and_unloaded": 20,
+    "obstacle_height_m_loaded_and_unloaded": 0.075,
+    "suspension": "four-wheel independent suspension, omitted from this first-stage rigid model",
+    "performance_claim_scope": "Manufacturer reference only, not achieved simulator acceptance results"
+  },
+  "implemented_geometry": {
+    "wheelbase_m": 0.494,
+    "track_m": 0.370,
+    "wheel_radius_m": 0.110,
+    "wheel_width_m": 0.070,
+    "chassis_keel_dimensions_m": [0.700, 0.140, 0.215],
+    "upper_deck_dimensions_m": [0.700, 0.460, 0.080],
+    "upper_deck_center_in_base_m": [0, 0, 0.0675],
+    "base_origin_height_above_flat_m": 0.2125,
+    "wheel_axle_z_in_base_m": -0.1025,
+    "chassis_bottom_above_flat_m": 0.105,
+    "chassis_top_above_flat_m": 0.320,
+    "chassis_collision_geoms": ["chassis", "chassis_deck"],
+    "wheel_order": ["front_left", "front_right", "rear_left", "rear_right"],
+    "wheel_collision_geoms": ["front_left_tire", "front_right_tire", "rear_left_tire", "rear_right_tire"],
+    "steering_axis_module": [0, 0, 1],
+    "wheel_joint_axis_module": [0, 1, 0],
+    "steering_axis_offset_from_wheel_center_m": [0, 0, 0],
+    "tire_shape": "ellipsoid",
+    "tire_local_semiaxes_m": [0.110, 0.110, 0.035],
+    "base_frame_axes": "+X forward, +Y left, +Z up"
+  },
+  "engineering_assumptions": {
+    "shell": "Overall shell dimensions are not published on the audited current product page. Estimated narrow lower keel and wider upper deck form a collision union that clears each steering tire sweep; not a manufacturer CAD reconstruction. Both chassis and chassis_deck must count for body-contact evaluation.",
+    "wheel_radius_and_width": "110 mm radius and 70 mm width are explicit geometric estimates, not a Mini 3.0 measured rolling radius. Steering changes the wheel envelope.",
+    "steering_axis": "Zero caster/trail/scrub offset, vertical through each hub. Actual hardware offsets are not published in the audited sources.",
+    "mass_distribution": "Only total 73 kg is sourced: estimated 44 kg homogeneous keel + 15 kg deck + four 1 kg steering bodies + four 2.5 kg uniform ellipsoid wheels. Steering-body diagonal inertia [.0015,.0015,.001] kg m2; no measured COM/inertia.",
+    "suspension": "Rigid steering pivots relative to chassis; native independent suspension and compliance not implemented. Uneven-ground load sharing is not calibrated hardware behavior.",
+    "tires": "Rigid rounded ellipsoids with isotropic sliding friction .8 on both tangents, torsional .005 m, rolling .0001 m; no anisotropic lateral-slip shortcut or tire deformation.",
+    "steering_limits": "Estimated mechanical range +/-pi rad and commanded joint speed cap2 rad/s. Actual joint speed may transiently overshoot because torque is finite. Neither range nor speed is claimed as a hardware specification.",
+    "actuation": "Drive velocity servos kv6 N m/(rad/s), +/-20 N m each. Steering bounded velocity-feedback torque +/-20 N m, angle-to-rate gain8/s, rate gain12 N m/(rad/s). These finite simulator values are estimates, not inferred from motor power. No power/current/thermal model.",
+    "sensors": "Massless ideal sites; shared core adds the MID360 device IMU. No extra sensor payload mass.",
+    "pose": "Free body advances only through gravity and real joint/contact forces; no body wrench, pose or base-velocity writes."
+  },
+  "control": {
+    "controller": "swerve",
+    "physics_period_s": 0.005,
+    "servo_update_period_s": 0.005,
+    "simulator_command_limits_vx_vy_wz": [1.0, 0.6, 1.0],
+    "command_limit_scope": "Conservative initial simulator envelope; lower than manufacturer 2m/s. Shared Simulation validates body commands.",
+    "wheel_velocity_limit_rad_s": 13.636363636363637,
+    "wheel_torque_limit_nm": 20,
+    "wheel_velocity_gain_nm_per_rad_s": 6,
+    "steering_range_rad": [-3.141592653589793, 3.141592653589793],
+    "steering_rate_target_limit_rad_s": 2,
+    "steering_torque_limit_nm": 20,
+    "steering_position_gain_per_s": 8,
+    "steering_velocity_gain_nm_per_rad_s": 12,
+    "alignment_release_rad": 0.10,
+    "kinematic_mapping": "At module(x,y): ux=vx-wz*y, uy=vy+wz*x. Choose azimuth atan2(uy,ux) or equivalent +/-pi with reversed wheel rate, minimizing actual steering rotation within mechanical bounds.",
+    "alignment": "Hold every drive target at zero until all nonzero-speed module heading errors are <=.10rad; steering uses real bounded torque. Zero-speed modules hold current azimuth.",
+    "saturation": "Uniformly scale all requested wheel rates to max abs13.63636rad/s. Alignment hold is logged separately from saturation.",
+    "stop": "Full zero command latches current actual azimuth once and sets all drive targets to zero. Finite-torque physical brakes; no pose freeze, no endless steering to an obsolete target.",
+    "native_feedback": "Joint position/velocity feedback only. Optional outer chassis tracker belongs to shared core and must be reported separately.",
+    "modes": ["brake", "aligning", "translate", "spin", "compound"],
+    "firmware_scope": "General swerve simulation, not exact AgileX CAN mode behavior. Official ROS2 Mini v3 selects parallel for nonzero vy and does not retain simultaneous wz there; this simulator explicitly permits coupled vx/vy/wz."
+  },
+  "official_software_audit": [
+    {
+      "repository": "https://github.com/agilexrobotics/ranger_ros2",
+      "branch": "humble",
+      "commit": "b6ea21a275ca5e7168130cc6470e61474681d679",
+      "license": "BSD-3-Clause",
+      "files_sha256": {
+        "README.md": "24a24f4a7a9c81506d823af77edec6896a50980aeef8f9cc9506e0063d4ce857",
+        "ranger_base/include/ranger_base/ranger_params.hpp": "e5e6836189904ffcafc8ee9cdfb8f04fc4e19409ff118b9076ea14001b68fb51",
+        "ranger_base/launch/ranger_mini_v3.launch.py": "da0af8b522074506e73a39a501e7d262ee8f85f19b8c1d286c1ba671265e8198",
+        "ranger_base/src/ranger_messenger.cpp": "d7a6aaf6449ea1dc491b3a7207a8253c79c3aa9885479bcd8929d410ac51804d"
+      },
+      "confirmed": "Explicit RangerMiniV3Params, ranger_mini_v3 launch and SDK Variant selection. Driver package has no Mini3 geometry/mesh asset.",
+      "conflicts_not_silently_imported": "V3 ROS parameters use track .364m and max linear1.5m/s; current Mini3 product page says .370m and2m/s. Use current product geometry, and a separately declared lower simulator envelope. V1 .36m wheelbase is not used."
+    },
+    {
+      "repository": "https://github.com/agilexrobotics/ugv_sdk",
+      "commit": "f2704eacdc90357078cd93ec60aae08bb4baab35",
+      "license": "Apache-2.0",
+      "files_sha256": {
+        "include/ugv_sdk/mobile_robot/ranger_robot.hpp": "9a08cbb00a4dc28be1c692cf542cbc40f9efdcd891ed0b9e4703ca2bbba8906a",
+        "src/mobile_robot/ranger_robot.cpp": "94ab7dfa39be6b22ee5260de1c5e58b5d24ddd49aeb8ac2f181850bde6db9741"
+      },
+      "confirmed": "kRangerMiniV3 maps to RangerMiniV3Base; SetMotionMode and SetMotionCommand are distinct hardware calls."
+    }
+  ],
+  "license_and_assets": {
+    "third_party_meshes_copied": false,
+    "third_party_code_copied": false,
+    "geometry": "Original procedural primitives and first-principles swerve mapping; factual public specifications only. No dependencies, meshes or weights added."
+  }
+}
