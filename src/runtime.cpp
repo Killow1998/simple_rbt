@@ -3,7 +3,7 @@
 #include "resources.hpp"
 #include "simple_rbt/cameras.hpp"
 #include "simple_rbt/lidar.hpp"
-#include "simple_rbt/ros_bridge.hpp"
+#include "simple_rbt/transport.hpp"
 #include "simple_rbt/viewer.hpp"
 #include <algorithm>
 #include <chrono>
@@ -14,7 +14,8 @@
 #include <unistd.h>
 
 namespace simple_rbt {
-Json run_simulation(const RunOptions &args, RunObserver *observer) {
+Json run_simulation(const RunOptions &args, RunObserver *observer,
+                    const TransportFactory& transport_factory) {
   ResourceMeter run_meter;
   if (!std::isfinite(args.duration) || args.duration <= 0 ||
       !std::isfinite(args.settle) || args.settle < 0 ||
@@ -64,8 +65,8 @@ Json run_simulation(const RunOptions &args, RunObserver *observer) {
     cameras = std::make_unique<CameraRig>(sim.model());
     cameras->render_into(sim.data(), sim.camera_pose(), frames);
   }
-  std::unique_ptr<RosBridge> bridge;
-  if (args.ros2) {
+  std::unique_ptr<Transport> bridge;
+  if (transport_factory) {
     Extrinsics extrinsics;
     extrinsics.lidar = sim.extrinsics("lidar");
     extrinsics.imu = sim.extrinsics("mid360_imu");
@@ -81,9 +82,9 @@ Json run_simulation(const RunOptions &args, RunObserver *observer) {
       optical[3 * row + 2] = mount[3 * row];
     }
     mju_mat2Quat(extrinsics.camera.quaternion.data(), optical);
-    RosOptions options;
-    options.robot_name = args.simulation.robot;
-    bridge = std::make_unique<RosBridge>(options, extrinsics);
+    bridge = transport_factory(extrinsics);
+    if (!bridge)
+      throw std::runtime_error("Transport factory returned null");
   }
   std::unique_ptr<Viewer> viewer;
   if (args.viewer)
@@ -225,7 +226,7 @@ Json run_simulation(const RunOptions &args, RunObserver *observer) {
     }
     if (viewer && step % 5 == 0)
       viewer->sync();
-    if (args.realtime || args.viewer || args.ros2) {
+    if (args.realtime || args.viewer || bridge) {
       double remaining = stamp * 1e-9 - (monotonic_seconds() - start);
       if (remaining > 0)
         std::this_thread::sleep_for(std::chrono::duration<double>(remaining));
@@ -322,7 +323,8 @@ Json run_simulation(const RunOptions &args, RunObserver *observer) {
       {"camera_pair_p95_ms", camera_times.empty()
                                  ? Json(nullptr)
                                  : Json(percentile(camera_times, .95) * 1000)},
-      {"ros2", bool(bridge)},
+      {"ros2", bridge && std::string(bridge->backend()) == "ros2"},
+      {"ros1", bridge && std::string(bridge->backend()) == "ros1"},
       {"resources_loop", usage},
       {"resources_run", run_meter.report()},
       {"timing_scope",

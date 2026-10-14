@@ -37,10 +37,10 @@ def source_fingerprints():
         if vendor:
             paths += [ROOT / ".vendor" / vendor / row["path"] for row in description.get("files", [])
                       if (ROOT / ".vendor" / vendor / row["path"]).is_file()]
-    for directory in ("src", "include", "tests", "third_party"):
+    for directory in ("src", "include", "wrappers", "tests", "third_party"):
         paths += [path for path in (ROOT / directory).rglob("*")
-                  if path.is_file() and path.suffix in (".cpp", ".cu", ".hpp", ".h")]
-    paths += [path for path in (ROOT / "ros2_interfaces").rglob("*")
+                  if path.is_file() and path.suffix in (".cpp", ".cu", ".hpp", ".h", ".inc")]
+    paths += [path for path in (ROOT / "interfaces").rglob("*")
               if path.is_file() and (path.suffix in (".msg", ".xml", ".sh")
                                      or path.name == "CMakeLists.txt")]
     paths += [path for path in (ROOT / "CMakeLists.txt", ROOT / "third_party" / "manifest.json",

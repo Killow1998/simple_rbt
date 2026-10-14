@@ -170,7 +170,7 @@ GetUp 曾让 12 cm 楼梯走完，但速度仍不合格，因此保留为实验�
 
 ## ROS 2
 
-使用 Humble 与本专案 `ros2_interfaces/` 构建的 Livox 讯息库；未载入硬体驱动。
+使用 Humble 与本专案 `interfaces/` 构建的 Livox 讯息库；未载入硬体驱动。
 其他机器可用 `SIMPLE_RBT_LIVOX_PREFIX` 指定套件安装前缀，构建时也可用
 `SIMPLE_RBT_LIVOX_SETUP` 指定 `local_setup.bash`。目前完整 C++ 可执行程序构建／载入需要 ROS 库；
 不加 `--ros2` 时不建立 ROS 节点，仍可独立运行仿真。
@@ -326,7 +326,7 @@ OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 .venv/bin/python \
 | `../src/artifacts.cpp`、`resources.cpp` | 输出文件与程序资源量测 |
 | `../src/lidar.cpp`、`lidar_cuda.cu` | MID360 CSV、位姿内插、CPU／CUDA 射线 |
 | `../src/cameras.cpp`、`viewer.cpp` | 普通／全景感测相机与桌面窗口 |
-| `../src/ros_bridge.cpp` | 真实 DDS 收发、命名空间与超时停车 |
+| `../wrappers/ros2/ros_bridge.cpp` | 真实 DDS 收发、命名空间与超时停车 |
 | `../src/course.cpp`、`course_geometry.cpp` | 路线／速度、安全包络、接触与实际摩擦门槛 |
 | `../src/full_run.cpp` | 同次物理／传感器运行的证据、哈希与 DDS 握手 |
 | `scripts/validate_full_run.py`、`scripts/full_run_*.py` | 独立 Python 验收入口、参考 worker、DDS 接收、31 项判定与证据文件 |

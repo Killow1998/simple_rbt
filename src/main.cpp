@@ -1,5 +1,8 @@
 #include "simple_rbt/full_run.hpp"
 #include "simple_rbt/runtime.hpp"
+#if defined(SIMPLE_RBT_ROS1) || defined(SIMPLE_RBT_ROS2)
+#include "simple_rbt/ros_bridge.hpp"
+#endif
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -10,7 +13,7 @@
 using namespace simple_rbt;
 namespace {
 void help(const std::filesystem::path &project_root) {
-  std::cout << R"(simple-rbt-native — C++17 / MuJoCo / native CUDA / ROS 2
+  std::cout << R"(simple-rbt-native — C++17 / MuJoCo / native CUDA / optional ROS wrapper
 Usage: ./run.sh [options]
 )";
   std::cout << "  --robot ";
@@ -38,7 +41,7 @@ Usage: ./run.sh [options]
   --sensors physics|lidar|full --cameras --camera-hz NUMBER
   --backend cpu|cuda|warp           warp is a compatibility alias for native CUDA
   --lidar-motion rolling|snapshot --rays NUMBER (1..20000, diagnostic subset)
-  --ros2                            subscribes to /<robot>/cmd_vel; timeout 0.5s
+  --ros1 | --ros2                    selects compiled wrapper; /<robot>/cmd_vel; timeout 0.5s
   --realtime --viewer --summary-only --output NEW_DIRECTORY
   --go2-torque-mode configured|upstream --go2-startup crouched|upstream_getup
   --project-root DIRECTORY
@@ -68,6 +71,7 @@ int main(int argc, char **argv) {
     args.simulation.project_root = SIMPLE_RBT_PROJECT_ROOT;
     std::filesystem::path config_path;
     bool explicit_cameras = false;
+    std::string ros_backend;
     auto value = [&](int &i) {
       if (++i >= argc)
         throw std::invalid_argument("Missing option value");
@@ -121,8 +125,12 @@ int main(int argc, char **argv) {
       else if (option == "--cmd")
         for (double &x : args.simulation_command)
           x = number(value(i));
-      else if (option == "--ros2")
-        args.ros2 = true;
+      else if (option == "--ros1" || option == "--ros2") {
+        const auto selected = option.substr(2);
+        if (!ros_backend.empty() && ros_backend != selected)
+          throw std::invalid_argument("Select one ROS wrapper");
+        ros_backend = selected;
+      }
       else if (option == "--realtime")
         args.realtime = true;
       else if (option == "--viewer")
@@ -153,7 +161,7 @@ int main(int argc, char **argv) {
       args.camera_hz = c.at("camera_hz");
       args.settle = c.at("settle_s");
       args.output = c.at("output").get<std::string>();
-      args.ros2 = true;
+      ros_backend = "ros2";
       args.realtime = true;
       args.sensors = "full";
       args.summary_only = true;
@@ -173,7 +181,25 @@ int main(int argc, char **argv) {
     }
     if (!supported_command(args.simulation.robot, args.simulation_command))
       throw std::invalid_argument("Unsupported/nonfinite planar command");
-    run_simulation(args, observer.get());
+    TransportFactory factory;
+    if (!ros_backend.empty()) {
+#if defined(SIMPLE_RBT_ROS1) || defined(SIMPLE_RBT_ROS2)
+      RosOptions options;
+      options.robot_name = args.simulation.robot;
+#ifdef SIMPLE_RBT_ROS1
+      if (ros_backend != "ros1")
+#else
+      if (ros_backend != "ros2")
+#endif
+        throw std::invalid_argument("Requested ROS wrapper is not in this build");
+      factory = [options](const Extrinsics& extrinsics) {
+        return std::make_unique<RosBridge>(options, extrinsics);
+      };
+#else
+      throw std::invalid_argument("This build has no ROS wrapper");
+#endif
+    }
+    run_simulation(args, observer.get(), factory);
     return 0;
   } catch (const std::exception &e) {
     std::cerr << "simple-rbt-native: " << e.what() << '\n';

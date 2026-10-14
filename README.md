@@ -2,7 +2,7 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-A MuJoCo robot simulator built with C++17 and ROS 2 Humble. Send velocity commands and receive physical motion, MID360 LiDAR/IMU, perspective and panoramic cameras, odometry, and TF.
+A MuJoCo robot simulator with an independent C++17 core and optional thin ROS 1 Noetic / ROS 2 Humble wrappers. Send velocity commands and receive physical motion, MID360 LiDAR/IMU, perspective and panoramic cameras, odometry, and TF.
 
 Supported robots: Go2, Go2W, a two-wheel differential-drive reference, Scout Mini, FR-mini, Ridgeback, and Ranger Mini. Wheeled chassis use flat ground, ramps, and continuous hills; Go2 and Go2W also support stairs and stepped terrain.
 
@@ -26,7 +26,23 @@ Run these commands from the repository root:
 
 `run.sh` starts the C++ runtime. Python supports offline preparation and an independent reference implementation.
 
-`--cmd VX VY WZ` sets forward/lateral velocity in m/s and yaw rate in rad/s. With `--ros2`, commands come from `/<robot>/cmd_vel`; the robot stops after 0.5 seconds without a fresh command. For example, Go2W accepts `/go2w/cmd_vel`.
+Select the communication mode; all three builds reuse the same core:
+
+```bash
+./setup.sh --native-only --no-ros
+SIMPLE_RBT_BUILD_DIR="$PWD/build/standalone" ./run.sh --robot ranger_mini --cmd .3 0 0
+
+./setup.sh --native-only --ros2
+./run.sh --robot go2w --ros2 --sensors full --camera-hz 10
+
+.venv/bin/python tools/test_ros1.py --base-image YOUR_NOETIC_IMAGE --build-only
+./setup.sh --native-only --ros1
+ROS_MASTER_URI=http://127.0.0.1:11311 ./run.sh --robot ranger_mini --ros1
+```
+
+The ROS 1 example needs a running master. Jammy setup exports a local Noetic C++ SDK from the selected image; see [ROS 1 setup and tests](docs/noetic.md).
+
+`--cmd VX VY WZ` sets forward/lateral velocity in m/s and yaw rate in rad/s. With `--ros1` or `--ros2`, commands come directly from `/<robot>/cmd_vel`; the robot stops after 0.5 seconds without a fresh command. For example, Go2W accepts `/go2w/cmd_vel`.
 
 Use `--control-mode native` for the chassis controller alone or `tracked` for additional simulator velocity/heading feedback. Commanded speed is not a guarantee of actual speed on every terrain.
 
@@ -36,13 +52,17 @@ Use `--control-mode native` for the chassis controller alone or `tracked` for ad
 simple_rbt/
 ├── CMakeLists.txt          C++ build entry
 ├── setup.sh / run.sh       Preparation and launch
-├── src/                    Physics, controllers, sensors, ROS, scheduling
+├── src/                    C++ core, sensors, scheduling, executable assembly
 ├── include/simple_rbt/     C++ module interfaces
 ├── assets/                 Models, policies, parameters, scan data
-├── tests/                  Native and Noetic integration tests
+├── tests/                  Core, ROS 1 and ROS 2 tests
 ├── tools/                  Preparation, measurements, end-to-end checks
 ├── reference/python/       Independent Python implementation and tests
-├── ros2_interfaces/        ROS message definitions
+├── interfaces/             Shared ROS 1 / ROS 2 message definitions
+├── wrappers/               Thin ROS adapters and shared wire conversions
+│   ├── ros1/               roscpp adapter
+│   ├── ros2/               rclcpp adapter
+│   └── common/             Names, validation and payload conversions
 ├── third_party/            Pinned headers and licenses
 ├── docs/                   Usage, design, and validation
 ├── build/                  Local build products (ignored by Git)
@@ -67,8 +87,8 @@ Use a new output directory for each run. GPU and live ROS checks require the cor
 
 ## Noetic Docker tests
 
-Run optional ROS 1 interoperability checks with an existing Noetic image. See the [Noetic test guide](docs/noetic.md) for image preparation and test coverage.
+Test the direct ROS 1 wrapper with an existing Noetic image. See the [Noetic test guide](docs/noetic.md) for image preparation and test coverage.
 
 ```bash
-.venv/bin/python tools/test_noetic.py --skip-build
+.venv/bin/python tools/test_ros1.py --skip-build
 ```

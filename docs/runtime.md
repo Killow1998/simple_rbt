@@ -1,6 +1,16 @@
 # simple_rbt C++ runtime
 
-`../run.sh` 现在启动 `build/native/simple-rbt-native`。物理、控制器、LiDAR、相机及 ROS 2 都在 C++ 程序内执行，不启动 Python，也不使用 Warp／LLVM runtime。原 Python 实现由 `../reference/python/run.sh` 保留，供独立对照。
+`../run.sh` 启动 C++ 程序。物理、控制器、LiDAR、相机、调度和输出构成独立核心；ROS 1／ROS 2 是可选择的薄通信适配层。运行时不启动 Python，也不使用 Warp／LLVM runtime。Python 仅用于准备工具和独立参考／验证。
+
+核心通过 `Transport` 接口交换普通 C++ 指令和传感器数据，不包含 ROS 消息类型、ROS 时钟或中间件头文件。`src/main.cpp` 是装配入口：选择 wrapper 并将构造函数交给调度程序；核心库不链接 wrapper。当前 ROS 1 和 ROS 2 分别同进程直连；独立 ROS 节点与进程间协议尚未实现。新增通信方式只需实现这个边界，不需要修改物理、控制器和传感器算法。
+
+| 构建 | 输出 | 启动 |
+| --- | --- | --- |
+| `./setup.sh --native-only --no-ros` | `build/standalone` | `SIMPLE_RBT_BUILD_DIR="$PWD/build/standalone" ./run.sh --cmd .3 0 0` |
+| `./setup.sh --native-only --ros1` | `build/ros1` | `./run.sh --robot ranger_mini --ros1`，需要 ROS master |
+| `./setup.sh --native-only --ros2` | `build/native` | `./run.sh --robot go2w --ros2` |
+
+No ROS / ROS 1 / ROS 2 use identical core sources. The standalone executable has no ROS/DDS shared-library dependency. ROS adapters own discovery, callbacks, wall-time command timeout, message conversion and publication; physics and sampling clocks remain in the core.
 
 支持 7 台机器人：`go2`、`go2w`、`diffdrive`、`scout_mini`、`fr_mini`、`ridgeback`、`ranger_mini`。Go2 的 RobotLab／HIMLoco／legacy 是控制器选项，不另算机器人。轮式场景使用 `flat`、`ramp`、`hills`；`tracked` 默认模式含理想模拟器速度／航向反馈，`native` 关闭这层外部反馈，保留各底盘自身控制器。
 
@@ -25,11 +35,11 @@
 
 首次准备 SDK／模型可执行 `./setup.sh`，它会准备锁定的 `.venv` 套件与策略资产，再构建 C++。C++ 直接连结 `.venv` 内的 MuJoCo／ONNX Runtime 共享库与 MuJoCo headers；套件目录需要保留，但执行时不需要 Python 解释器。
 
-构建使用 Jammy 现有 GCC（C++17）、CMake ≥3.22、CUDA 12.9、ROS 2 Humble／`livox_ros_driver2` 讯息套件，以及 EGL／OpenGL、GLFW、PNG、TinyXML2、OpenSSL、pkg-config。默认 CUDA compiler 是 `/usr/local/cuda-12.9/bin/nvcc`、host compiler 是 `/usr/bin/g++`，此次重新构建沿用已运行版本的 CUDA 架构 cache `52`；可在已载入 ROS 环境的 CMake 配置中，用 `-DCMAKE_CUDA_ARCHITECTURES=<架构号>` 明确指定其他架构（例如此台机器的 `120`）。compiler 路径也可由同名 CMake cache 变数覆写。目前构建包含 CUDA，即使执行时选择 CPU LiDAR 也需要 CUDA toolkit。
+构建使用 Jammy 现有 GCC（C++17）、CMake ≥3.22、CUDA 12.9，以及 EGL／OpenGL、GLFW、PNG、TinyXML2、OpenSSL、pkg-config。默认 CUDA compiler 是 `/usr/local/cuda-12.9/bin/nvcc`、host compiler 是 `/usr/bin/g++`，此次重新构建沿用已运行版本的 CUDA 架构 cache `52`；可在已载入 ROS 环境的 CMake 配置中，用 `-DCMAKE_CUDA_ARCHITECTURES=<架构号>` 明确指定其他架构（例如此台机器的 `120`）。compiler 路径也可由同名 CMake cache 变数覆写。目前构建包含 CUDA，即使执行时选择 CPU LiDAR 也需要 CUDA toolkit。
 
-`setup.sh` 先从 `ros2_interfaces/livox_ros_driver2` 构建原样讯息定义，安装到 `build/ros_interfaces/install/livox_ros_driver2`，再构建 `build/native`。不需要 Livox 硬体 SDK、PCL 或原 workspace driver。`tools/ros_env.sh` 设定本地讯息 prefix；可以用 `SIMPLE_RBT_LIVOX_PREFIX` 明确覆写。`SIMPLE_RBT_BUILD_JOBS` 默认为 2，`SIMPLE_RBT_CPU_THREADS` 为 1，`ROS_DOMAIN_ID` 为 83，`ROS_LOCALHOST_ONLY` 为 1。
+`interfaces/livox_ros_driver2` 只有一份消息定义，ROS 1 使用 catkin 生成，ROS 2 使用 ament 生成。输出分别位于 `build/interfaces/ros1` 与 `build/interfaces/ros2`。`tools/ros_env.sh` 设置 ROS 2 环境，可用 `SIMPLE_RBT_LIVOX_PREFIX` 覆盖；`tools/ros1_env.sh` 设置 ROS 1 SDK 与 `ROS_MASTER_URI`。`SIMPLE_RBT_BUILD_JOBS` 默认为 2，`SIMPLE_RBT_CPU_THREADS` 为 1；ROS 2 的 `ROS_DOMAIN_ID` 为 83、`ROS_LOCALHOST_ONLY` 为 1。
 
-加入 `--ros2` 后，速度指令改由 `/<robot>/cmd_vel` 接收，取代 `--cmd`；超过 0.5 s 没有新指令就停车。GUI 支持滑鼠调整视角及 Esc 关闭。`--realtime` 控制即时节奏，并不保证任意场景都能达到即时性能。
+加入 `--ros1` 或 `--ros2` 后，速度指令改由 `/<robot>/cmd_vel` 接收，取代 `--cmd`；超过 0.5 s 没有新指令就停车。GUI 支持滑鼠调整视角及 Esc 关闭。`--realtime` 控制即时节奏，并不保证任意场景都能达到即时性能。
 
 `--sensors physics|lidar|full` 分别选择物理／加 LiDAR／再加双相机；IMU 都保留。默认是 `lidar`、CPU backend、rolling 扫描；相机开启后默认 1 Hz，可用 `--camera-hz 10`。MID360 设定为 10 Hz、每帧 20,000 条原始 CSV 射线、200 kHz 合成点时序，IMU 为 200 Hz。`rolling` 逐点插值刚体 pose，输出各点采集当刻的局部座标，尚未 deskew；场景仅含静态环境且排除完整机器人自身遮挡。CUDA 支持目前地形的 plane／box，其他几何会拒绝，不会悄悄略过。`snapshot` 是帧末快照，offset 全零，与 rolling 在 metadata 中分开标示；`--backend warp` 仅是原生 CUDA 的相容名称。
 
@@ -42,14 +52,14 @@
 | `src/random.cpp` | 与 NumPy 1.26.4 单一 uint64 seed 相容的 SeedSequence＋PCG64 |
 | `src/lidar.cpp`、`src/lidar_cuda.cu` | CSV、pose history、独立 `mj_ray` CPU 参照与原生 CUDA 射线 |
 | `src/cameras.cpp` | EGL 透视 RGB／Z-depth、全景 RGB／径向深度 |
-| `src/ros_bridge.cpp` | rclcpp、Livox／IMU／图像讯息、命名空间与超时停车 |
+| `wrappers/ros1/`、`wrappers/ros2/`、`wrappers/common/` | roscpp／rclcpp 收发与生命周期，共用消息转换、命名空间和超时停车 |
 | `src/runtime.cpp`、`src/viewer.cpp` | 传感器调度与 GLFW GUI |
 | `src/artifacts.cpp`、`src/resources.cpp` | 输出文件与程序资源量测 |
 | `src/course.cpp`、`src/course_geometry.cpp` | 无 DDS 的路线／速度／接触／摩擦判定 |
 | `src/full_run.cpp` | 实际运行的证据聚合、哈希及验收握手 |
 | `tools/`、`tests/` | 离线模型汇出及独立 oracle；不由模拟 runtime 启动 |
 
-CMake 分别建立 robots、random、core、LiDAR、cameras、ROS、course、evidence 库。
+CMake 分别建立 robots、random、core、LiDAR、cameras、runtime、可选 ROS wrapper、course、evidence 库。
 相机与雷达测试各自连结所需库；路线判定测试不建立 DDS、不依赖图形或 CUDA。
 `Controller` 保留控制实现边界，PImpl 隔离 SDK／资源生命周期，`RunObserver` 接收真实运行证据；
 这些仍有用途。新增采用现有关节／控制器 schema 的同型模型可登记 `RobotSpec` 与模型 catalog；
@@ -68,3 +78,11 @@ CUDA／独立 CPU 射线结果一致；FR-mini 完整传感器 GUI 亦完成实�
 范围、三台轮式车交错 A/B 资源数据、两个实际故障变异及扩展实验见
 [架构整理与消融纪录](cpp-architecture-ablation-20261013.md)。
 [C++ runtime 迁移纪录](cpp-runtime-validation-20261013.md)保留前一阶段结果。
+
+2026-10-14 的通信边界整理已验证：无 ROS 版本独立构建／运行，链接依赖不含 ROS／DDS，核心 CTest 3/3；ROS 2 CTest 11/11，Ranger Mini 的标准连续起伏路线通过 31/31。七台机器人以 ROS 1 直连完整传感器各通过 46/46，另测 Ranger Mini tracked 模式也通过；核心 C++／Python 轨迹、模型和传感器对照 29/29。
+
+共享消息转换与拆分前的 14 组 ROS 2 消息比较，所有解码字段、图像和 PointCloud2 有效载荷字节一致；CDR 对齐填充字节不作语义比较。相关 Python 验证 43 项及 27 子测试通过，包含单独启用的实际 DDS 接收检查。Python 的范围是准备与独立验证，运行代码为 C++。Jammy 本地 Noetic SDK 约 58 MiB，已用新导出的 SDK 再次编译检查；无系统级 ROS 安装改动。
+
+No-ROS, direct ROS 1 and direct ROS 2 share the same C++ core. Verified results: 3/3 standalone and 11/11 ROS 2 CTest cases; 29/29 core trajectory comparisons; seven ROS 1 robots at 46/46 each; direct ROS 2 Ranger hills at 31/31. Fourteen message fixtures preserve every decoded field and image/PointCloud2 payload byte, excluding CDR alignment padding. Python remains preparation/reference/validation code.
+
+本机证据见 [ROS 1 验收](noetic.md)、[共享转换对照](../output/ros-wrappers-20261014/shared-payload-byte-parity.json)、[核心对照](../output/ros-wrapper-core-parity-20261014/summary.json)。

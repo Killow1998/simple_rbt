@@ -166,7 +166,7 @@ def main():
                               "cpu_percent_one_core": summary["resources_loop"]["mean_cpu_percent_one_core"]}), flush=True)
             (args.output / "results.json").write_text(json.dumps({"cases": rows}, indent=2) + "\n")
     footprint = {name: directory_size(ROOT / name)
-                 for name in [".venv", ".vendor", ".git", "src", "include", "assets", "build", "reference", "tools", "ros2_interfaces", "output"]}
+                 for name in [".venv", ".vendor", ".git", "src", "include", "assets", "build", "reference", "tools", "interfaces", "wrappers", "output"]}
     report = {
         "cpu_definition": "100% is one fully used logical core; full-machine percentage is also saved",
         "rss_definition": "per-case fresh process ru_maxrss plus 50ms sampled process-tree RSS; shared pages may count per process",

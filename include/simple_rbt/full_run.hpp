@@ -10,7 +10,7 @@ class FullRunObserver : public RunObserver {
  public:
   explicit FullRunObserver(const std::filesystem::path& config_path);
   ~FullRunObserver() override;
-  void before_loop(Simulation&, RosBridge*) override;
+  void before_loop(Simulation&, Transport*) override;
   void on_step(Simulation&, double monotonic_s) override;
   void on_imu(const ImuSample&, const std::array<std::uint64_t, 2>& source_stamps) override;
   void on_scan(const LidarScan&, const std::array<std::uint64_t, 2>& history_bounds,

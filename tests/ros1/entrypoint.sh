@@ -18,16 +18,7 @@ for attempt in range(100):
 else:
     raise RuntimeError("Noetic master did not start")
 WAIT
-/bin/bash --noprofile --norc -c '
-  source /opt/ros/noetic/setup.bash
-  source /opt/simple-rbt/ros1/setup.bash
-  source /opt/ros/foxy/setup.bash
-  source /opt/simple-rbt/ros2/local_setup.bash
-  source /opt/simple-rbt/bridge/local_setup.bash
-  exec /opt/simple-rbt/bridge/lib/ros1_bridge/dynamic_bridge --bridge-all-2to1-topics
-' > /tmp/bridge.log 2>&1 &
-bridge_pid=$!
-trap 'kill "$bridge_pid" "$master_pid" 2>/dev/null || true' EXIT TERM INT
+trap 'kill "$master_pid" 2>/dev/null || true' EXIT TERM INT
 "$@" &
 client_pid=$!
 wait "$client_pid"

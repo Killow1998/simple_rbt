@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Optional Noetic Docker / Humble C++ end-to-end test; requires host execution."""
+"""Direct Noetic / C++ core end-to-end test; requires host execution."""
 from __future__ import annotations
 import argparse
 import hashlib
@@ -15,49 +15,21 @@ import uuid
 import xmlrpc.client
 
 from project import ROOT
-sys.path.insert(0, str(ROOT / "tests" / "noetic"))
+sys.path.insert(0, str(ROOT / "tests" / "ros1"))
 from artifacts import compare_payloads
 
-TESTS = ROOT / "tests" / "noetic"
-IMAGE = "simple-rbt-noetic-test:local"
+TESTS = ROOT / "tests" / "ros1"
+IMAGE = "simple-rbt-ros1-test:local"
 
 
 def build_image(base_image, image):
-    context = ROOT / "build" / "noetic" / "context"
+    context = ROOT / "build" / "ros1-test" / "context"
     context.mkdir(parents=True, exist_ok=True)
-    for name in ["Dockerfile", "entrypoint.sh", "tf_static.patch"]:
-        shutil.copy2(TESTS / name, context / name)
-    messages = ROOT / "ros2_interfaces" / "livox_ros_driver2"
-    shutil.copytree(messages, context / "ros2", dirs_exist_ok=True)
-    shutil.copy2(TESTS / "ros1_mapping_rules.yaml", context / "ros2" / "ros1_mapping_rules.yaml")
-    cmake = context / "ros2" / "CMakeLists.txt"
-    cmake.write_text(cmake.read_text() + "\ninstall(FILES ros1_mapping_rules.yaml DESTINATION share/${PROJECT_NAME})\n")
-    package = context / "ros2" / "package.xml"
-    package.write_text(package.read_text().replace("</export>",
-                       '<ros1_bridge mapping_rules="ros1_mapping_rules.yaml"/></export>'))
-    ros1 = context / "ros1"
-    (ros1 / "msg").mkdir(parents=True, exist_ok=True)
-    for name in ["CustomMsg.msg", "CustomPoint.msg"]:
-        shutil.copy2(messages / "msg" / name, ros1 / "msg" / name)
-    shutil.copy2(messages / "LICENSE.txt", ros1 / "LICENSE.txt")
-    (ros1 / "CMakeLists.txt").write_text(
-        "cmake_minimum_required(VERSION 3.0.2)\nproject(livox_ros_driver2)\n"
-        "find_package(catkin REQUIRED COMPONENTS message_generation std_msgs)\n"
-        "add_message_files(FILES CustomMsg.msg CustomPoint.msg)\n"
-        "generate_messages(DEPENDENCIES std_msgs)\n"
-        "catkin_package(CATKIN_DEPENDS message_runtime std_msgs)\n"
-        "install(FILES LICENSE.txt DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})\n")
-    (ros1 / "package.xml").write_text(
-        '<?xml version="1.0"?>\n<package format="2"><name>livox_ros_driver2</name>'
-        '<version>1.0.0</version><description>Original Livox messages for Noetic tests.</description>'
-        '<maintainer email="devnull@example.com">simple_rbt</maintainer><license>MIT</license>'
-        '<buildtool_depend>catkin</buildtool_depend><build_depend>message_generation</build_depend>'
-        '<depend>std_msgs</depend><exec_depend>message_runtime</exec_depend></package>\n')
-    ca = os.environ.get("CODEX_PROXY_CERT", "/etc/ssl/certs/ca-certificates.crt")
-    subprocess.run(["docker", "build", "--pull=false", "--network", "host",
-                    "--build-arg", "HTTP_PROXY", "--build-arg", "HTTPS_PROXY",
-                    "--build-arg", "NOETIC_IMAGE=" + base_image,
-                    "--secret", "id=session_ca,src=" + ca, "--tag", image, str(context)], check=True)
+    shutil.copy2(TESTS / "Dockerfile", context / "Dockerfile")
+    messages = ROOT / "interfaces" / "livox_ros_driver2"
+    shutil.copytree(messages, context / "messages", dirs_exist_ok=True)
+    subprocess.run(["docker", "build", "--pull=false", "--build-arg",
+                    "NOETIC_IMAGE=" + base_image, "--tag", image, str(context)], check=True)
 
 
 def stop(process):
@@ -75,22 +47,22 @@ def run_case(container, robot, output, env, backend, control_mode):
     runtime = client = oracle = None
     with (case / "ros1.log").open("w") as client_log, (case / "native.log").open("w") as runtime_log:
         try:
-            oracle_shell = 'source tools/ros_env.sh; exec .venv/bin/python tests/noetic/ros2_images.py "$1"'
-            oracle = subprocess.Popen(["/bin/bash", "--noprofile", "--norc", "-c", oracle_shell,
-                                       "oracle", str(case)], cwd=ROOT, env=env,
+            oracle_command = ["docker", "exec", container, "/bin/bash", "-c",
+                "source /opt/ros/noetic/setup.bash; exec python3 /tests/images.py /results/" + robot]
+            oracle = subprocess.Popen(oracle_command, cwd=ROOT, env=env,
                                       stdout=client_log, stderr=subprocess.STDOUT)
             deadline = time.monotonic() + 10
-            while not (case / "ros2-ready").exists() and time.monotonic() < deadline:
+            while not (case / "images-ready").exists() and time.monotonic() < deadline:
                 if oracle.poll() is not None:
-                    raise RuntimeError("Humble image receiver failed; see " + str(case))
+                    raise RuntimeError("Noetic image receiver failed; see " + str(case))
                 time.sleep(.05)
-            if not (case / "ros2-ready").exists():
-                raise RuntimeError("Humble image receiver did not become ready")
+            if not (case / "images-ready").exists():
+                raise RuntimeError("Noetic image receiver did not become ready")
             shell = ('source /opt/ros/noetic/setup.bash; source /opt/simple-rbt/ros1/setup.bash; '
                      'exec python3 /tests/probe.py "$1" "/results/$1"')
             client = subprocess.Popen(["docker", "exec", container, "/bin/bash", "--noprofile", "--norc",
                                        "-c", shell, "probe", robot], stdout=client_log, stderr=subprocess.STDOUT)
-            runtime = subprocess.Popen([str(ROOT / "run.sh"), "--robot", robot, "--ros2",
+            runtime = subprocess.Popen([str(ROOT / "run.sh"), "--robot", robot, "--ros1",
                                         "--terrain", "flat", "--sensors", "full", "--backend", backend,
                                         "--camera-hz", "10", "--control-mode", control_mode, "--settle", "2", "--duration", "20",
                                         "--output", str(case / "native")], cwd=ROOT, env=env,
@@ -104,7 +76,7 @@ def run_case(container, robot, output, env, backend, control_mode):
         finally:
             stop(runtime); stop(client); stop(oracle)
     report = json.loads((case / "ros1.json").read_text())
-    checks, summary = compare_payloads(case / "native", report, json.loads((case / "ros2-images.json").read_text()))
+    checks, summary = compare_payloads(case / "native", report, json.loads((case / "images.json").read_text()))
     checks.update(report["checks"])
     result = {"robot": robot, "passed": all(checks.values()), "checks": checks,
               "failed_checks": [name for name, ok in checks.items() if not ok],
@@ -127,19 +99,19 @@ def main():
     parser.add_argument("--robots", nargs="+", choices=robots, default=robots)
     parser.add_argument("--backend", choices=["cpu", "cuda"], default="cuda")
     parser.add_argument("--control-mode", choices=["native", "tracked"], default="native")
-    parser.add_argument("--domain", type=int, default=90)
     parser.add_argument("--master-port", type=int, default=11383)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    if not 0 <= args.domain <= 232 or not 1024 <= args.master_port <= 65535:
-        parser.error("domain must be 0..232 and master-port must be 1024..65535")
+    if not 1024 <= args.master_port <= 65535:
+        parser.error("master-port must be 1024..65535")
     if not args.skip_build:
         build_image(args.base_image, args.image)
     if args.build_only:
         return
     output = (args.output or ROOT / "output" / ("noetic-" + uuid.uuid4().hex[:12])).resolve()
-    env = dict(os.environ, ROS_DOMAIN_ID=str(args.domain), ROS_LOCALHOST_ONLY="1")
     master = "http://127.0.0.1:" + str(args.master_port)
+    env = dict(os.environ, ROS_MASTER_URI=master, ROS_IP="127.0.0.1")
+    env["SIMPLE_RBT_BUILD_DIR"] = str(ROOT / "build" / "ros1")
     with socket.socket() as check:
         check.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         check.bind(("127.0.0.1", args.master_port))
@@ -152,13 +124,14 @@ def main():
     started = False
     try:
         subprocess.run(["docker", "run", "--detach", "--rm", "--pull", "never", "--network", "host",
+                        "--entrypoint", "/bin/bash",
                         "--ipc", "host", "--user", f"{os.getuid()}:{os.getgid()}", "--name", container,
                         "--env", "ROS_MASTER_URI=" + master, "--env", "ROS_IP=127.0.0.1",
-                        "--env", "ROS_HOME=/tmp/simple-rbt-ros1", "--env", "ROS_LOG_DIR=/tmp/simple-rbt-ros2-log",
+                        "--env", "ROS_HOME=/tmp/simple-rbt-ros1", "--env", "ROS_LOG_DIR=/tmp/simple-rbt-ros1-log",
                         "--env", "SIMPLE_RBT_MASTER_PORT=" + str(args.master_port),
-                        "--env", "ROS_DOMAIN_ID=" + str(args.domain), "--env", "ROS_LOCALHOST_ONLY=1",
                         "--mount", "type=bind,src=" + str(TESTS) + ",dst=/tests,readonly",
-                        "--mount", "type=bind,src=" + str(output) + ",dst=/results", args.image], check=True)
+                        "--mount", "type=bind,src=" + str(output) + ",dst=/results", args.image,
+                        "/tests/entrypoint.sh", "sleep", "infinity"], check=True)
         started = True
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:
@@ -177,13 +150,14 @@ def main():
                 raise RuntimeError(robot + ": " + str(result["failed_checks"]))
     finally:
         if started:
-            with (output / "bridge.log").open("w") as log:
-                subprocess.run(["docker", "exec", container, "cat", "/tmp/bridge.log"], stdout=log, stderr=subprocess.STDOUT)
+            with (output / "roscore.log").open("w") as log:
+                subprocess.run(["docker", "exec", container, "cat", "/tmp/roscore.log"], stdout=log, stderr=subprocess.STDOUT)
             subprocess.run(["docker", "rm", "--force", container], stdout=subprocess.DEVNULL, check=True)
         unchanged = all(hashlib.sha256((ROOT / p).read_bytes()).hexdigest() == value for p, value in fingerprint.items())
         report = {"passed": len(results) == len(args.robots) and all(r["passed"] for r in results) and unchanged,
                   "cases": results, "test_sources_unchanged": unchanged, "test_sources": fingerprint,
-                  "native_sha256": hashlib.sha256((ROOT / "build/native/simple-rbt-native").read_bytes()).hexdigest()}
+                  "transport": "ros1",
+                  "native_sha256": hashlib.sha256((Path(env["SIMPLE_RBT_BUILD_DIR"]) / "simple-rbt-native").read_bytes()).hexdigest()}
         (output / "summary.json").write_text(json.dumps(report, indent=2) + "\n")
     if not report["passed"]:
         raise RuntimeError("Noetic test incomplete or test sources changed; see " + str(output))

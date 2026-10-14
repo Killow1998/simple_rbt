@@ -58,6 +58,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("robot")
     parser.add_argument("output", type=Path)
+    parser.add_argument("--settle", type=float, default=2.)
     args = parser.parse_args()
     rospy.init_node("simple_rbt_noetic_probe", anonymous=True, disable_signals=True)
     latest, counts, velocities, first_stamps = {}, {}, [], {}
@@ -89,7 +90,8 @@ def main():
     deadline = time.monotonic() + 16
     while time.monotonic() < deadline:
         with lock:
-            ready = all(topic in latest for topic in types)
+            ready = (all(topic in latest for topic in types)
+                     and latest["/clock"].clock.to_sec() >= args.settle)
         if ready and own.get_num_connections():
             break
         time.sleep(.05)

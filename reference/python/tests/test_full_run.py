@@ -33,7 +33,9 @@ def test_source_fingerprints_cover_relocated_runtime_and_sensor_inputs():
         "assets/lidar/mid360-real-centr.csv", "src/core.cpp", "src/lidar_cuda.cu",
         "include/simple_rbt/core.hpp", "tests/full_run_oracle.cpp",
         "third_party/manifest.json", "CMakeLists.txt",
-        "ros2_interfaces/livox_ros_driver2/msg/CustomMsg.msg",
+        "interfaces/livox_ros_driver2/msg/CustomMsg.msg",
+        "wrappers/ros1/ros_bridge.cpp", "wrappers/ros2/ros_bridge.cpp",
+        "wrappers/common/publish.inc", "include/simple_rbt/transport.hpp",
     }
     assert required <= hashes.keys()
     assert not any(path.startswith("build/") for path in hashes)

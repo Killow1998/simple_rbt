@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Source from repository launchers. Shell-only: native startup does not run Python.
 ros_project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-export SIMPLE_RBT_LIVOX_PREFIX="${SIMPLE_RBT_LIVOX_PREFIX:-$ros_project_root/build/ros_interfaces/install/livox_ros_driver2}"
+export SIMPLE_RBT_LIVOX_PREFIX="${SIMPLE_RBT_LIVOX_PREFIX:-$ros_project_root/build/interfaces/ros2/install/livox_ros_driver2}"
 if [[ ! -f "$SIMPLE_RBT_LIVOX_PREFIX/share/livox_ros_driver2/package.xml" ]]; then
   echo "Local Livox messages are missing; run ./setup.sh (or ./setup.sh --native-only with prepared SDK/assets)." >&2
   return 1

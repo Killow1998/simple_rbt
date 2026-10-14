@@ -1,7 +1,7 @@
 #include "simple_rbt/full_run.hpp"
 #include "simple_rbt/course.hpp"
 #include "simple_rbt/robots.hpp"
-#include "simple_rbt/ros_bridge.hpp"
+#include "simple_rbt/transport.hpp"
 #include <openssl/evp.h>
 #include <unistd.h>
 #include <array>
@@ -75,7 +75,7 @@ struct FullRunObserver::Impl {
   fs::path output, project_root;
   std::string config_sha;
   Simulation* sim = nullptr;
-  RosBridge* bridge = nullptr;
+  Transport* bridge = nullptr;
   std::unique_ptr<CourseMonitor> course;
   Vec3 previous_command{};
   bool have_command = false;
@@ -114,7 +114,7 @@ struct FullRunObserver::Impl {
 
 FullRunObserver::FullRunObserver(const fs::path& config_path) : impl_(std::make_unique<Impl>(config_path)) {}
 FullRunObserver::~FullRunObserver() = default;
-void FullRunObserver::before_loop(Simulation& sim, RosBridge* bridge) {
+void FullRunObserver::before_loop(Simulation& sim, Transport* bridge) {
   auto& p = *impl_; p.sim = &sim; p.bridge = bridge;
   if (!bridge) throw std::invalid_argument("Full-run validation requires ROS transport");
   p.course = std::make_unique<CourseMonitor>(sim, p.config);
