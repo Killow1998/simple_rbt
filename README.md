@@ -11,11 +11,16 @@ Supported robots: Go2, Go2W, TurtleBot3 Waffle Pi, Scout Mini, FR-mini, Ridgebac
 The current package target is Ubuntu 22.04 amd64:
 
 ```sh
-sudo apt install ./sprobo_0.2.0_amd64.deb
+sudo apt install ./sprobo_0.2.1_amd64.deb
 sprobo
 ```
 
 You can also open **SpRobo** from the application menu. Startup checks Ubuntu 22.04 amd64, the bundled MuJoCo 3.15.0/core compatibility, model/policy assets and any selected ROS container. No host ROS installation is required. Run `sprobo --check-dependencies` for JSON diagnostics, or add `--ros ros1,ros2` to inspect both adapters. See [package details and CI release](packaging/README.md).
+
+Use the top-right selectors to choose **Light / Dark** and **English / 简体中文**.
+Changes apply immediately without restarting the simulation and are remembered
+when you reopen SpRobo. The initial appearance is dark; the initial language
+follows the system locale (English or Simplified Chinese).
 
 Select a robot, terrain preset and sensor outputs in the configuration screen. Numeric position/rotation fields and the 3D translation/rotation handles edit the same mount. MID360 LiDAR and its internal IMU move as one rigid device; their relative transform cannot be edited. Press Start to enter first/third-person viewing and joystick control. Return to configuration creates a fresh session. Settings and results use the user's XDG directories.
 

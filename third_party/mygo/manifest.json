@@ -12,5 +12,23 @@
     "sha256": "63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445",
     "size": 70553950,
     "kind": "archive"
-  }
+  },
+  "patches": [
+    {
+      "file": "patches/pango-lcd-text-color.patch",
+      "sha256": "718fac4c22c66285b39d0d56c74cf6332ba19fd60ff1c4e96d86629ed6e9afa6",
+      "sources": [
+        {
+          "path": "internal/text/pango_linux.go",
+          "before_sha256": "8f38ae07e41bf586bc2b9ea7fcef6c1c2b78ebe73e1c1c668dcef5e00b9ac87a",
+          "after_sha256": "6b9ca2d70ab63c0ea7dc0ae6bb89e882972c10e1cf4b8757003108d09607d487"
+        },
+        {
+          "path": "internal/text/pango_linux_test.go",
+          "before_sha256": "2d407a69e1723afa27aa61f1fcba2c35bf4b45de43a1529268448a1c37ae5837",
+          "after_sha256": "d0aaa95d0975d36a90b449d1c50cc31426f6229140d395f9c12cbdd638fcae93"
+        }
+      ]
+    }
+  ]
 }

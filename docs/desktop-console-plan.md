@@ -5,6 +5,34 @@ Date / 日期：2026-10-14。
 
 ## Product / 产品
 
+### Appearance and language / 配色与语言
+
+The console has complete light and dark palettes, including text, secondary text,
+control hover/pressed states, focus, selection and semantic status colours.
+English and Simplified Chinese are selectable independently of the appearance;
+only the chosen language is displayed. Changing either selector leaves the
+worker, robot configuration and command owner intact. Preferences are stored in
+`$XDG_CONFIG_HOME/simple-rbt-console/appearance.json` (the standard user config
+directory when XDG_CONFIG_HOME is unset). Defaults are dark and the system locale.
+
+操作台提供完整的浅色与深色配色，覆盖正文、辅助文字、控件悬停／按下、焦点、
+选区和状态颜色。英文与简体中文可独立切换，每次只显示选中的语言。
+切换保留 worker、机器人配置及指令来源。偏好存于
+`$XDG_CONFIG_HOME/simple-rbt-console/appearance.json`，未设置该变量时使用标准用户
+配置目录；初始默认深色，并按系统区域设置选择语言。
+
+The MyGo dependency remains pinned, with verified local patches documented under
+[third_party/mygo](../third_party/mygo/README.md). Desktop LCD font settings
+exposed normal glyphs being classified as colour emoji, which bypassed the
+requested text colour. Software-rendered acceptance had missed this. Acceptance
+now includes actual window-pixel text contrast and both languages/appearances,
+alongside font-renderer regression checks and the existing motion-control E2E.
+
+MyGo 保持固定版本，本地补丁及校验见上述目录。桌面的 LCD 字体设置曾将普通字形
+误判为彩色 emoji，绕过指定文字颜色；此前的软件渲染验收没有暴露该问题。
+现在除字体渲染回归与既有运动控制 E2E 外，还直接检查窗口像素的文字对比度，
+覆盖两种语言和两套配色。
+
 Install the Ubuntu 22.04 amd64 Debian package and open the native console from the application menu. The frontend uses pinned [MyGo](https://github.com/egoist/mygo), with native Go widgets and no web frontend. The C++ worker owns MuJoCo, controls, sensor sampling and offscreen rendering. Python remains preparation and independent validation only.
 
 安装 Ubuntu 22.04 amd64 的 `.deb`，从应用菜单打开原生操作台。前端使用固定版本的 [MyGo](https://github.com/egoist/mygo) 原生 Go 控件；C++ worker 持有 MuJoCo、控制、传感器采样和离屏渲染。Python 仅用于准备与独立验证。

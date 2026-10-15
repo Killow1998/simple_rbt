@@ -9,7 +9,7 @@ SpRobo 是 **simple_rbt** 框架的启动器，当前目标为 Ubuntu 22.04 amd6
 
 ```sh
 python3 tools/package_deb.py --build-dir build/desktop
-sudo apt install ./output/packages/sprobo_0.2.0_amd64.deb
+sudo apt install ./output/packages/sprobo_0.2.1_amd64.deb
 ```
 
 `packaging/VERSION` is the single release version for the framework, launcher
@@ -84,7 +84,7 @@ built `.deb` and `verify_install.sh` into that test container:
 ```sh
 g++ -std=c++17 -O2 packaging/capture_x11.cpp -o build/capture-x11 -lX11 -lpng
 # Inside the validation container:
-sh /verify_install.sh /packages/sprobo_0.2.0_amd64.deb /evidence /capture-x11
+sh /verify_install.sh /packages/sprobo_0.2.1_amd64.deb /evidence /capture-x11
 ```
 
 The helper reads actual X11 window pixels and requests normal window close;

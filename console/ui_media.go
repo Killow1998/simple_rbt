@@ -5,16 +5,16 @@ import "github.com/egoist/mygo/ui"
 func (a *app) media(c *ui.Context) {
 	if a.stage == "configure" {
 		ui.Row(c).Gap(8).Children(func() {
-			ui.Text(c, "Sensor mounting / 安装外参").Bold().Grow(1)
-			ui.Select(c.Key("tool"), &a.tool, []string{"Move / 平移", "Rotate / 旋转"}).Width(150)
-			ui.Select(c.Key("space"), &a.space, []string{"Base / 机身", "Local / 设备"}).Width(150)
+			ui.Text(c, a.tr("Sensor mounting", "安装外参")).Bold().Grow(1)
+			a.localizedSelect(c.Key("tool"), &a.tool, []string{"Move / 平移", "Rotate / 旋转"}).Width(150)
+			a.localizedSelect(c.Key("space"), &a.space, []string{"Base / 机身", "Local / 设备"}).Width(150)
 		})
-		ui.Text(c, "Drag axes or rings · orbit empty space · scroll to zoom / 拖动操作轴或旋转环，空白处观察，滚轮缩放").FontSize(11).TextColor(c.Theme().TextMuted)
+		ui.Text(c, a.tr("Drag axes or rings · orbit empty space · scroll to zoom", "拖动操作轴或旋转环；拖动空白处观察；滚轮缩放")).FontSize(12).TextColor(c.Theme().TextMuted)
 	}
 	if a.stage != "configure" {
 		ui.Row(c).Gap(8).Children(func() {
-			ui.Text(c, "Live views / 实时视角").Bold().Grow(1)
-			if ui.Select(c.Key("view-mode"), &a.viewMode, []string{"Both / 双视角", "First / 第一视角", "Third / 第三视角"}).Width(200).Changed() {
+			ui.Text(c, a.tr("Live views", "实时视角")).Bold().Grow(1)
+			if a.localizedSelect(c.Key("view-mode"), &a.viewMode, []string{"Both / 双视角", "First / 第一视角", "Third / 第三视角"}).Width(200).Changed() {
 				a.requestView()
 			}
 		})
@@ -24,8 +24,8 @@ func (a *app) media(c *ui.Context) {
 		showCamera := a.stage != "configure" && a.viewMode != "Third / 第三视角" && a.cameraEnabled()
 		if showObserver {
 			ui.Column(c).Grow(1).MinHeight(0).Gap(6).Children(func() {
-				ui.Text(c, "MuJoCo observer / 第三视角").FontSize(12).TextColor(c.Theme().TextMuted)
-				ui.Box(c.Key("observer-view")).Grow(1).MinHeight(210).Radius(10).Background(ui.Hex("#151c29")).Focusable().Label("3D sensor mount viewport").HandleInput(a.viewportInput).Draw(func(p *ui.Painter, r ui.Rect) {
+				ui.Text(c, a.tr("Third-person view", "第三视角")).FontSize(12).TextColor(c.Theme().TextMuted)
+				ui.Box(c.Key("observer-view")).Grow(1).MinHeight(210).Radius(10).Background(viewportBackground).Focusable().Label(a.tr("3D sensor mount viewport", "传感器外参三维视图")).HandleInput(a.viewportInput).Draw(func(p *ui.Painter, r ui.Rect) {
 					width, height := float64(r.W), float64(r.H)
 					changed := a.viewport.Width != width || a.viewport.Height != height
 					a.viewport.Width = width
@@ -34,7 +34,7 @@ func (a *app) media(c *ui.Context) {
 						a.requestView()
 					}
 					if a.observer == nil {
-						p.Text(r.X+18, r.Y+28, "Waiting for MuJoCo renderer / 等待真实仿真画面", 14, ui.Hex("#b7c4dc"))
+						p.Text(r.X+18, r.Y+28, a.tr("Waiting for simulation view", "等待仿真画面"), 14, viewportText)
 						return
 					}
 					p.Image(a.observer, r, ui.Contain)
@@ -46,19 +46,19 @@ func (a *app) media(c *ui.Context) {
 		}
 		if showCamera {
 			ui.Column(c).Grow(1).MinHeight(0).Gap(6).Children(func() {
-				title := "Onboard RGB / 第一视角"
+				title := a.tr("First-person RGB", "第一视角 RGB")
 				if !a.cfg.Sensors.Camera {
-					title = "Depth · 0–20 m / 深度视角"
+					title = a.tr("Depth · 0–20 m", "深度 · 0–20 米")
 				}
 				if !a.cfg.Sensors.Camera && !a.cfg.Sensors.Depth {
-					title = "Panorama / 全景视角"
+					title = a.tr("Panorama", "全景视角")
 				}
 				ui.Text(c, title).FontSize(12).TextColor(c.Theme().TextMuted)
-				ui.Box(c.Key("camera-view")).Grow(1).MinHeight(180).Radius(10).Background(ui.Hex("#151c29")).Draw(func(p *ui.Painter, r ui.Rect) {
+				ui.Box(c.Key("camera-view")).Grow(1).MinHeight(180).Radius(10).Background(viewportBackground).Draw(func(p *ui.Painter, r ui.Rect) {
 					if a.camera != nil {
 						p.Image(a.camera, r, ui.Contain)
 					} else {
-						p.Text(r.X+18, r.Y+28, "Waiting for sensor frames / 等待传感器图像", 14, ui.Hex("#b7c4dc"))
+						p.Text(r.X+18, r.Y+28, a.tr("Waiting for sensor images", "等待传感器图像"), 14, viewportText)
 					}
 				})
 			})

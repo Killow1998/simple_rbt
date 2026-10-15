@@ -26,6 +26,9 @@ Install / 安装：sudo apt install ./$package
 Launch / 启动：sprobo
 Headless framework / 无头框架：simple-rbt-sim
 
+Light/dark appearance and English/Simplified Chinese are selectable in the top-right corner and remembered across launches. Linux LCD font colours are corrected; native-window checks cover readability, switching and control behavior.
+右上角可切换浅色／深色与英文／简体中文，重启后保留选择。修正 Linux LCD 字体颜色；真实窗口验收覆盖可读性、切换与操控行为。
+
 CUDA acceleration and automatic CPU fallback are included. CI builds both CPU-only and CUDA-capable variants, then verifies installation, all registered robots on CPU, the native window, normal shutdown and removal in a clean Ubuntu container. A GPU-free CI runner does not validate physical GPU performance.
 包含 CUDA 加速和自动 CPU 回退。CI 检查两种构建，并在干净 Ubuntu 容器中验收安装、全部注册机器人、原生窗口、正常关闭及卸载；无显卡 runner 不作为宿主 GPU 性能验收。
 

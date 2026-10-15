@@ -14,7 +14,7 @@ import (
 const Product = "SpRobo"
 const Framework = "simple_rbt"
 
-var Version = "0.2.0" // Build injects the canonical packaging/VERSION value.
+var Version = "0.2.1" // Build injects the canonical packaging/VERSION value.
 const MuJoCoVersion = "3.15.0"
 const MuJoCoVersionNumber = 3015000
 

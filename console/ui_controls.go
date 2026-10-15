@@ -60,7 +60,7 @@ func (a *app) controlInput(ev ui.InputEvent) bool {
 	return true
 }
 func (a *app) controls(c *ui.Context) {
-	section(c, "Motion control / 运动控制", func() {
+	section(c, a.tr("Motion control", "运动控制"), func() {
 		choices := []string{manualLabel, programLabel}
 		if a.meta.Connections["ros1"] > 0 || a.meta.Source == "ros1" {
 			choices = append(choices, ros1Label)
@@ -68,13 +68,13 @@ func (a *app) controls(c *ui.Context) {
 		if a.meta.Connections["ros2"] > 0 || a.meta.Source == "ros2" {
 			choices = append(choices, ros2Label)
 		}
-		field(c, "Command source / 指令来源", func() {
-			if ui.Select(c.Key("source"), &a.sourceLabel, choices).FillWidth().Changed() {
+		field(c, a.tr("Command source", "指令来源"), func() {
+			if a.localizedSelect(c.Key("source"), &a.sourceLabel, choices).FillWidth().Changed() {
 				a.relinquishManual()
 				_ = a.manager.Client.SendRequest(map[string]any{"op": "source", "source": sourceName(a.sourceLabel)})
 			}
 		})
-		ui.Box(c.Key("drive-pad")).Height(224).Radius(12).Background(c.Theme().Background).Focusable().Disabled(!a.manualMode()).Label("Hold joystick to move; release to stop").HandleInput(a.controlInput).Draw(func(p *ui.Painter, r ui.Rect) {
+		ui.Box(c.Key("drive-pad")).Height(224).Radius(12).Background(c.Theme().Background).Focusable().Disabled(!a.manualMode()).Label(a.tr("Hold joystick to move; release to stop", "按住摇杆运动，松开停车")).HandleInput(a.controlInput).Draw(func(p *ui.Painter, r ui.Rect) {
 			a.pad.Width = float64(r.W)
 			a.pad.Height = float64(r.H)
 			cx, cy := r.X+r.W*.5, r.Y+r.H*.5
@@ -90,9 +90,9 @@ func (a *app) controls(c *ui.Context) {
 			}
 			p.Fill(ui.Rect{X: cx + float32(a.pad.Position.X)*radius - 19, Y: cy + float32(a.pad.Position.Y)*radius - 19, W: 38, H: 38}, knob, 19)
 		})
-		ui.Text(c, "Hold to drive · release to stop / 按住运动，松开停车").FontSize(11).TextColor(c.Theme().TextMuted)
+		ui.Text(c, a.tr("Hold to drive · release to stop", "按住运动，松开停车")).FontSize(12).TextColor(c.Theme().TextMuted)
 		if a.catalog.Robots[a.cfg.Robot].AllowsLateral {
-			ui.Text(c, "Lateral speed · hold slider / 侧向速度，按住滑块").FontSize(11)
+			ui.Text(c, a.tr("Lateral speed · hold slider", "侧向速度，按住滑块")).FontSize(12)
 			slider := ui.Slider(c.Key("lateral"), &a.pad.Lateral, -1, 1).FillWidth().Disabled(!a.manualMode())
 			if slider.Changed() {
 				a.commandMu.Lock()
@@ -114,15 +114,15 @@ func (a *app) controls(c *ui.Context) {
 			command = a.meta.Applied
 		}
 		ui.Text(c, fmt.Sprintf("vx %.2f · vy %.2f · wz %.2f", command[0], command[1], command[2])).FontSize(12)
-		ui.Button(c, "STOP / 停车").FillWidth().Background(c.Theme().Danger).TextColor(ui.Hex("#ffffff")).OnClick(func() {
+		ui.Button(c, a.tr("STOP", "停车")).FillWidth().Background(stopBackground(c)).TextColor(c.Theme().Text).OnClick(func() {
 			a.stopManual()
-			a.sourceLabel = "Manual / 手动"
+			a.sourceLabel = manualLabel
 			_ = a.manager.Client.SendRequest(map[string]any{"op": "stop"})
 		})
-		label := "Pause / 暂停"
+		label := a.tr("Pause", "暂停")
 		op := "pause"
 		if a.meta.State == "paused" {
-			label = "Resume / 继续"
+			label = a.tr("Resume", "继续")
 			op = "start"
 		}
 		ui.Button(c, label).FillWidth().OnClick(func() { a.stopManual(); _ = a.manager.Client.SendRequest(map[string]any{"op": op}) })
@@ -206,7 +206,7 @@ func (a *app) startOperating() {
 	}
 	a.stopManual()
 	a.stage = "operate"
-	a.sourceLabel = "Manual / 手动"
+	a.sourceLabel = manualLabel
 	_ = a.manager.Client.SendRequest(map[string]any{"op": "source", "source": "gui"})
 	_ = a.manager.Client.SendRequest(map[string]any{"op": "start"})
 	a.requestView()

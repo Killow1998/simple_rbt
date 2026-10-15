@@ -1,8 +1,19 @@
 """Real XTEST events on an isolated X11 display; no simulator/UI callbacks."""
 import ctypes as C
+from collections import Counter
 import struct
 import time
 import zlib
+
+
+def luminance(rgb):
+    channels = [v/3294.6 if v <= 10 else ((v/255+.055)/1.055)**2.4 for v in rgb]
+    return sum(v*weight for v, weight in zip(channels, (.2126, .7152, .0722)))
+
+
+def contrast(first, second):
+    light, dark = sorted((luminance(first), luminance(second)), reverse=True)
+    return (light+.05)/(dark+.05)
 
 
 class TextProperty(C.Structure):
@@ -86,14 +97,15 @@ class Inputs:
             if self.x.XGetWMName(self.d, children[i], C.byref(name)) and name.value:
                 title = C.string_at(name.value, name.count).decode(errors="replace")
                 self.x.XFree(name.value)
-            if "simple_rbt" not in title and "SpRobo" not in title:
-                kind, fmt, size, after, data = C.c_ulong(), C.c_int(), C.c_ulong(), C.c_ulong(), C.c_void_p()
-                self.x.XGetWindowProperty(self.d, children[i], self.title_atom, 0, 1024, 0, 0,
-                    C.byref(kind), C.byref(fmt), C.byref(size), C.byref(after), C.byref(data))
-                if data:
-                    if fmt.value == 8:
-                        title = C.string_at(data, size.value).decode(errors="replace")
-                    self.x.XFree(data)
+            # WM_NAME may use legacy COMPOUND_TEXT for Chinese. Prefer the
+            # EWMH UTF-8 title even when WM_NAME contains the ASCII app name.
+            kind, fmt, size, after, data = C.c_ulong(), C.c_int(), C.c_ulong(), C.c_ulong(), C.c_void_p()
+            self.x.XGetWindowProperty(self.d, children[i], self.title_atom, 0, 1024, 0, 0,
+                C.byref(kind), C.byref(fmt), C.byref(size), C.byref(after), C.byref(data))
+            if data:
+                if fmt.value == 8:
+                    title = C.string_at(data, size.value).decode(errors="replace")
+                self.x.XFree(data)
             if title:
                 self.titles.append(title)
             if "simple_rbt" in title or "SpRobo" in title:
@@ -150,6 +162,18 @@ class Inputs:
         self.key(name, True)
         self.key(name, False)
 
+    def tab(self, reverse=False):
+        if reverse:
+            self.key("Shift_L", True)
+        self.press("Tab")
+        if reverse:
+            self.key("Shift_L", False)
+
+    def select_edge(self, last=False):
+        self.press("Return")
+        self.press("End" if last else "Home")
+        self.press("Return")
+
     def type_number(self, value):
         self.key("Control_L", True)
         self.key("a", True)
@@ -191,15 +215,17 @@ class Inputs:
     def viewport(self, window, image_width, image_height):
         """Locate the actual rendered rectangle, independent of font line heights."""
         width, height, pixels = self.pixels(window)
-        # The right pane has a fixed 18px inset. Sample inside the rounded
-        # image corners; the image is dark, while surrounding controls are light.
+        # Compare the image to the adjacent pane padding. Both the image and
+        # controls can be dark; absolute brightness is not a rectangle boundary.
         left, right = width-18-image_width, width-18
-        def dark(y):
-            return sum(max(pixels[(y*width+x)*3:(y*width+x)*3+3]) < 220
-                       for x in (right-16, right-24, right-32)) >= 2
+        def image_row(y):
+            outside = pixels[(y*width+right+8)*3:(y*width+right+8)*3+3]
+            return sum(max(abs(a-b) for a, b in zip(
+                pixels[(y*width+x)*3:(y*width+x)*3+3], outside)) > 12
+                for x in (right-16, right-24, right-32)) >= 2
         runs, start = [], None
         for y in range(66, height):
-            if dark(y):
+            if image_row(y):
                 if start is None:
                     start = y
             elif start is not None:
@@ -211,16 +237,57 @@ class Inputs:
         return left, matches[0][0], image_width, image_height
 
     def primary_button(self, window):
-        """Find the large blue Start button, rather than assuming a footer height."""
+        """Find the wide contrasting Start fill, independent of its accent hue."""
         width, height, pixels = self.pixels(window)
-        def blue(x, y):
-            r, g, b = pixels[(y*width+x)*3:(y*width+x)*3+3]
-            return b > 180 and b > r+80 and g > r+40
+        def filled(x, y):
+            color = pixels[(y*width+x)*3:(y*width+x)*3+3]
+            outside = pixels[(y*width+8)*3:(y*width+8)*3+3]
+            return contrast(color, outside) > 3
         rows = [y for y in range(66, height)
-                if sum(blue(x, y) for x in range(30, 330, 10)) >= 24]
-        if not rows or rows[-1]-rows[0] > 50:
+                if sum(filled(x, y) for x in range(30, 330, 10)) >= 24]
+        runs = []
+        for y in rows:
+            if not runs or y > runs[-1][-1]+2:
+                runs.append([y])
+            else:
+                runs[-1].append(y)
+        fills = [run for run in runs if 12 <= run[-1]-run[0] <= 50]
+        if len(fills) != 1:
             raise RuntimeError("Cannot identify the native Start button")
-        return 180, (rows[0]+rows[-1])/2
+        return 180, (fills[0][0]+fills[0][-1])/2
+
+    def readability(self, window):
+        """Measure rendered glyph interiors, not theme constants or GPU callbacks.
+
+        These regions contain ordinary title/body text, not status or accent
+        colors. Repeated high-contrast pixels capture solid glyph interiors
+        without treating antialiased edge pixels as unreadable.
+        """
+        width, height, pixels = self.pixels(window)
+        regions = {"title": (18, 10, 110, 55),
+                   "subtitle": (132, 12, 450, 52),
+                   "selected value": (30, 135, 280, 170)}
+        evidence = []
+        for name, (left, top, right, bottom) in regions.items():
+            colors = Counter(tuple(pixels[(y*width+x)*3:(y*width+x)*3+3])
+                for y in range(top, min(bottom, height))
+                for x in range(left, min(right, width)))
+            background, _ = colors.most_common(1)[0]
+            candidates = [(rgb, count) for rgb, count in colors.items()
+                          if contrast(rgb, background) >= 2]
+            interiors = [(rgb, count) for rgb, count in candidates if count >= 3]
+            foreground, count = max(interiors, key=lambda item: contrast(item[0], background), default=(background, 0))
+            count = sum(n for rgb, n in candidates if max(abs(a-b) for a, b in zip(rgb, foreground)) <= 12)
+            ratio = contrast(foreground, background)
+            ink_pixels = sum(count for _, count in candidates)
+            colored_pixels = sum(count for rgb, count in candidates if max(rgb)-min(rgb) > 45)
+            colored_fraction = colored_pixels/max(1, ink_pixels)
+            passed = count >= 20 and ratio >= 4.5 and colored_fraction <= .05
+            evidence.append({"region": name, "background_rgb": background,
+                "text_rgb": foreground, "solid_text_pixels": count,
+                "contrast_ratio": round(ratio, 2),
+                "unexpected_color_fraction": round(colored_fraction, 3), "passed": passed})
+        return all(item["passed"] for item in evidence), evidence
 
     def capture(self, window, path):
         width, height, pixels = self.pixels(window)

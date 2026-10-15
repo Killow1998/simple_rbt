@@ -31,6 +31,7 @@ g++ -std=c++17 -O2 -pthread -I include -I third_party tests/ipc/ros_fixture.cpp 
   export SIMPLE_RBT_CPP_IPC_FIXTURE="$root/output/ci/ipc-fixture"
   export LIBGL_ALWAYS_SOFTWARE=1 EGL_PLATFORM=surfaceless
   export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
+  "$go" -C "$root/.vendor/mygo" test -v ./internal/text -run '^TestPango'
   "$go" test -race -v ./...
   "$go" vet ./...
 ) > output/ci/go-race-vet.txt 2>&1 || \

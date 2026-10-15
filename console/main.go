@@ -87,7 +87,7 @@ func main() {
 		mygo.App.SetPath(mygo.PathCache, filepath.Join(base, "simple-rbt-console"))
 	}
 	mygo.App.WhenReady(func() {
-		a.win = mygo.NewWindow(mygo.WindowOptions{Title: "SpRobo · simple_rbt robot console / 机器人操作台", Width: 1320, Height: 900, StateKey: "sprobo", Content: ui.View(a.view)})
+		a.win = mygo.NewWindow(mygo.WindowOptions{Title: a.windowTitle(), Width: 1320, Height: 900, StateKey: "sprobo", Content: ui.View(a.view)})
 		a.win.OnBlur(a.blurManual)
 		a.win.OnClose(func(*mygo.CloseEvent) { a.close() })
 		a.pump()

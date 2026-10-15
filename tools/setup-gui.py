@@ -51,6 +51,22 @@ def unpack(url, sha, target, top):
         (stage / top).rename(target)
 
 
+def apply_patches(target, patches):
+    for entry in patches:
+        patch = ROOT / "third_party/mygo" / entry["file"]
+        if digest(patch) != entry["sha256"]:
+            raise RuntimeError("GUI patch checksum mismatch: " + str(patch))
+        sources = [(target / source["path"], source) for source in entry["sources"]]
+        if all(path.is_file() and digest(path) == source["after_sha256"] for path, source in sources):
+            continue
+        if not all(path.is_file() and digest(path) == source["before_sha256"] for path, source in sources):
+            raise RuntimeError("GUI patch source differs from its pinned version: " + entry["file"])
+        subprocess.run(["patch", "--batch", "--forward", "-p1", "--input", str(patch)],
+                       cwd=target, check=True)
+        if not all(digest(path) == source["after_sha256"] for path, source in sources):
+            raise RuntimeError("GUI patched source checksum mismatch: " + entry["file"])
+
+
 def dependencies(env, go):
     subprocess.run([str(go), "mod", "download", "all"], cwd=ROOT / "console", env=env, check=True)
     result = subprocess.run([str(go), "list", "-m", "-json", "all"],
@@ -101,6 +117,7 @@ def main():
     unpack("https://go.dev/dl/" + lock["go"]["filename"], lock["go"]["sha256"],
            toolchain / "go", "go")
     unpack(lock["archive_url"], lock["archive_sha256"], ROOT / ".vendor/mygo", "mygo-" + lock["commit"])
+    apply_patches(ROOT / ".vendor/mygo", lock.get("patches", []))
     go = toolchain / "go/bin/go"
     env = dict(os.environ, CGO_ENABLED="0", GOTOOLCHAIN="local",
                GOMODCACHE=str(ROOT / "build/go-modules"), GOCACHE=str(ROOT / "build/go-cache"))

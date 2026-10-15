@@ -76,7 +76,7 @@ func (t *e2e) field(label string, value float64) {
 	t.tester.Type(fmt.Sprintf("%.5f", value))
 }
 func (t *e2e) drag(from, to point) {
-	r, ok := t.tester.Find("3D sensor mount viewport")
+	r, ok := t.tester.Find(t.app.tr("3D sensor mount viewport", "传感器外参三维视图"))
 	t.check(ok, "native 3D viewport available")
 	t.tester.Press(r.X+float32(from.X), r.Y+float32(from.Y))
 	t.tester.Move(r.X+float32(to.X), r.Y+float32(to.Y))
@@ -104,7 +104,7 @@ func (t *e2e) step() {
 		t.body = a.meta.BodyImu.Position
 		t.tester = ui.NewTester(a.view, 1320, 900)
 		t.check(true, "MyGo widget flow receives real MuJoCo preview")
-		t.field("X translation / 平移", a.cfg.Mounts["mid360"].Position[0]+.03)
+		t.field(a.tr("X translation", "X 轴平移"), a.cfg.Mounts["mid360"].Position[0]+.03)
 		t.target = a.cfg.Mounts["mid360"]
 		t.next()
 	case 1:
@@ -126,8 +126,8 @@ func (t *e2e) step() {
 			return
 		}
 		t.check(true, "3D translation acknowledged by core")
-		t.check(t.tester.Click("Move / 平移") == nil, "open native gizmo tool select")
-		t.check(t.tester.Click("Rotate / 旋转") == nil, "select native rotation tool")
+		t.check(t.tester.Click(a.optionLabel("Move / 平移")) == nil, "open native gizmo tool select")
+		t.check(t.tester.Click(a.optionLabel("Rotate / 旋转")) == nil, "select native rotation tool")
 		pose := a.cfg.Mounts["mid360"]
 		from := a.project(add(pose.Position, Vec3{.16 * math.Cos(.73), .16 * math.Sin(.73), 0}))
 		to := a.project(add(pose.Position, Vec3{.16 * math.Cos(1.13), .16 * math.Sin(1.13), 0}))
@@ -148,7 +148,7 @@ func (t *e2e) step() {
 		t.check(norm(sub(a.meta.MidImu.Position, internalImu(a.meta.Mounts["mid360"]))) < 1e-6, "MID360 internal IMU remains rigidly coupled")
 		t.check(norm(sub(a.meta.BodyImu.Position, t.body)) < 1e-9, "body controller IMU stays independent")
 		t.capture(".configuration.png")
-		t.check(t.tester.Click("Start session / 进入操控") == nil, "activate native Start button")
+		t.check(t.tester.Click(a.tr("Start session", "进入操控")) == nil, "activate native Start button")
 		t.next()
 	case 4:
 		if a.meta.State != "running" || a.camera == nil || a.observer == nil || time.Since(t.phaseAt) < 2500*time.Millisecond {
@@ -157,7 +157,7 @@ func (t *e2e) step() {
 		t.check(true, "native first-person and observer views receive full frames")
 		t.initial = a.meta.Base.Position
 		t.tester.Frame()
-		r, ok := t.tester.Find("Hold joystick to move; release to stop")
+		r, ok := t.tester.Find(a.tr("Hold joystick to move; release to stop", "按住摇杆运动，松开停车"))
 		t.check(ok, "native joystick available")
 		t.tester.Press(r.X+r.W*.5, r.Y+r.H*.36)
 		a.commandMu.Lock()
@@ -172,7 +172,7 @@ func (t *e2e) step() {
 		distance := norm(sub(a.meta.Base.Position, t.initial))
 		t.check(distance > .025, "native GUI commands produce physical displacement")
 		t.checks = append(t.checks, map[string]any{"displacement_m": distance})
-		r, _ := t.tester.Find("Hold joystick to move; release to stop")
+		r, _ := t.tester.Find(a.tr("Hold joystick to move; release to stop", "按住摇杆运动，松开停车"))
 		t.tester.Release(r.X+r.W*.5, r.Y+r.H*.5)
 		a.commandMu.Lock()
 		stopped := a.command == Vec3{}
@@ -195,8 +195,8 @@ func (t *e2e) step() {
 		a.commandMu.Unlock()
 		t.check(stopped, "native focus loss clears manual command")
 		t.tester.SetFocused(true)
-		t.check(t.tester.Click("STOP / 停车") == nil, "native Stop control")
-		t.check(t.tester.Click("Pause / 暂停") == nil, "native Pause control")
+		t.check(t.tester.Click(a.tr("STOP", "停车")) == nil, "native Stop control")
+		t.check(t.tester.Click(a.tr("Pause", "暂停")) == nil, "native Pause control")
 		t.next()
 	case 7:
 		if a.meta.State != "paused" {
@@ -204,7 +204,7 @@ func (t *e2e) step() {
 		}
 		t.check(true, "pause acknowledged by independent core")
 		t.tester.Frame()
-		t.check(t.tester.Click("New configuration / 返回配置") == nil, "native return to configuration")
+		t.check(t.tester.Click(a.tr("New configuration", "返回配置")) == nil, "native return to configuration")
 		t.next()
 	case 8:
 		if a.meta.State != "config" || a.observer == nil || a.loading || !t.ack() {

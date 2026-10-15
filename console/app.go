@@ -36,6 +36,7 @@ type metadata struct {
 }
 type app struct {
 	cfg                                          Config
+	preferences                                  Preferences
 	catalog                                      Catalog
 	meta                                         metadata
 	pending                                      map[string]Pose
@@ -83,6 +84,7 @@ func newApp(options session.Options, cfg Config) *app {
 		cfg.Adapters = map[string]bool{}
 	}
 	a := &app{cfg: cfg, pending: map[string]Pose{}, selected: "mid360", tool: "Move / 平移", space: "Base / 机身", viewMode: "Both / 双视角", sourceLabel: "Manual / 手动", stage: "configure", updates: make(chan struct{}, 1), done: make(chan struct{}), adapterStarted: map[string]bool{}, adaptersVerified: map[string]bool{}, options: options}
+	a.preferences = loadPreferences()
 	a.viewport = viewport{Azimuth: -135, Elevation: 25, Distance: 1.8}
 	a.manager = session.NewManager(options, func() {
 		select {

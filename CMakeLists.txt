@@ -119,6 +119,8 @@ if(SIMPLE_RBT_DESKTOP)
     "${CMAKE_CURRENT_SOURCE_DIR}/build/toolchains/${GO_VERSION}/go/bin" REQUIRED)
   file(GLOB_RECURSE CONSOLE_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/console/*.go")
+  file(GLOB MYGO_PATCHES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/mygo/patches/*.patch")
   set(CONSOLE_BINARY "${CMAKE_CURRENT_BINARY_DIR}/simple-rbt-console")
   add_custom_command(OUTPUT "${CONSOLE_BINARY}"
     COMMAND "${CMAKE_COMMAND}" -E env CGO_ENABLED=0 GOTOOLCHAIN=local
@@ -127,6 +129,7 @@ if(SIMPLE_RBT_DESKTOP)
       "${SIMPLE_RBT_GO}" build -trimpath "-ldflags=-s -w -X simple-rbt/console/session.Version=${PROJECT_VERSION}" -o "${CONSOLE_BINARY}" .
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/console"
     DEPENDS ${CONSOLE_SOURCES} console/go.mod console/go.sum packaging/VERSION
+      third_party/mygo/manifest.json ${MYGO_PATCHES}
     COMMENT "Building native Go/MyGo console")
   add_custom_target(simple_rbt_console ALL DEPENDS "${CONSOLE_BINARY}")
 endif()

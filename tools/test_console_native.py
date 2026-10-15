@@ -14,7 +14,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tests/console"))
-from native_x11 import Inputs
+from native_x11 import Inputs, luminance
 from observe_session import Observer
 
 
@@ -85,9 +85,9 @@ def main():
               "terrain": "flat", "terrain_level": "standard", "backend": args.backend, "camera_hz": 10,
               "sensors": {"mid360": True, "camera": True, "depth": True, "panorama": False}}
     (output / "config.json").write_text(json.dumps(config))
-    env = dict(os.environ, DISPLAY=args.display, XDG_CONFIG_HOME=str(output / "config"),
+    env = dict(os.environ, DISPLAY=args.display, LC_ALL="C.UTF-8", XDG_CONFIG_HOME=str(output / "config"),
                XDG_STATE_HOME=str(output / "state"), XDG_CACHE_HOME=str(output / "cache"))
-    checks, observer, inputs = [], None, None
+    checks, observer, inputs, window = [], None, None, None
     program, program_thread = None, None
     program_stop = threading.Event()
     def check(label, passed, evidence=None):
@@ -99,7 +99,7 @@ def main():
         core_sha = hashlib.sha256(args.core.read_bytes()).hexdigest()
         process = subprocess.Popen([str(args.console.resolve()), "--worker", str(args.core.resolve()),
             "--assets", str(args.assets.resolve()), "--config", str(output / "config.json"),
-            "--capture", str(output / "live-scene.png"), "--capture-after-ms", "34000"], env=env, stdout=log, stderr=subprocess.STDOUT)
+            "--capture", str(output / "live-scene.png"), "--capture-after-ms", "42000"], env=env, stdout=log, stderr=subprocess.STDOUT)
         try:
             directory = child_session(process.pid); observer = Observer(directory)
             metadata, _ = observer.wait(lambda m, v: m.get("session_state") == "config")
@@ -126,6 +126,45 @@ def main():
             check("rapid native robot changes retain one latest worker", len(owned_workers(process.pid)) == 1)
             check("superseded worker processes exit", all(not Path(f"/proc/{pid}").exists() for pid,_ in old_workers))
             inputs.capture(window, output / "native-configuration.png")
+            appearance_path = output / "config/simple-rbt-console/appearance.json"
+            appearance_worker = owned_workers(process.pid)
+            translated_labels = {}
+            def appearance(theme, language, saved=True, phase="native"):
+                time.sleep(.25)
+                readable, colors = inputs.readability(window)
+                preferences = json.loads(appearance_path.read_text()) if saved else None
+                inputs.find_window()
+                expected_title = "机器人操作台" if language == "zh-CN" else "Robot console"
+                brightness = luminance(colors[0]["background_rgb"])
+                theme_matches = brightness < .1 if theme == "dark" else brightness > .5
+                preferences_match = not saved or preferences == {"theme": theme, "language": language}
+                inputs.capture(window, output / f"{phase}-{theme}-{language}.png")
+                if theme == "light":
+                    width, _, pixels = inputs.pixels(window)
+                    translated_labels[language] = b"".join(
+                        pixels[(y*width+18)*3:(y*width+340)*3] for y in range(78, 132))
+                check(f"{phase} {theme}/{language} renders readable text and selected appearance",
+                    readable and theme_matches and preferences_match
+                    and any(expected_title in title for title in inputs.titles),
+                    {"text": colors, "preferences": preferences, "window_titles": inputs.titles})
+            appearance("dark", "en", saved=False)
+            # From the Robot selector, walk back to the two header selectors.
+            # Real keyboard focus avoids guessing positions that change with
+            # the translated state badge's width.
+            inputs.tab(reverse=True); inputs.tab(reverse=True)
+            inputs.select_edge(last=True)
+            appearance("light", "en")
+            inputs.tab(); inputs.select_edge(last=True)
+            appearance("light", "zh-CN")
+            changed_text = sum(a != b for a, b in zip(translated_labels["en"], translated_labels["zh-CN"]))
+            check("language selection changes visible configuration labels", changed_text > 100,
+                  {"changed_label_color_channels": changed_text})
+            inputs.tab(reverse=True); inputs.select_edge()
+            appearance("dark", "zh-CN")
+            inputs.tab(); inputs.select_edge()
+            appearance("dark", "en")
+            check("changing appearance keeps the same C++ worker", owned_workers(process.pid) == appearance_worker)
+            inputs.tab()
             # The Robot selector retains focus after Enter. Walk the real
             # keyboard order: five other selectors, four sensor checkboxes,
             # the sensor selector, then X. Font metrics cannot change this order.
@@ -206,11 +245,31 @@ def main():
             inputs.focus(window)
             time.sleep(.5)
             inputs.capture(window, output / "native-window.png")
+            # Source is the first content selector, immediately after the
+            # header selectors. Save two non-default preferences using XTEST.
+            inputs.tab(reverse=True); inputs.tab(reverse=True)
+            inputs.select_edge(last=True)
+            inputs.tab(); inputs.select_edge(last=True)
+            appearance("light", "zh-CN", phase="before-reopen")
             process.wait(timeout=30)
             check("native console closes owned core gracefully", process.returncode == 0)
             check("actual X11 window screenshot exists", (output / "native-window.png").is_file())
+            observer.close(); observer = None; window = None
+            # Reuse the preferences saved by the previous native window. The
+            # second process receives no language/theme flags or injected values.
+            process = subprocess.Popen([str(args.console.resolve()), "--worker", str(args.core.resolve()),
+                "--assets", str(args.assets.resolve()), "--config", str(output / "config.json"),
+                "--capture", str(output / "reopened-live-scene.png"), "--capture-after-ms", "6500"],
+                env=env, stdout=log, stderr=subprocess.STDOUT)
+            directory = child_session(process.pid); observer = Observer(directory)
+            observer.wait(lambda m, v: m.get("session_state") == "config")
+            time.sleep(.5)
+            window = inputs.window(); inputs.focus(window)
+            appearance("light", "zh-CN", phase="reopened")
+            process.wait(timeout=15)
+            check("reopened native console closes owned core gracefully", process.returncode == 0)
         except Exception as error:
-            if inputs:
+            if inputs and window:
                 try:
                     inputs.capture(window, output / "native-failure.png")
                 except Exception as capture_error:

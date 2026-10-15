@@ -1,0 +1,143 @@
+--- a/internal/text/pango_linux.go
++++ b/internal/text/pango_linux.go
+@@ -48,6 +48,7 @@
+ 	pangoDirRTL       = 1
+ 
+ 	cairoFormatARGB32          = 0
++	cairoFormatA8              = 2
+ 	cairoAntialiasDefault      = 0
+ 	cairoAntialiasNone         = 1
+ 	cairoAntialiasGray         = 2
+@@ -129,6 +130,7 @@
+ 	contextSetBaseDir         func(context uintptr, dir int32)
+ 	contextSetRoundPositions  func(context uintptr, round int32)
+ 	fontGetScaledFont         func(font uintptr) uintptr
++	fontGetPattern            func(font uintptr) uintptr
+ 	fontGetMetrics            func(font, language uintptr) uintptr
+ 	fontDescribeAbsolute      func(font uintptr) uintptr
+ 	fontGetHBFont             func(font uintptr) uintptr
+@@ -201,6 +203,7 @@
+ 	fcConfigGetFonts          func(config uintptr, set int32) *fcFontSet
+ 	fcConfigParseFromMemory   func(config uintptr, xml string, complain int32) int32
+ 	fcPatternGetString        func(pattern uintptr, object string, n int32, out **byte) int32
++	fcPatternGetBool          func(pattern uintptr, object string, n int32, out *int32) int32
+ }
+ 
+ func loadPango() error {
+@@ -254,6 +257,7 @@
+ 	bind(pangocairo, &l.fontMapNew, "pango_cairo_font_map_new")
+ 	bind(pangocairo, &l.contextSetFontOptions, "pango_cairo_context_set_font_options")
+ 	bind(pangocairo, &l.fontGetScaledFont, "pango_cairo_font_get_scaled_font")
++	bind(pangocairo, &l.fontGetPattern, "pango_fc_font_get_pattern")
+ 	bind(pango, &l.fontMapCreateContext, "pango_font_map_create_context")
+ 	bind(pango, &l.fontMapLoadFont, "pango_font_map_load_font")
+ 	bind(pango, &l.contextSetBaseDir, "pango_context_set_base_dir")
+@@ -340,6 +344,7 @@
+ 		bind(fc, &l.fcConfigGetFonts, "FcConfigGetFonts")
+ 		bind(fc, &l.fcConfigParseFromMemory, "FcConfigParseAndLoadFromMemory")
+ 		bind(fc, &l.fcPatternGetString, "FcPatternGetString")
++		bind(fc, &l.fcPatternGetBool, "FcPatternGetBool")
+ 	}
+ 	return nil
+ }
+@@ -894,7 +899,20 @@
+ 	if w > 2048 || h > 2048 {
+ 		return bitmap{}
+ 	}
+-	surface := l.cairoImageSurfaceCreate(cairoFormatARGB32, int32(w), int32(h))
++	// A Pango font face can retain LCD filtering even when its cloned
++	// scaled font reports grayscale antialiasing. Rendering that face to
++	// ARGB32 makes RGB coverage look like a color emoji and bypasses the
++	// requested text color. Monochrome glyphs need an actual alpha mask;
++	// retain ARGB32 for LCD coverage and genuine color fonts.
++	format := int32(cairoFormatARGB32)
++	var colorFont int32
++	if l.fcPatternGetBool != nil {
++		l.fcPatternGetBool(l.fontGetPattern(f.native), "color", 0, &colorFont)
++		if !subpixel && colorFont == 0 {
++			format = cairoFormatA8
++		}
++	}
++	surface := l.cairoImageSurfaceCreate(format, int32(w), int32(h))
+ 	defer l.cairoSurfaceDestroy(surface)
+ 	cr := l.cairoCreate(surface)
+ 	l.cairoSetScaledFont(cr, sf)
+@@ -909,6 +927,13 @@
+ 		return bitmap{}
+ 	}
+ 	src := unsafe.Slice(data, stride*h)
++	if format == cairoFormatA8 {
++		b := bitmap{left: left, top: top, w: w, h: h, pix: make([]byte, w*h)}
++		for y := range h {
++			copy(b.pix[y*w:(y+1)*w], src[y*stride:y*stride+w])
++		}
++		return b
++	}
+ 	if subpixel {
+ 		// White glyphs with subpixel antialiasing: the coverage of each
+ 		// subpixel in R, G and B (B, G, R in memory).
+--- a/internal/text/pango_linux_test.go
++++ b/internal/text/pango_linux_test.go
+@@ -51,3 +51,62 @@
+ 		}
+ 	}
+ }
++
++// LCD coverage is not a color glyph: the renderer must still tint normal
++// text. The Pango face's LCD options can survive a Cairo scaled-font clone
++// that reports grayscale antialiasing, including on transparent surfaces.
++func TestPangoTextTintWithSubpixelAntialiasing(t *testing.T) {
++	for _, antialias := range []string{"gray", "subpixel"} {
++		for _, opaque := range []bool{false, true} {
++			t.Run(fmt.Sprintf("%s/opaque=%v", antialias, opaque), func(t *testing.T) {
++				s := newSystem()
++				s.SetFontRendering(antialias, "slight", "rgb")
++				layout := s.Layout(Params{Text: "SpRobo 中文", Style: Style{Family: "sans-serif", Size: 14}})
++				e := s.engine().(*pangoEngine)
++				checked := 0
++				for _, line := range layout.Lines {
++					for _, glyph := range line.Glyphs {
++						b := e.glyph(glyph.Font, glyph.ID, 1, 0, 0, opaque)
++						if b.pix == nil {
++							continue
++						}
++						checked++
++						if b.color {
++							t.Fatal("normal text became a color glyph and would ignore its text color")
++						}
++						if want := antialias == "subpixel" && opaque; b.subpixel != want {
++							t.Fatalf("subpixel coverage = %v, want %v", b.subpixel, want)
++						}
++					}
++				}
++				if checked < 6 {
++					t.Fatalf("only %d visible glyphs were checked", checked)
++				}
++			})
++		}
++	}
++}
++
++func TestPangoColorEmojiRetainsItsColors(t *testing.T) {
++	s := newSystem()
++	s.SetFontRendering("subpixel", "slight", "rgb")
++	layout := s.Layout(Params{Text: "😀", Style: Style{Family: "Noto Color Emoji", Size: 20}})
++	e := s.engine().(*pangoEngine)
++	checked := 0
++	for _, line := range layout.Lines {
++		for _, glyph := range line.Glyphs {
++			var colorFont int32
++			if pangoLib.fcPatternGetBool == nil || pangoLib.fcPatternGetBool(pangoLib.fontGetPattern(glyph.Font.native), "color", 0, &colorFont) != fcResultMatch || colorFont == 0 {
++				t.Skip("no color emoji font installed")
++			}
++			b := e.glyph(glyph.Font, glyph.ID, 1, 0, 0, true)
++			if b.pix == nil || !b.color || b.subpixel {
++				t.Fatal("color emoji lost its original colors")
++			}
++			checked++
++		}
++	}
++	if checked == 0 {
++		t.Fatal("no emoji glyph was checked")
++	}
++}
