@@ -231,7 +231,21 @@ class Inputs:
             elif start is not None:
                 runs.append((start, y-start))
                 start = None
-        matches = [(y, h) for y, h in runs if abs(h-image_height) <= 2]
+        if start is not None:
+            runs.append((start, height-start))
+        # A scene row can share the pane's color. Use the observer's actual
+        # height to join those small holes, while requiring scene evidence
+        # across at least 90% of the candidate rectangle.
+        matches = []
+        for i, (top, _) in enumerate(runs):
+            covered = 0
+            for bottom, length in runs[i:]:
+                covered += length
+                extent = bottom+length-top
+                if extent > image_height+2:
+                    break
+                if abs(extent-image_height) <= 2 and covered >= .9*extent:
+                    matches.append((top, extent))
         if len(matches) != 1:
             raise RuntimeError(f"Cannot identify native observer rectangle {image_width}x{image_height}: {runs}")
         return left, matches[0][0], image_width, image_height
