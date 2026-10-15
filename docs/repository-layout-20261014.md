@@ -45,6 +45,20 @@ from the pinned public base images. [Local evidence](../output/python-cleanup-20
 保留的资源准备、资源测量与 Debian 打包也通过。本地因注册表元数据请求超时，在已有
 运行镜像内重编译验证；固定公开基础镜像的干净构建由现行 CI 继续把关。证据见上述记录。
 
+Online CI subsequently passed for source `494e65f38eb798dfaeddd9fd0503da33e99ab944`:
+CPU/CUDA builds, native tests, clean Ubuntu package installation/removal, 24 native
+window checks, analytical camera checks and all seven robots with both ROS versions.
+The official Noetic/Humble Dockerfiles built successfully from their pinned public
+bases. [CI evidence](https://github.com/Killow1998/simple_rbt/actions/runs/38733133792).
+GitHub now reports C++ **55.10%**, Go **20.18%**, Python **16.31%**. The existing
+0.2.1 release and installed application are preserved; this is source/tool cleanup.
+
+上述提交随后通过线上完整 CI：CPU／CUDA 构建、原生测试、干净 Ubuntu 安装／卸载、
+24 项窗口验收、解析相机检查，以及七车型的双 ROS 验收。正式 Dockerfile 使用固定
+公开基础镜像构建成功。GitHub 实际统计为 C++ 55.10%、Go 20.18%、Python 16.31%。
+已发布和已安装的 0.2.1 保持不变；本轮整理源码与工具。临时验证副本、SDK 和本轮
+测试镜像已清除，报告与补丁保留用于追溯。
+
 ## Historical snapshot — 2026-10-14 / 历史快照
 
 The paths and commands below describe that dated stage, not the current layout.
