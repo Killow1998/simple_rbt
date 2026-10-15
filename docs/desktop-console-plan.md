@@ -1,6 +1,6 @@
 # Desktop console and session architecture / 操作台与会话架构
 
-Status: SpRobo 0.2.0 launcher and startup checks implemented and validated locally; publication requires the GitHub release gates below. Framework name remains `simple_rbt`. / 状态：SpRobo 0.2.0 启动器与依赖检查已实现并通过本机验收；发布须通过下述 GitHub 流程。框架名称保持 `simple_rbt`。
+Status: SpRobo 0.2.0 released after all GitHub acceptance jobs passed. Framework name remains `simple_rbt`. / 状态：SpRobo 0.2.0 已通过全部 GitHub 验收并发布；框架名称保持 `simple_rbt`。[Release / 发行](https://github.com/Killow1998/simple_rbt/releases/tag/v0.2.0) · [Successful CI / 通过的 CI](https://github.com/Killow1998/simple_rbt/actions/runs/38692673470)。
 Date / 日期：2026-10-14。
 
 ## Product / 产品
@@ -78,6 +78,10 @@ Local evidence / 本机证据：
 - TurtleBot3 native/tracked forward/reverse, two-way turns, curves and stops, plus flat, 8° ramp and 2.5 cm continuous hills: eight groups passed; no torso contact, maximum ramp tilt 8.14°. / TurtleBot3 两种模式运动与连续地形共八组通过，无机身碰地，坡上最大倾角 8.14°。[Result / 结果](../output/ros-cpu-validation-20261014/turtlebot3-e2e.json)。
 
 The GitHub workflow builds CPU-only and CUDA-capable cores, runs CTest and Go race tests, validates the installed package and actual native inputs, checks analytical RGB/depth, then checks both independent ROS versions with all registered robots. Release publication depends on every job succeeding and preserves existing published versions. / GitHub 流程先执行双构建、CTest 与 Go 竞争检查，再验收安装后的程序、真实窗口输入及解析 RGB／深度，随后两种 ROS 对全部登记车型验收；全部成功后才发布，已发布版本不覆盖。[Workflow / 流程](../.github/workflows/build-release.yml)。
+
+Published source / 发行源码：`aafd0f008c23487a202d31b85b9b1a4152f8625a`. Online acceptance passed both builds, seven CTest cases per build, Go race/vet, clean installation/removal, all 14 native-input checks and analytic camera geometry, then all seven robots in Noetic and Humble: 14 cases, 287 checks. The native test uses keyboard focus and actual window geometry across font configurations. / 线上通过双构建、各七项 CTest、Go 竞争／静态检查、干净安装／卸载、14 项原生输入和解析相机几何，随后七车型在 Noetic／Humble 中共 14 个案例、287 项检查全部通过。原生输入测试按键盘焦点与实际窗口几何定位，适应不同字体布局。
+
+The published Debian package is 25,153,764 bytes; installed content is 119,514 KiB. Downloaded release bytes, the checksum file, package metadata and CI agree on SHA256 `94ab8b989805ec324236dc23828455813635f9da77d506453719366d0fee9561`. / 发布包为 25,153,764 字节，安装内容为 119,514 KiB；实际下载文件、校验文件、打包元数据和 CI 的 SHA256 一致。[Download verification / 下载核验](../output/releases/v0.2.0/verification.json)。
 
 ## Prior validated baseline / 此前已验收基线
 
