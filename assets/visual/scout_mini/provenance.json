@@ -1,0 +1,589 @@
+{
+  "schema_version": 1,
+  "robot": "scout_mini",
+  "identity": "Scout Mini; conventional four-wheel skid steering, not full-size Scout or Mini Omni",
+  "representation": "Official visual CAD only; original validated dynamics/contact/controller remain unchanged",
+  "source_repository": "https://github.com/agilexrobotics/ugv_gazebo_sim",
+  "source_commit": "27633a956c845903ee630538afeb17fe70afdd84",
+  "license_status": "BSD as declared by upstream package.xml; BSD variant unspecified; declaration preserved",
+  "source_files": [
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "scout/scout_description/meshes/scout_mini_base_link.STL",
+      "git_blob": "a5b663b135ad34da686c8f470e456ce49d79709b",
+      "bytes": 10249784,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/scout/scout_description/meshes/scout_mini_base_link.STL",
+      "sha256": "13a164aadf1b0a2c20327941fd31db091f30d16ca1b50aa74a41e3d35f8417a9"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "scout/scout_description/meshes/scout_mini_base_link.dae",
+      "git_blob": "1acdfa3c5903b5bb65da4fde9df7d791dca81a6b",
+      "bytes": 14672035,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/scout/scout_description/meshes/scout_mini_base_link.dae",
+      "sha256": "5b7536b48ddecfcab48c90ece54c69ec524242ce64b6073cfd60757ad1dd478a"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "scout/scout_description/meshes/scout_mini_base_link2.dae",
+      "git_blob": "b7c14498ccf1528435c5bef31dd763c1d0ec2bbb",
+      "bytes": 14667749,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/scout/scout_description/meshes/scout_mini_base_link2.dae",
+      "sha256": "c91ba00c5822e49443202ef9cc9b512e210cca0e1c75ce91db5a8a26821dc6ad"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "scout/scout_description/package.xml",
+      "git_blob": "f46d447558b9679c03c6eca540ac8305cf895df6",
+      "bytes": 1088,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/scout/scout_description/package.xml",
+      "sha256": "a3cc2a8941bbf01914b804c514cfaea7f6c0d007f8e2d0b08a68ebc2d253c8a8"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "scout/scout_description/urdf/mini.xacro",
+      "git_blob": "8a3768ebff08ff4c97c34d27a0dbdd2d4a700c06",
+      "bytes": 8309,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/scout/scout_description/urdf/mini.xacro",
+      "sha256": "6e1f4cbd255bfa94f59be8d8c23a7abbe78430a91239ec5ab34cbd3fa6e7d222"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "scout/scout_description/urdf/scout_mini.gazebo",
+      "git_blob": "8d25dad8aeff99723a339cbc74f22589fb0699b4",
+      "bytes": 5560,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/scout/scout_description/urdf/scout_mini.gazebo",
+      "sha256": "b47030ed09e6c40e2b0e55e7f3cbbdf953a73d26adb2117e18b2edefcf118eba"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "scout/scout_description/urdf/scout_mini.urdf",
+      "git_blob": "46f240ac6ec766e4f1e25191a074611452efec92",
+      "bytes": 12614,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/scout/scout_description/urdf/scout_mini.urdf",
+      "sha256": "1a2aeefeb2b53f6d00f218275cdb85f1f4808b7b8aa7f678cc0a81b01efd22de"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "scout/scout_description/urdf/scout_mini.xacro",
+      "git_blob": "32bd9627683b7f11bf3b2ce3453841fc87e50d89",
+      "bytes": 5676,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/scout/scout_description/urdf/scout_mini.xacro",
+      "sha256": "7ae98874d711bd585fb5af637f04eae86d4b4bfc02a9b371b96266a4cdf9de38"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "scout/scout_description/urdf/scout_mini_wheel.gazebo",
+      "git_blob": "afabecc24790f58ce40ea2a8ce34f0ad51138100",
+      "bytes": 2500,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/scout/scout_description/urdf/scout_mini_wheel.gazebo",
+      "sha256": "a6a151b974822254ff84235b56e3043f6836d87564cd5e3dc02a3778082f6a85"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "scout/scout_description/urdf/scout_mini_wheel_1.xacro",
+      "git_blob": "b75cb2399a396211eb27514c9d02186db80befa3",
+      "bytes": 4031,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/scout/scout_description/urdf/scout_mini_wheel_1.xacro",
+      "sha256": "b0f0a68637abfa2d095336dfb8a7327a8b0ba3958c0076fd3462448c22b4a52a"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "scout/scout_description/urdf/scout_mini_wheel_2.xacro",
+      "git_blob": "82debac2baa26537628c1a93a59e7a4588df9d42",
+      "bytes": 4004,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/scout/scout_description/urdf/scout_mini_wheel_2.xacro",
+      "sha256": "4ccb13e80ec64397458a069f5ef9279ffcbdf8088fdb7e69347b3d10d0a9537d"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "scout/scout_description/urdf/scout_mini_wheel_3.xacro",
+      "git_blob": "f49c79263822c7e983c9d91d3e971989c1e9bc02",
+      "bytes": 4021,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/scout/scout_description/urdf/scout_mini_wheel_3.xacro",
+      "sha256": "d223eefcc1acb4cd802819433a8c33e7af063a28fc60545f420ce3f683c25748"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "scout/scout_description/urdf/scout_mini_wheel_4.xacro",
+      "git_blob": "8dee968392e3c5d47c64ad914a925ba8fa7bff9f",
+      "bytes": 3918,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/scout/scout_description/urdf/scout_mini_wheel_4.xacro",
+      "sha256": "699255cff121fed79632c324e70cd8e7cb4dec61a7a2f852c0b01c3800e1e96a"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "scout/scout_description/meshes/wheel.dae",
+      "git_blob": "e27cf6a48374bc706be619f290027745fa577e9c",
+      "bytes": 2775868,
+      "sha256": "71d7c2c16c03782d127b84fcddba7393f057566885a20c1257dcfbbf2e65439c"
+    }
+  ],
+  "recipes": [
+    {
+      "part": "body",
+      "source": "agilexrobotics/ugv_gazebo_sim/scout/scout_description/meshes/scout_mini_base_link2.dae",
+      "rpy": [
+        1.5707963267948966,
+        0,
+        -1.5707963267948966
+      ],
+      "target_faces": 40000
+    },
+    {
+      "part": "wheel",
+      "source": "agilexrobotics/ugv_gazebo_sim/scout/scout_description/meshes/wheel.dae",
+      "rpy": [
+        -1.5707963267948966,
+        0,
+        0
+      ],
+      "target_faces": 8000
+    }
+  ],
+  "preparation": {
+    "transform": "Expand imported CAD scene transforms; apply recorded URDF visual pose/scale; emit metric OBJ grouped by source RGBA",
+    "simplification": "Visual-only quadric decimation; reject any group with >5mm bounding deviation; original physics is not replaced",
+    "dependencies": {
+      "numpy": "2.2.6",
+      "trimesh": "5.1.1",
+      "pycollada": "0.9.3",
+      "fast-simplification": "0.2.0",
+      "lxml": "6.1.3",
+      "networkx": "3.4.2",
+      "python-dateutil": "2.9.0.post0",
+      "six": "1.17.0"
+    },
+    "script": "tools/prepare_visual_assets.py"
+  },
+  "mesh_asset_contract": {
+    "inertia": "shell",
+    "geom_mass": 0,
+    "contype": 0,
+    "conaffinity": 0,
+    "group": 2
+  },
+  "parts": [
+    {
+      "part": "body",
+      "recipe": {
+        "part": "body",
+        "source": "agilexrobotics/ugv_gazebo_sim/scout/scout_description/meshes/scout_mini_base_link2.dae",
+        "rpy": [
+          1.5707963267948966,
+          0,
+          -1.5707963267948966
+        ],
+        "target_faces": 40000
+      },
+      "files": [
+        {
+          "file": "assets/visual/scout_mini/body-0.obj",
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "source_faces": 74346,
+          "faces": 74346,
+          "vertices": 37077,
+          "bounds_m": [
+            [
+              -0.24429990351200107,
+              -0.19493809342384338,
+              -0.1131815016269684
+            ],
+            [
+              0.29800328612327576,
+              0.19493809342384338,
+              0.06899917125701906
+            ]
+          ],
+          "bbox_deviation_m": 0.0,
+          "simplification_rejected_for_bounds": true,
+          "sha256": "f19ede18dbde699fa27af85e323e7291ec4203c50cebeb752c5e12014939c7b8",
+          "bytes": 2874792
+        },
+        {
+          "file": "assets/visual/scout_mini/body-1.obj",
+          "rgba": [
+            0.41176471,
+            0.41176471,
+            0.41176471,
+            1.0
+          ],
+          "source_faces": 52247,
+          "faces": 13313,
+          "vertices": 6575,
+          "bounds_m": [
+            [
+              -0.25522420738562446,
+              -0.18321280181407928,
+              -0.048773384629316435
+            ],
+            [
+              0.26739283705794553,
+              0.18321280181407928,
+              0.05587048083543776
+            ]
+          ],
+          "bbox_deviation_m": 0.00024014021002988217,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "fea12f1d1ef565f5e425d8ca506c69d190caad898a5364c8ba7828a83a19937f",
+          "bytes": 475048
+        },
+        {
+          "file": "assets/visual/scout_mini/body-2.obj",
+          "rgba": [
+            0.8,
+            0.8,
+            0.8,
+            1.0
+          ],
+          "source_faces": 22908,
+          "faces": 4732,
+          "vertices": 2368,
+          "bounds_m": [
+            [
+              -0.2350333670777963,
+              -0.14593808117984405,
+              -0.09883348456752805
+            ],
+            [
+              0.23531527121428492,
+              0.14445948764461783,
+              0.06899917125701906
+            ]
+          ],
+          "bbox_deviation_m": 0.0033942884552346786,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "2369095078a1cce7ded4eb960516a659e48abb8f8e20a19642ac4f36c00a5031",
+          "bytes": 167623
+        },
+        {
+          "file": "assets/visual/scout_mini/body-3.obj",
+          "rgba": [
+            1.0,
+            0.05098039,
+            0.07058824,
+            1.0
+          ],
+          "source_faces": 2272,
+          "faces": 2272,
+          "vertices": 1138,
+          "bounds_m": [
+            [
+              -0.22627009451389313,
+              -0.010965099558234229,
+              0.01617657952010633
+            ],
+            [
+              -0.19499659538269043,
+              0.010965099558234201,
+              0.04348380118608476
+            ]
+          ],
+          "bbox_deviation_m": 0.0,
+          "simplification_rejected_for_bounds": true,
+          "sha256": "972b26e58ddc560f61963377f5f96a57aa1c7c7a4a2467aad2a93b9be7f896d1",
+          "bytes": 76968
+        },
+        {
+          "file": "assets/visual/scout_mini/body-4.obj",
+          "rgba": [
+            1.0,
+            0.69803922,
+            0.05882353,
+            1.0
+          ],
+          "source_faces": 9415,
+          "faces": 4388,
+          "vertices": 2610,
+          "bounds_m": [
+            [
+              0.1758376955986023,
+              0.12403082407044014,
+              -0.07888711988925935
+            ],
+            [
+              0.21797040104866028,
+              0.14308710396289825,
+              -0.03519041787458119
+            ]
+          ],
+          "bbox_deviation_m": 0.0004625394940376282,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "e6cef4de0455ec084253ccf0e4c377b195aa299346bb8f359d033855a5c45fe3",
+          "bytes": 170923
+        },
+        {
+          "file": "assets/visual/scout_mini/body-5.obj",
+          "rgba": [
+            1.0,
+            0.69803922,
+            0.18039216,
+            1.0
+          ],
+          "source_faces": 26160,
+          "faces": 14785,
+          "vertices": 8626,
+          "bounds_m": [
+            [
+              -0.21990540623664856,
+              -0.14309239387512207,
+              -0.08145392686128618
+            ],
+            [
+              0.21978659927845,
+              0.14308710396289825,
+              -0.037307104273730185
+            ]
+          ],
+          "bbox_deviation_m": 0.000420302152633667,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "00965df3e115e5a189985941f4e421ccde3d8446d5d2b227c49bba041b8958e1",
+          "bytes": 593515
+        },
+        {
+          "file": "assets/visual/scout_mini/body-6.obj",
+          "rgba": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "source_faces": 6300,
+          "faces": 1390,
+          "vertices": 677,
+          "bounds_m": [
+            [
+              -0.2625822126865387,
+              -0.1930209994316101,
+              -0.05180082842707635
+            ],
+            [
+              0.26000794634733404,
+              0.1930209994316101,
+              0.05399917066097259
+            ]
+          ],
+          "bbox_deviation_m": 2.1398067474365234e-05,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "cd1239788adef5032001ea81060e8136492c4aee38c7665c8620029816f430a9",
+          "bytes": 45296
+        }
+      ]
+    },
+    {
+      "part": "wheel",
+      "recipe": {
+        "part": "wheel",
+        "source": "agilexrobotics/ugv_gazebo_sim/scout/scout_description/meshes/wheel.dae",
+        "rpy": [
+          -1.5707963267948966,
+          0,
+          0
+        ],
+        "target_faces": 8000
+      },
+      "files": [
+        {
+          "file": "assets/visual/scout_mini/wheel-0.obj",
+          "rgba": [
+            0.29411765,
+            0.29411765,
+            0.29411765,
+            1.0
+          ],
+          "source_faces": 12414,
+          "faces": 2554,
+          "vertices": 1277,
+          "bounds_m": [
+            [
+              -0.07981806713353831,
+              -0.002383875538286558,
+              -0.0791781310724065
+            ],
+            [
+              0.07971678925050613,
+              0.08181288087249951,
+              0.08115812149134237
+            ]
+          ],
+          "bbox_deviation_m": 0.0003182291376705587,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "cca0a0c101bce72ea36d238356802cff2e96a15c12748bff94c298caa9471f57",
+          "bytes": 86478
+        },
+        {
+          "file": "assets/visual/scout_mini/wheel-1.obj",
+          "rgba": [
+            0.89803922,
+            0.91764706,
+            0.92941176,
+            1.0
+          ],
+          "source_faces": 21176,
+          "faces": 4356,
+          "vertices": 2143,
+          "bounds_m": [
+            [
+              -0.06791821122169495,
+              -0.04699498042464257,
+              -0.06724640635997357
+            ],
+            [
+              0.06791821122169495,
+              0.08346655983955432,
+              0.0692288726568222
+            ]
+          ],
+          "bbox_deviation_m": 0.0015384627458376737,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "132ccabfd24d6d11f62e2b0266d7a8a8fb4081c91436158ff8be68109628a532",
+          "bytes": 151096
+        },
+        {
+          "file": "assets/visual/scout_mini/wheel-2.obj",
+          "rgba": [
+            1.0,
+            0.05882353,
+            0.05882353,
+            1.0
+          ],
+          "source_faces": 5292,
+          "faces": 1088,
+          "vertices": 497,
+          "bounds_m": [
+            [
+              -0.06967242062091827,
+              0.001574371665763488,
+              -0.06822014490542447
+            ],
+            [
+              0.06994833148437193,
+              0.08184211996857345,
+              0.06991517620749517
+            ]
+          ],
+          "bbox_deviation_m": 0.0014027349405761197,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "f0406e7cae66f0b80c87ba007e8745d66d1233715387afc126df42b814d5e233",
+          "bytes": 33991
+        }
+      ]
+    }
+  ],
+  "reference_differences": {
+    "cad_body_extent_m": [
+      0.5606069,
+      0.3898762,
+      0.1821807
+    ],
+    "validated_body_extent_m": [
+      0.612,
+      0.4,
+      0.13
+    ],
+    "source_wheelbase_m": 0.456,
+    "validated_wheelbase_m": 0.451,
+    "source_outer_width_m": 0.5865,
+    "validated_outer_width_m": 0.58,
+    "source_wheel_axis_frame": "CAD axle origin differs from tire-centre origin; visual-only lateral shift is recorded"
+  },
+  "mjcf_overlay": {
+    "hide_geoms": [
+      "chassis",
+      "front_left_tire",
+      "front_right_tire",
+      "rear_left_tire",
+      "rear_right_tire"
+    ],
+    "attachments": [
+      {
+        "part": "body",
+        "body": "base",
+        "position": [
+          0,
+          0,
+          -0.004
+        ]
+      },
+      {
+        "part": "wheel",
+        "body": "front_left_wheel",
+        "position": [
+          0,
+          -0.03675,
+          0
+        ],
+        "quaternion": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "part": "wheel",
+        "body": "front_right_wheel",
+        "position": [
+          0,
+          0.03675,
+          0
+        ],
+        "quaternion": [
+          0,
+          1,
+          0,
+          0
+        ]
+      },
+      {
+        "part": "wheel",
+        "body": "rear_left_wheel",
+        "position": [
+          0,
+          -0.03675,
+          0
+        ],
+        "quaternion": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "part": "wheel",
+        "body": "rear_right_wheel",
+        "position": [
+          0,
+          0.03675,
+          0
+        ],
+        "quaternion": [
+          0,
+          1,
+          0,
+          0
+        ]
+      }
+    ]
+  }
+}

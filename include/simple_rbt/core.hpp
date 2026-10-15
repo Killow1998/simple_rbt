@@ -3,6 +3,7 @@
 #include "simple_rbt/types.hpp"
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <mujoco/mujoco.h>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -17,6 +18,7 @@ struct SimulationOptions {
               go2_startup = "crouched";
   double difficulty = 1., friction = -1.;
   std::uint64_t seed = 0;
+  std::optional<Pose> mid360_mount, camera_mount;
 };
 class Simulation {
 public:
@@ -26,6 +28,8 @@ public:
   Simulation &operator=(const Simulation &) = delete;
   void set_command(const Vec3 &);
   void step();
+  // Configuration only; the controller body IMU is never modified.
+  void set_mount(const std::string& module, const Pose&);
   mjModel *model() const;
   mjData *data() const;
   std::uint64_t stamp_ns() const;

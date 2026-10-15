@@ -14,6 +14,7 @@ struct CameraConfig {
   int panorama_width = 720;
   int panorama_height = 360;
   int cube_face_size = 256;
+  bool render_depth = true, render_panorama = true, render_perspective = true, render_rgb = true;
 };
 
 // Caller owns model/data and supplies the optical pose (+X right,+Y down,+Z
@@ -31,6 +32,8 @@ class CameraRig {
   CameraRig& operator=(CameraRig&&) = delete;
 
   void render_into(mjData* data, const OpticalPose& pose, CameraPair& output);
+  void render_observer(mjData*, const OpticalPose&, CameraFrame&,
+                       int width = 640, int height = 480, double fov_y_deg = 45.);
   const std::string& renderer_name() const noexcept;
 
  private:

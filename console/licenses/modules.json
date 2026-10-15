@@ -1,0 +1,71 @@
+[
+  {
+    "Path": "github.com/ebitengine/purego",
+    "Version": "v0.11.1",
+    "Sum": "h1:2zpWRSQNVKN4eKsKO9eM1ILDgWfYMY9GwqRmK6XeQ/0="
+  },
+  {
+    "Path": "github.com/egoist/mygo",
+    "Version": "v0.0.0"
+  },
+  {
+    "Path": "github.com/go-text/typesetting",
+    "Version": "v0.3.5",
+    "Sum": "h1:XZPUooClHY0Vf/rFyUyuPRNEkawARaFzLMQcXLSEyPk="
+  },
+  {
+    "Path": "github.com/go-text/typesetting-utils",
+    "Version": "v0.0.0-20260419141703-4ffe8874dabc",
+    "Sum": "h1:8FGo2It5K75XkavhTiCKExUfVaVDS1feBnLCru5qeoY="
+  },
+  {
+    "Path": "github.com/hajimehoshi/go-mp3",
+    "Version": "v0.3.4",
+    "Sum": "h1:NUP7pBYH8OguP4diaTZ9wJbUbk3tC0KlfzsEpWmYj68="
+  },
+  {
+    "Path": "github.com/jfreymuth/oggvorbis",
+    "Version": "v1.0.5",
+    "Sum": "h1:u+Ck+R0eLSRhgq8WTmffYnrVtSztJcYrl588DM4e3kQ="
+  },
+  {
+    "Path": "github.com/jfreymuth/vorbis",
+    "Version": "v1.0.2",
+    "Sum": "h1:m1xH6+ZI4thH927pgKD8JOH4eaGRm18rEE9/0WKjvNE="
+  },
+  {
+    "Path": "golang.org/x/image",
+    "Version": "v0.46.0",
+    "Sum": "h1:b1+oYj0Jbp6K5MDT4i4/eZpYlk3V8SJhhDKh6LBHAyQ="
+  },
+  {
+    "Path": "golang.org/x/mod",
+    "Version": "v0.41.0",
+    "Sum": "h1:qJmnOUb4YB+FsEuM3HcWucdZASCPGhsX6uljO6pog0c="
+  },
+  {
+    "Path": "golang.org/x/net",
+    "Version": "v0.59.0",
+    "Sum": "h1:5zfYln+w5XCxwrnMMJPufRgNoXEaGxl0wo5GqPXyues="
+  },
+  {
+    "Path": "golang.org/x/sync",
+    "Version": "v0.24.0",
+    "Sum": "h1:iqiDrGoDgyuvAKrhLQthUEzU/R378N78gXbBjxed7oA="
+  },
+  {
+    "Path": "golang.org/x/sys",
+    "Version": "v0.48.0",
+    "Sum": "h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo="
+  },
+  {
+    "Path": "golang.org/x/text",
+    "Version": "v0.43.0",
+    "Sum": "h1:1QivrlhwAsnMOcqgOdl9my7s9OyZl8O5/UGUTJVXoWc="
+  },
+  {
+    "Path": "golang.org/x/tools",
+    "Version": "v0.51.0",
+    "Sum": "h1:k4Xc/1Om9jwkBJBo4NVLMSARBoWtK10mx+W5BnXCeAI="
+  }
+]

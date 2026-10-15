@@ -1,0 +1,133 @@
+name: SpRobo build, acceptance and release
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Optional release version; defaults to packaging/VERSION
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      commit: ${{ steps.version.outputs.commit }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Resolve tested version and commit
+        id: version
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          version=${REQUESTED_VERSION:-$(cat packaging/VERSION)}
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then version=${GITHUB_REF_NAME#v}; fi
+          [[ "$version" == "$(cat packaging/VERSION)" ]]
+          dpkg --validate-version "$version"
+          printf 'version=%s\ncommit=%s\n' "$version" "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          printf 'SOURCE_DATE_EPOCH=%s\n' "$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
+      - name: Prepare public build dependencies and CUDA compiler
+        run: bash tools/ci_prepare.sh
+      - name: Build both variants and test C++ core
+        env:
+          SPROBO_VERSION: ${{ steps.version.outputs.version }}
+        run: bash tools/ci_build.sh "$SPROBO_VERSION"
+      - name: Verify clean installed Ubuntu package
+        env:
+          SPROBO_VERSION: ${{ steps.version.outputs.version }}
+        run: bash tools/ci_verify_package.sh "$SPROBO_VERSION"
+      - name: Verify installed native input and analytic camera geometry
+        env:
+          SPROBO_VERSION: ${{ steps.version.outputs.version }}
+        run: bash tools/ci_native_checks.sh "$SPROBO_VERSION"
+      - name: Upload tested release artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sprobo-ubuntu22.04-amd64
+          path: output/packages/sprobo_*
+          if-no-files-found: error
+          compression-level: 0
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sprobo-verification
+          path: output/ci/
+          if-no-files-found: warn
+
+  ros:
+    needs: checks
+    runs-on: ubuntu-22.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [ros1, ros2]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.checks.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: sprobo-ubuntu22.04-amd64
+          path: package
+      - name: Install the exact tested artifact
+        env:
+          SPROBO_VERSION: ${{ needs.checks.outputs.version }}
+        run: |
+          cd package
+          sha256sum --check "sprobo_${SPROBO_VERSION}_amd64.deb.sha256"
+          sudo apt-get update
+          sudo apt-get install -y "./sprobo_${SPROBO_VERSION}_amd64.deb"
+      - name: Validate all registered robots through the native ROS adapter
+        env:
+          ROS_VARIANT: ${{ matrix.version }}
+        run: |
+          python3 tools/test_ros_session.py --core /usr/bin/simple-rbt-sim \
+            --ros "$ROS_VARIANT" --backend cpu --no-camera --output "output/ci/$ROS_VARIANT"
+      - name: Upload ROS evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sprobo-${{ matrix.version }}-verification
+          path: output/ci/
+          if-no-files-found: warn
+
+  release:
+    needs: [checks, ros]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    concurrency:
+      group: sprobo-release-${{ needs.checks.outputs.version }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.checks.outputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: sprobo-ubuntu22.04-amd64
+          path: release
+      - name: Publish a new immutable release after acceptance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SPROBO_VERSION: ${{ needs.checks.outputs.version }}
+          TESTED_COMMIT: ${{ needs.checks.outputs.commit }}
+        run: bash tools/ci_release.sh "$SPROBO_VERSION" "$TESTED_COMMIT" release

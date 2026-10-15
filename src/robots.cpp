@@ -7,7 +7,7 @@ const std::vector<RobotSpec> &robot_specs() {
   static const std::vector<RobotSpec> specs{
       {"go2", "robot_lab", {1., .6, 1.}, true, true, false, false, true, 0.},
       {"go2w", "rl_sar", {1., .6, 1.}, true, true, false, false, true, 0.},
-      {"diffdrive", "none", {1., 0., 1.}, false, true, true, false, false, 0.},
+      {"turtlebot3_waffle_pi", "diff_drive", {.26, 0., 1.82}, false, true, true, true, true, 0.},
       {"scout_mini",
        "skid_steer",
        {1.5, 0., 1.},
@@ -32,6 +32,12 @@ const std::vector<RobotSpec> &robot_specs() {
   return specs;
 }
 const RobotSpec *find_robot_spec(const std::string &name) noexcept {
+  // Retain old oracle fixtures without presenting the synthetic model in the
+  // product registry. It has its original independent geometry and controller.
+  static const RobotSpec legacy_diffdrive{
+      "diffdrive", "none", {1., 0., 1.}, false, true, true, false, false, 0.};
+  if (name == legacy_diffdrive.name)
+    return &legacy_diffdrive;
   for (const auto &spec : robot_specs())
     if (spec.name == name)
       return &spec;

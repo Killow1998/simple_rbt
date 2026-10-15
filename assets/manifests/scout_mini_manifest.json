@@ -5,7 +5,7 @@
     "manufacturer": "AgileX Robotics",
     "product": "SCOUT MINI",
     "variant": "conventional four-wheel skid steering; not Mini Omni and not full-size Scout",
-    "representation": "procedural box chassis and rounded ellipsoid tires; rigid suspension; functional simulation approximation"
+    "representation": "Physical model: procedural box chassis and rounded ellipsoid tires; rigid suspension; functional simulation approximation. Visual model: official CAD attached with zero mass and no collisions."
   },
   "source": {
     "product_url": "https://www.agilex.ai/page/68930913f34d776a0e9d147e",
@@ -119,10 +119,10 @@
     }
   },
   "license_and_assets": {
-    "third_party_meshes_copied": false,
+    "third_party_meshes_copied": true,
     "third_party_code_copied": false,
-    "geometry": "Original procedural chassis box and rounded tire ellipsoids. Only factual public specifications used.",
-    "reference_legacy_package_license": "BSD as declared in scout_description/package.xml; legacy files were audited but not copied."
+    "geometry": "Original procedural physical geometry and validated dynamics; separate official visual meshes, see assets/visual/scout_mini/provenance.json",
+    "reference_legacy_package_license": "BSD as declared by upstream package.xml; copied visual source identities recorded in assets/visual/scout_mini/provenance.json"
   },
   "legacy_audit": [
     {
@@ -150,5 +150,6 @@
     "comparison_report": "output/scout-mini-20261013/rounded-tire-probe/RESULTS.md",
     "stair_limitation": "Both 4 cm and 5 cm repeated stair courses still timed out with rounded tires. This is not an obstacle-capability validation; neither rounded simulation nor the old cylinder baseline reproduces the manufacturer obstacle specification. Real suspension and tire compliance remain unmodeled.",
     "historical_results": "The native and within-spec-steps output directories describe cylinder v1. New default validation must be recorded separately as rounded v2."
-  }
+  },
+  "visual_assets_provenance": "assets/visual/scout_mini/provenance.json"
 }

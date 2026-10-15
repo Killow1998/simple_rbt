@@ -4,7 +4,7 @@
   "identity": {
     "manufacturer": "Clearpath Robotics",
     "product": "Ridgeback R100",
-    "representation": "Procedural collision-driven base with four hub motors and forty passive roller hinges"
+    "representation": "Physical model: Procedural collision-driven base with four hub motors and forty passive roller hinges. Visual model: official CAD attached with zero mass and no collisions."
   },
   "sources": {
     "product_url": "https://clearpathrobotics.com/ridgeback-indoor-robot-platform/",
@@ -139,9 +139,10 @@
     "physics": "Free base, no pose or velocity assignment and no external body force in control; wheel-floor contact is the only source of chassis actuation."
   },
   "license_and_assets": {
-    "third_party_meshes_copied": false,
+    "third_party_meshes_copied": true,
     "third_party_code_copied": false,
     "reference_package_license": "BSD declared by pinned clearpath_platform_description/package.xml",
-    "geometry": "Original procedural primitives based on public factual dimensions"
-  }
+    "geometry": "Original procedural physical geometry and validated dynamics; separate official visual meshes, see assets/visual/ridgeback/provenance.json"
+  },
+  "visual_assets_provenance": "assets/visual/ridgeback/provenance.json"
 }

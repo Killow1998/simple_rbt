@@ -11,7 +11,8 @@ struct RunOptions {
   double duration = 10., settle = 1., camera_hz = 1.;
   std::size_t rays = 20000;
   Vec3 simulation_command{};
-  bool realtime = false, viewer = false, summary_only = false;
+  bool realtime = false, viewer = false, summary_only = false, indefinite = false;
+  bool mid360_enabled = true, camera_enabled = true, depth_enabled = true, panorama_enabled = true;
   bool output_precreated =
       false; // Only the validator's newly allocated folder.
   std::filesystem::path output;
@@ -21,6 +22,8 @@ public:
   virtual ~RunObserver() = default;
   // Called after sensor warmup, before the measured loop/clock zero. May wait
   // for transport discovery; sampling/physics have not advanced.
+  virtual void configure(Simulation &, Transport *) {}
+  virtual bool before_step(Simulation &, Transport *) { return true; }
   virtual void before_loop(Simulation &, Transport *) {}
   // After applying Simulation.command() and completing mj_step+mj_forward.
   // command() is that step's actual bounded command; monotonic_s is Linux's

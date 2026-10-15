@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=SpRobo
+Name[zh_CN]=SpRobo 机器人操作台
+Comment=Configure and operate a local robot simulation
+Comment[zh_CN]=配置与操控本机机器人仿真
+Exec=sprobo
+TryExec=sprobo
+Icon=sprobo
+Terminal=false
+Categories=Science;Engineering;
+Keywords=robot;simulation;MuJoCo;
+Keywords[zh_CN]=机器人;仿真;MuJoCo;
+StartupNotify=true

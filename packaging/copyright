@@ -1,0 +1,29 @@
+SpRobo is the launcher; the included simulation framework is simple_rbt.
+SpRobo 是启动器；随包提供的仿真框架仍为 simple_rbt。
+
+This application package is assembled from the user's prepared local checkout.
+No package-wide license is asserted by the packaging process.
+
+Bundled runtime libraries:
+  MuJoCo: Apache-2.0; licenses/mujoco/ also records third-party notices.
+  ONNX Runtime: MIT; licenses/onnxruntime/ includes third-party notices.
+  NVIDIA CUDA runtime: governed by licenses/cuda/EULA.txt.
+  nlohmann/json headers: MIT; licenses/nlohmann/LICENSE.MIT.
+  Native Go console modules: licenses/console/ contains upstream notices.
+  RL SAR code/policy provenance: licenses/rl_sar-go2/ and rl_sar-go2w/.
+  Legacy MuJoCo-LiDAR provenance: licenses/MuJoCo-LiDAR/.
+
+The existing asset provenance is preserved in
+/usr/share/simple-rbt/assets/manifests/, assets/visual/ and assets/lidar/source.json.
+Ranger Mini and Scout Mini preserve upstream package.xml BSD declarations;
+Clearpath Ridgeback preserves its upstream BSD-3-Clause LICENSE.
+FR-mini package.xml declares TODO and no upstream root LICENSE is present.
+In particular, the pinned rl_sar_zoo Go2/Go2W meshes and the MID360 scan CSV
+have no explicit redistribution license established in this checkout.
+This local package does not establish permission to publicly redistribute them.
+The application checkout itself has no root LICENSE file.
+
+此软件包由用户本机已准备的文件构建；打包过程不新增整体授权声明。
+运行库许可及第三方说明保存在 licenses/，资产来源保存在 assets/。
+Go2/Go2W 网格和 MID360 扫描数据的公开再分发许可尚未明确；
+完成本机安装包不代表已经取得公开发布这些资产的授权。

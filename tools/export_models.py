@@ -6,6 +6,8 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 from project import ROOT
+from visual_models import apply_visual
+from turtlebot3_model import build_model as build_turtlebot3, controller_config as turtlebot3_config
 from simple_rbt_mujoco.core import UPSTREAM, _go2_xml, _diffdrive_xml
 from simple_rbt_mujoco.robots import WHEEL_MODELS, wheel_model
 from simple_rbt_mujoco.mid360 import append_mid360_imu
@@ -19,7 +21,7 @@ catalog = {'schema': 1, 'model_preparation': 'offline data export; no Python in 
            'models': {}, 'controllers': {}, 'terrain_presets': {}}
 go2 = json.loads(GO2_MANIFEST.read_text())
 catalog['go2_manifest'] = go2
-for robot in ('go2', 'go2w', 'diffdrive', *WHEEL_MODELS):
+for robot in ('go2', 'go2w', 'diffdrive', 'turtlebot3_waffle_pi', *WHEEL_MODELS):
     choices = ('robot_lab','himloco','legacy') if robot == 'go2' else ('auto',)
     for choice in choices:
         if robot == 'go2':
@@ -29,11 +31,18 @@ for robot in ('go2', 'go2w', 'diffdrive', *WHEEL_MODELS):
             xml, controller = build_go2w_xml(), 'rl_sar'
         elif robot == 'diffdrive':
             xml, controller = _diffdrive_xml(), 'none'
+        elif robot == 'turtlebot3_waffle_pi':
+            xml, controller = ET.tostring(build_turtlebot3(ROOT), encoding='unicode'), 'diff_drive'
         else:
             builder, _, controller = wheel_model(robot)
             xml = builder()
-        root = ET.fromstring(xml)
-        append_mid360_imu(root)
+        if robot == 'turtlebot3_waffle_pi':
+            root = ET.fromstring(xml, parser=ET.XMLParser(target=ET.TreeBuilder(insert_comments=True)))
+        else:
+            root = ET.fromstring(xml)
+        if robot != 'turtlebot3_waffle_pi':
+            append_mid360_imu(root)
+        apply_visual(root, robot, ROOT)
         text = ET.tostring(root, encoding='unicode')
         # Builders resolve mesh paths. A draft may share a read-only vendor
         # directory via symlink; preserve relocatable paths in exported data.
@@ -43,6 +52,8 @@ for robot in ('go2', 'go2w', 'diffdrive', *WHEEL_MODELS):
         path = out / 'models' / (key + '.xml')
         path.write_text(text + '\n')
         catalog['models'][key] = {'file': 'models/'+path.name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+        if robot == 'diffdrive':
+            catalog['models'][key]['legacy'] = True
         if robot == 'go2' and controller != 'legacy':
             catalog['controllers'][key] = {**go2['controllers'][controller],
                 'joint_names': [go2['sdk_joint_names'][i] for i in go2['controllers'][controller]['joint_mapping']],
@@ -53,6 +64,8 @@ for robot in ('go2', 'go2w', 'diffdrive', *WHEEL_MODELS):
             catalog['controllers'][key] = {'joint_names':list(JOINT_NAMES), 'default_dof_pos':DEFAULT_POS.tolist(),
                 'action_scale':ACTION_SCALE.tolist(), 'policy':'assets/policies/go2w_policy.onnx',
                 'policy_sha256':POLICY_SHA256}
+        elif robot == 'turtlebot3_waffle_pi':
+            catalog['controllers'][key] = turtlebot3_config(ROOT)
         elif robot == 'diffdrive':
             catalog['controllers'][key] = {
                 'implemented_geometry': {'wheel_radius_m': .12, 'track_m': .36},

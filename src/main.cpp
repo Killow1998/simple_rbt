@@ -1,8 +1,7 @@
-#include "simple_rbt/full_run.hpp"
+#include "simple_rbt/paths.hpp"
 #include "simple_rbt/runtime.hpp"
-#if defined(SIMPLE_RBT_ROS1) || defined(SIMPLE_RBT_ROS2)
-#include "simple_rbt/ros_bridge.hpp"
-#endif
+#include "simple_rbt/session.hpp"
+#include "simple_rbt/runtime_info.hpp"
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -13,8 +12,9 @@
 using namespace simple_rbt;
 namespace {
 void help(const std::filesystem::path &project_root) {
-  std::cout << R"(simple-rbt-native — C++17 / MuJoCo / native CUDA / optional ROS wrapper
-Usage: ./run.sh [options]
+  std::cout
+      << R"(simple-rbt-sim — C++17 / MuJoCo / native CUDA / independent session transport
+Usage: simple-rbt-sim [options]
 )";
   std::cout << "  --robot ";
   bool separator = false;
@@ -39,12 +39,14 @@ Usage: ./run.sh [options]
   --difficulty NUMBER --seed UNSIGNED --friction NUMBER
   --cmd VX VY WZ --settle SECONDS --duration SECONDS
   --sensors physics|lidar|full --cameras --camera-hz NUMBER
-  --backend cpu|cuda|warp           warp is a compatibility alias for native CUDA
+  --backend auto|cpu|cuda|warp           warp is a compatibility alias for native CUDA
   --lidar-motion rolling|snapshot --rays NUMBER (1..20000, diagnostic subset)
-  --ros1 | --ros2                    selects compiled wrapper; /<robot>/cmd_vel; timeout 0.5s
+  --session-config JSON --session-dir DIRECTORY   desktop/ROS process session
   --realtime --viewer --summary-only --output NEW_DIRECTORY
   --go2-torque-mode configured|upstream --go2-startup crouched|upstream_getup
   --project-root DIRECTORY
+  --list-robots                     JSON registry; does not initialize simulation
+  --runtime-info                    Loaded SDK, CPU/CUDA build and asset status as JSON
 No Python interpreter, Warp or LLVM is used by this executable.
 )";
 }
@@ -67,9 +69,39 @@ std::uint64_t integer(const std::string &s) {
 } // namespace
 int main(int argc, char **argv) {
   try {
+    for (int i = 1; i < argc; ++i) {
+      if (std::string(argv[i]) != "--list-robots")
+        continue;
+      Json registry = Json::array();
+      for (const auto &spec : robot_specs())
+        registry.push_back({{"name", spec.name},
+                            {"default_controller", spec.default_controller},
+                            {"continuous_terrain", spec.continuous_terrain},
+                            {"allows_lateral", spec.allows_lateral},
+                            {"allows_in_place_turn", spec.allows_in_place_turn},
+                            {"command_limits", spec.command_limits},
+                            {"min_turning_radius", spec.min_turning_radius}});
+      std::cout << registry.dump() << '\n';
+      return 0;
+    }
     RunOptions args;
-    args.simulation.project_root = SIMPLE_RBT_PROJECT_ROOT;
-    std::filesystem::path config_path;
+    for (int i = 1; i + 1 < argc; ++i)
+      if (std::string(argv[i]) == "--project-root")
+        args.simulation.project_root = argv[++i];
+    bool information = false;
+    for (int i = 1; i < argc; ++i)
+      information = information || std::string(argv[i]) == "--runtime-info";
+    if (information) {
+      if (args.simulation.project_root.empty()) {
+        try { args.simulation.project_root = default_project_root(); }
+        catch (const std::exception &) {}
+      }
+      std::cout << runtime_info(args.simulation.project_root).dump() << '\n';
+      return 0;
+    }
+    if (args.simulation.project_root.empty())
+      args.simulation.project_root = default_project_root();
+    std::filesystem::path session_config, session_dir;
     bool explicit_cameras = false;
     std::string ros_backend;
     auto value = [&](int &i) {
@@ -84,8 +116,14 @@ int main(int argc, char **argv) {
         return 0;
       } else if (option == "--project-root")
         args.simulation.project_root = value(i);
+      else if (option == "--session-config")
+        session_config = value(i);
+      else if (option == "--session-dir")
+        session_dir = value(i);
       else if (option == "--worker-config")
-        config_path = value(i);
+        throw std::invalid_argument(
+            "The same-process C++ ROS validator was superseded; use "
+            "tools/test_ros_session.py for independent ROS E2E checks");
       else if (option == "--robot")
         args.simulation.robot = value(i);
       else if (option == "--controller")
@@ -130,8 +168,7 @@ int main(int argc, char **argv) {
         if (!ros_backend.empty() && ros_backend != selected)
           throw std::invalid_argument("Select one ROS wrapper");
         ros_backend = selected;
-      }
-      else if (option == "--realtime")
+      } else if (option == "--realtime")
         args.realtime = true;
       else if (option == "--viewer")
         args.viewer = true;
@@ -144,65 +181,26 @@ int main(int argc, char **argv) {
     }
     if (explicit_cameras)
       args.sensors = "full";
-    std::unique_ptr<RunObserver> observer;
-    if (!config_path.empty()) {
-      std::ifstream file(config_path);
+    if (!session_config.empty()) {
       Json c;
-      file >> c;
-      args.simulation.robot = c.at("robot");
-      args.simulation.controller = c.at("controller");
-      args.simulation.control_mode = c.at("control_mode");
-      args.simulation.terrain = c.at("terrain");
-      args.simulation.terrain_level = c.at("terrain_level");
-      args.simulation.seed = c.at("seed");
-      if (!c.at("friction").is_null())
-        args.simulation.friction = c.at("friction");
-      args.backend = c.at("backend");
-      args.camera_hz = c.at("camera_hz");
-      args.settle = c.at("settle_s");
-      args.output = c.at("output").get<std::string>();
-      ros_backend = "ros2";
-      args.realtime = true;
-      args.sensors = "full";
-      args.summary_only = true;
-      args.output_precreated = true;
-      Json catalog;
-      std::ifstream f(args.simulation.project_root /
-                      "assets/catalog.json");
-      f >> catalog;
-      double finish =
-          catalog["terrain_presets"]
-                 [args.simulation.terrain + "-" + args.simulation.terrain_level]
-                 ["metadata"]["finish_x_m"];
-      args.duration =
-          args.settle +
-          std::max(8., finish + 2.) / c.at("speed_m_s").get<double>() + 2.;
-      observer = std::make_unique<FullRunObserver>(config_path);
+      std::ifstream in(session_config);
+      if (!in)
+        throw std::invalid_argument("Cannot open session config");
+      in >> c;
+      run_session(c, session_dir, args.simulation.project_root);
+      return 0;
     }
     if (!supported_command(args.simulation.robot, args.simulation_command))
       throw std::invalid_argument("Unsupported/nonfinite planar command");
     TransportFactory factory;
-    if (!ros_backend.empty()) {
-#if defined(SIMPLE_RBT_ROS1) || defined(SIMPLE_RBT_ROS2)
-      RosOptions options;
-      options.robot_name = args.simulation.robot;
-#ifdef SIMPLE_RBT_ROS1
-      if (ros_backend != "ros1")
-#else
-      if (ros_backend != "ros2")
-#endif
-        throw std::invalid_argument("Requested ROS wrapper is not in this build");
-      factory = [options](const Extrinsics& extrinsics) {
-        return std::make_unique<RosBridge>(options, extrinsics);
-      };
-#else
-      throw std::invalid_argument("This build has no ROS wrapper");
-#endif
-    }
-    run_simulation(args, observer.get(), factory);
+    if (!ros_backend.empty())
+      throw std::invalid_argument(
+          "ROS adapters run independently; use --session-config and "
+          "simple-rbt-ros1/ros2 --session-dir");
+    run_simulation(args, nullptr, factory);
     return 0;
   } catch (const std::exception &e) {
-    std::cerr << "simple-rbt-native: " << e.what() << '\n';
+    std::cerr << "simple-rbt-sim: " << e.what() << '\n';
     return 2;
   }
 }

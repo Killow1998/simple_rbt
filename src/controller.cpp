@@ -24,6 +24,7 @@ std::unique_ptr<Controller> make_controller(const ControllerContext &c) {
       {"legacy", make_go2_controller},
       {"rl_sar", make_go2w_controller},
       {"none", make_diffdrive_controller},
+      {"diff_drive", make_diffdrive_controller},
       {"skid_steer", make_scout_mini_controller},
       {"ackermann", make_fr_mini_controller},
       {"mecanum", make_ridgeback_controller},

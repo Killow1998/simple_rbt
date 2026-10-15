@@ -20,23 +20,28 @@
     },
     "diffdrive-none": {
       "file": "models/diffdrive-none.xml",
-      "sha256": "a28c0da38f95933751457fce39a9efc1da9f1840fd7db91ae413129255c26063"
+      "sha256": "a28c0da38f95933751457fce39a9efc1da9f1840fd7db91ae413129255c26063",
+      "legacy": true
     },
     "scout_mini-skid_steer": {
       "file": "models/scout_mini-skid_steer.xml",
-      "sha256": "6746ad63924a83c7bbe63e04f6492b8e02af1195ecf3aa9dc996b681c2d06b94"
+      "sha256": "247d89f3c59191f52edb62572f2c2b5905ad145f4df4a2a17e02056dd8f3c392"
     },
     "fr_mini-ackermann": {
       "file": "models/fr_mini-ackermann.xml",
-      "sha256": "055f21b749dda088bd9811852f2cda98756f69d6beb3fc5287ceaf99ce9322c1"
+      "sha256": "0d154a55d6f5d2b99c4511efc5ab63e0fed9225ae9cd796b3da44c6d2147b647"
     },
     "ridgeback-mecanum": {
       "file": "models/ridgeback-mecanum.xml",
-      "sha256": "8a41a54f2822ebef0847be9b6e72e561eda8913f835fec88cc62d30d3a80a4f4"
+      "sha256": "bdd1a4de4efc52743bf7ed90f63bee7b1be8ddfdd5763cda39078c1fab5d3e99"
     },
     "ranger_mini-swerve": {
       "file": "models/ranger_mini-swerve.xml",
-      "sha256": "398b9e2196debab08f853bf8a303e9317a0907c6e8d770dc9cc7c7ae99d1cfb3"
+      "sha256": "8657bb5cc3b71a644cb2abc7d74ad26fb862fbf11ebc8d07e6368603d2b6e934"
+    },
+    "turtlebot3_waffle_pi-diff_drive": {
+      "file": "models/turtlebot3_waffle_pi-diff_drive.xml",
+      "sha256": "8e85d2ad3920accd8dffd534f8e6fe368ec77ef4aed310d4242a48f7c59e844f"
     }
   },
   "controllers": {
@@ -480,7 +485,7 @@
         "manufacturer": "AgileX Robotics",
         "product": "SCOUT MINI",
         "variant": "conventional four-wheel skid steering; not Mini Omni and not full-size Scout",
-        "representation": "procedural box chassis and rounded ellipsoid tires; rigid suspension; functional simulation approximation"
+        "representation": "Physical model: procedural box chassis and rounded ellipsoid tires; rigid suspension; functional simulation approximation. Visual model: official CAD attached with zero mass and no collisions."
       },
       "source": {
         "product_url": "https://www.agilex.ai/page/68930913f34d776a0e9d147e",
@@ -594,10 +599,10 @@
         }
       },
       "license_and_assets": {
-        "third_party_meshes_copied": false,
+        "third_party_meshes_copied": true,
         "third_party_code_copied": false,
-        "geometry": "Original procedural chassis box and rounded tire ellipsoids. Only factual public specifications used.",
-        "reference_legacy_package_license": "BSD as declared in scout_description/package.xml; legacy files were audited but not copied."
+        "geometry": "Original procedural physical geometry and validated dynamics; separate official visual meshes, see assets/visual/scout_mini/provenance.json",
+        "reference_legacy_package_license": "BSD as declared by upstream package.xml; copied visual source identities recorded in assets/visual/scout_mini/provenance.json"
       },
       "legacy_audit": [
         {
@@ -625,7 +630,8 @@
         "comparison_report": "output/scout-mini-20261013/rounded-tire-probe/RESULTS.md",
         "stair_limitation": "Both 4 cm and 5 cm repeated stair courses still timed out with rounded tires. This is not an obstacle-capability validation; neither rounded simulation nor the old cylinder baseline reproduces the manufacturer obstacle specification. Real suspension and tire compliance remain unmodeled.",
         "historical_results": "The native and within-spec-steps output directories describe cylinder v1. New default validation must be recorded separately as rounded v2."
-      }
+      },
+      "visual_assets_provenance": "assets/visual/scout_mini/provenance.json"
     },
     "fr_mini-ackermann": {
       "schema_version": 1,
@@ -633,7 +639,7 @@
       "identity": {
         "manufacturer": "YUHESEN / Shenzhen Yuhesen Technology Co., Ltd.",
         "product": "FR-mini",
-        "representation": "front Ackermann steering, two rear driven wheels; procedural geometry and rigid suspension"
+        "representation": "Physical model: front Ackermann steering, two rear driven wheels; procedural geometry and rigid suspension. Visual model: official CAD attached with zero mass and no collisions."
       },
       "sources": [
         {
@@ -779,6 +785,11 @@
         "geometry": "Original procedural primitives from factual public dimensions; no downloaded CAD/mesh/model code redistributed.",
         "manual": "Read for factual configuration only, not copied into repository.",
         "sdk_lookup": "Official download page links FR-mini-ros and FR-mini-ros2; GitHub API returned404 during this audit. Model does not depend on these unavailable endpoints."
+      },
+      "visual_assets_provenance": "assets/visual/fr_mini/provenance.json",
+      "license_and_assets": {
+        "third_party_meshes_copied": true,
+        "geometry": "Original procedural physical geometry and validated dynamics; separate official visual meshes, see assets/visual/fr_mini/provenance.json"
       }
     },
     "ridgeback-mecanum": {
@@ -787,7 +798,7 @@
       "identity": {
         "manufacturer": "Clearpath Robotics",
         "product": "Ridgeback R100",
-        "representation": "Procedural collision-driven base with four hub motors and forty passive roller hinges"
+        "representation": "Physical model: Procedural collision-driven base with four hub motors and forty passive roller hinges. Visual model: official CAD attached with zero mass and no collisions."
       },
       "sources": {
         "product_url": "https://clearpathrobotics.com/ridgeback-indoor-robot-platform/",
@@ -922,11 +933,12 @@
         "physics": "Free base, no pose or velocity assignment and no external body force in control; wheel-floor contact is the only source of chassis actuation."
       },
       "license_and_assets": {
-        "third_party_meshes_copied": false,
+        "third_party_meshes_copied": true,
         "third_party_code_copied": false,
         "reference_package_license": "BSD declared by pinned clearpath_platform_description/package.xml",
-        "geometry": "Original procedural primitives based on public factual dimensions"
-      }
+        "geometry": "Original procedural physical geometry and validated dynamics; separate official visual meshes, see assets/visual/ridgeback/provenance.json"
+      },
+      "visual_assets_provenance": "assets/visual/ridgeback/provenance.json"
     },
     "ranger_mini-swerve": {
       "schema_version": 1,
@@ -935,7 +947,7 @@
         "manufacturer": "AgileX Robotics",
         "product": "RANGER MINI 3.0",
         "variant": "four independently steered and driven conventional wheels; not Mini V1/V2, full-size Ranger or mecanum",
-        "representation": "procedural two-box chassis, four steering modules and rounded rigid ellipsoid tires; no suspension"
+        "representation": "Physical model: procedural two-box chassis, four steering modules and rounded rigid ellipsoid tires; no suspension. Visual model: official CAD attached with zero mass and no collisions."
       },
       "source": {
         "product_url": "https://www.agilex.ai/page/6908c1285e78cfa260412be9",
@@ -1098,10 +1110,11 @@
         }
       ],
       "license_and_assets": {
-        "third_party_meshes_copied": false,
+        "third_party_meshes_copied": true,
         "third_party_code_copied": false,
-        "geometry": "Original procedural primitives and first-principles swerve mapping; factual public specifications only. No dependencies, meshes or weights added."
-      }
+        "geometry": "Original procedural physical geometry and validated dynamics; separate official visual meshes, see assets/visual/ranger_mini/provenance.json"
+      },
+      "visual_assets_provenance": "assets/visual/ranger_mini/provenance.json"
     },
     "diffdrive-none": {
       "implemented_geometry": {
@@ -1111,6 +1124,33 @@
       "control": {
         "controller": "none",
         "description": "Existing two-wheel velocity mapping; no outer command tracker."
+      }
+    },
+    "turtlebot3_waffle_pi-diff_drive": {
+      "implemented_geometry": {
+        "wheel_radius_m": 0.033,
+        "track_m": 0.287,
+        "physical_track_m": 0.288
+      },
+      "wheel_actuators": [
+        "wheel_left_velocity",
+        "wheel_right_velocity"
+      ],
+      "upstream": {
+        "repository": "https://github.com/ROBOTIS-GIT/turtlebot3",
+        "revision": "90a68bd2e3c61c12966779da89d8eeaec82730e9",
+        "reference_branch": "humble",
+        "description_version": "2.3.7",
+        "license": "Apache-2.0"
+      },
+      "adaptation": {
+        "description": "Official ROBOTIS URDF dynamics and mesh geometry converted offline to MJCF; no runtime Python or ROS dependency.",
+        "inertia_source": "URDF values, including its simplified fixed caster/LDS inertias; not measured hardware identification.",
+        "caster_model": "Original fixed box support contacts retained with low sliding friction; not free-spinning caster dynamics.",
+        "actuation": "MuJoCo ideal wheel velocity servos: kv=1.0 N m s/rad, force limit=1 N m; simulator parameters, not a measured XL430 motor model.",
+        "track_note": "Official URDF wheel centers give 0.288 m; official driver YAML uses a nominal calibrated 0.287 m. Geometry and controller values are preserved separately.",
+        "sensor_mounts": "Existing simple_rbt MID360/camera selectable sites, rigid MID360 assembly; native LDS mesh retained as robot visual/collision geometry.",
+        "integration": "MuJoCo implicitfast at 1 ms for the original small wheel inertias and a stable ideal wheel velocity servo; not a measured motor/electronics dynamics model."
       }
     }
   },

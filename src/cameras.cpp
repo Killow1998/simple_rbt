@@ -224,6 +224,8 @@ Lookup make_lookup(const CameraConfig& config) {
     ++counts[face];
   }
   Lookup lookup;
+  std::unique_ptr<RenderContext> observer_context;
+  int observer_width=0, observer_height=0;
   for (int f = 0; f < 6; ++f) lookup[f].resize(counts[f]);
   counts.fill(0);
   const double focal = size / (2. * std::tan((90. * (kPi / 180.)) / 2.));
@@ -262,6 +264,8 @@ struct CameraRig::Impl {
   Scene scene;
   RenderContext perspective_context, face_context;
   Lookup lookup;
+  std::unique_ptr<RenderContext> observer_context;
+  int observer_width=0, observer_height=0;
   mjvOption option{};
   mjvCamera abstract_camera{};
   std::vector<std::uint8_t> no_surface, segmentation_rgb;
@@ -271,8 +275,9 @@ struct CameraRig::Impl {
   Impl(mjModel* input_model, CameraConfig input_config)
       : model(checked(input_model)), config(checked(input_config)), egl(), scene(model),
         perspective_context(model, config.perspective_width, config.perspective_height),
-        face_context(model, config.cube_face_size, config.cube_face_size), lookup(make_lookup(config)) {
+        face_context(model, config.cube_face_size, config.cube_face_size), lookup(config.render_panorama ? make_lookup(config) : Lookup{}) {
     mjv_defaultOption(&option);
+    option.sitegroup[3] = 0;
     mjv_defaultCamera(&abstract_camera);
     mjv_defaultFreeCamera(model, &abstract_camera);
     egl.release_current();
@@ -291,7 +296,7 @@ struct CameraRig::Impl {
     }
   }
   void render_view(const OpticalPose& pose, int width, int height, double fov,
-                   RenderContext& context, CameraFrame& frame) {
+                   RenderContext& context, CameraFrame& frame, bool depth = true, bool rgb = true) {
     frame_size(frame, width, height, false);
     const double near = static_cast<double>(model->vis.map.znear) * model->stat.extent;
     const double far = static_cast<double>(model->vis.map.zfar) * model->stat.extent;
@@ -311,9 +316,12 @@ struct CameraRig::Impl {
     }
     const mjrRect viewport{0, 0, width, height};
     mjr_setBuffer(mjFB_OFFSCREEN, &context.value);
-    mjr_render(viewport, &scene.value, &context.value);
-    mjr_readPixels(frame.rgb.data(), nullptr, viewport, &context.value);
+    if(rgb) {
+      mjr_render(viewport, &scene.value, &context.value);
+      mjr_readPixels(frame.rgb.data(), nullptr, viewport, &context.value);
+    } else frame.rgb.clear();
     const std::size_t count = pixels(width, height);
+    if (depth) {
     raw_depth.resize(count); segmentation_rgb.resize(count*3);
     {
       FlagRestore restore(scene.value);
@@ -338,10 +346,22 @@ struct CameraRig::Impl {
       frame.depth[destination] = no_surface.at(segment) ? std::numeric_limits<float>::infinity() :
           static_cast<float>(static_cast<double>(d) / (static_cast<double>(raw_depth[source]) + c));
     }
+    } else frame.depth.clear();
     const std::size_t row_bytes = static_cast<std::size_t>(width)*3;
-    for (int y = 0; y < height/2; ++y)
+    for (int y = 0; rgb && y < height/2; ++y)
       std::swap_ranges(frame.rgb.begin()+y*row_bytes, frame.rgb.begin()+(y+1)*row_bytes,
                        frame.rgb.begin()+(height-1-y)*row_bytes);
+  }
+  void render_observer(mjData* data,const OpticalPose& pose,CameraFrame& output,int width,int height,double fov) {
+    if(!data || width<64 || height<64 || width>1920 || height>1080 || !std::isfinite(fov) || fov<10 || fov>120)
+      throw std::invalid_argument("Invalid observer viewport");
+    check_pose(pose);egl.make_current();
+    struct Release {EglContext& e;~Release(){e.release_current();}} release{egl};
+    if(!observer_context) observer_context=std::make_unique<RenderContext>(model,width,height);
+    else if(width!=observer_width || height!=observer_height) mjr_resizeOffscreen(width,height,&observer_context->value);
+    observer_width=width;observer_height=height;
+    option.sitegroup[3]=1;update_scene(data);option.sitegroup[3]=0;
+    render_view(pose,width,height,fov,*observer_context,output,false);
   }
   void render_into(mjData* data, const OpticalPose& pose, CameraPair& output) {
     if (!data) throw std::invalid_argument("CameraRig requires data");
@@ -352,12 +372,14 @@ struct CameraRig::Impl {
       ~ReleaseCurrent() { context.release_current(); }
     } release{egl};
     update_scene(data);
-    render_view(pose, config.perspective_width, config.perspective_height,
-                config.perspective_fov_y_deg, perspective_context, output.perspective);
+    if(config.render_perspective) render_view(pose, config.perspective_width, config.perspective_height,
+                config.perspective_fov_y_deg, perspective_context, output.perspective, config.render_depth, config.render_rgb);
+    if (!config.render_panorama) { output.panorama = {}; return; }
     // Use the same scene for all six cube faces of this physical snapshot.
     // Rebuild once to match the Python perspective/panorama scene boundary.
     update_scene(data);
     frame_size(output.panorama, config.panorama_width, config.panorama_height, true);
+    if (!config.render_depth) output.panorama.depth.clear();
     for (int f = 0; f < 6; ++f) {
       OpticalPose face_pose = pose;
       for (int i = 0; i < 3; ++i) for (int j = 0; j < 3; ++j) {
@@ -365,11 +387,11 @@ struct CameraRig::Impl {
         for (int k = 0; k < 3; ++k) value += pose.rotation[3*i+k] * kFaces[f][3*k+j];
         face_pose.rotation[3*i+j] = value;
       }
-      render_view(face_pose, config.cube_face_size, config.cube_face_size, 90., face_context, face);
+      render_view(face_pose, config.cube_face_size, config.cube_face_size, 90., face_context, face, config.render_depth);
       for (const auto& entry : lookup[f]) {
         std::copy_n(face.rgb.data()+3*static_cast<std::size_t>(entry.source), 3,
                     output.panorama.rgb.data()+3*static_cast<std::size_t>(entry.destination));
-        output.panorama.depth[entry.destination] = static_cast<float>(
+        if (config.render_depth) output.panorama.depth[entry.destination] = static_cast<float>(
             static_cast<double>(face.depth[entry.source]) * entry.factor);
       }
     }
@@ -381,6 +403,7 @@ CameraRig::~CameraRig() = default;
 void CameraRig::render_into(mjData* data, const OpticalPose& pose, CameraPair& output) {
   impl_->render_into(data, pose, output);
 }
+void CameraRig::render_observer(mjData* data,const OpticalPose& pose,CameraFrame& output,int width,int height,double fov) { impl_->render_observer(data,pose,output,width,height,fov); }
 const std::string& CameraRig::renderer_name() const noexcept { return impl_->egl.renderer; }
 
 }  // namespace simple_rbt

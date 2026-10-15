@@ -1,5 +1,9 @@
 #include "simple_rbt/core.hpp"
 #include "controller.hpp"
+#include "simple_rbt/paths.hpp"
+#include <tinyxml2.h>
+#include <sstream>
+#include <iomanip>
 #include "scene.hpp"
 #include "tracking.hpp"
 #include <algorithm>
@@ -57,7 +61,7 @@ struct Simulation::Impl {
   Impl(const SimulationOptions &options)
       : o(options), spec(robot_spec(options.robot)) {
     if (o.project_root.empty())
-      o.project_root = SIMPLE_RBT_PROJECT_ROOT;
+      o.project_root = default_project_root();
     const Json catalog = load_catalog(o.project_root);
     controller = o.controller;
     if (controller == "auto")
@@ -138,10 +142,37 @@ struct Simulation::Impl {
   }
 };
 Simulation::Simulation(const SimulationOptions &o)
-    : p_(std::make_unique<Impl>(o)) {}
+    : p_(std::make_unique<Impl>(o)) {
+  if (o.mid360_mount) set_mount("mid360", *o.mid360_mount);
+  if (o.camera_mount) set_mount("camera", *o.camera_mount);
+}
 Simulation::~Simulation() = default;
 mjModel *Simulation::model() const { return p_->m; }
 mjData *Simulation::data() const { return p_->d; }
+void Simulation::set_mount(const std::string& module, const Pose& requested) {
+  Pose pose = requested;
+  for (double v:pose.position) if (!std::isfinite(v) || std::abs(v)>10.)
+    throw std::invalid_argument("Mount translation must be finite and within 10 metres");
+  double norm=0.;
+  for (double v:pose.quaternion) { if (!std::isfinite(v)) throw std::invalid_argument("Nonfinite mount rotation"); norm+=v*v; }
+  if (norm<1e-12) throw std::invalid_argument("Zero mount quaternion");
+  for (double& v:pose.quaternion) v/=std::sqrt(norm);
+  int target = module=="mid360" ? p_->lidar_site : module=="camera" ? p_->camera_site : -1;
+  if (target<0) throw std::invalid_argument("Only MID360 assembly and camera mounts are editable");
+  auto assign=[&](int site,const Pose& value){
+    std::copy(value.position.begin(),value.position.end(),p_->m->site_pos+site*3);
+    std::copy(value.quaternion.begin(),value.quaternion.end(),p_->m->site_quat+site*4);
+  };
+  assign(target,pose);
+  if(module=="mid360") {
+    Pose internal=pose;
+    const double offset[3]={.011,.02329,-.04412}; double transformed[3];
+    mju_rotVecQuat(transformed,offset,pose.quaternion.data());
+    for(int i=0;i<3;++i) internal.position[i]+=transformed[i];
+    assign(p_->mid360_site,internal);
+  }
+  mj_forward(p_->m,p_->d);
+}
 void Simulation::set_command(const Vec3 &v) {
   if (!supported_command(p_->o.robot, v)) {
     p_->command = {};
@@ -267,5 +298,18 @@ Json Simulation::tracker_metadata() const {
           {"limitation", "Ideal simulator body velocity/heading feedback; no "
                          "hardware estimator"}};
 }
-std::string Simulation::xml() const { return p_->scene_xml; }
+std::string Simulation::xml() const {
+  tinyxml2::XMLDocument doc; doc.Parse(p_->scene_xml.c_str());
+  auto numbers=[](const double* v,int count){std::ostringstream out;out<<std::setprecision(17);for(int i=0;i<count;++i){if(i)out<<' ';out<<v[i];}return out.str();};
+  auto visit=[&](auto&& self,tinyxml2::XMLElement* e)->void {
+    if(std::string(e->Name())=="site") {
+      const char* name=e->Attribute("name");
+      if(name && (std::string(name)=="lidar" || std::string(name)=="mid360_imu" || std::string(name)=="camera_mount")) {
+        int i=p_->site_id(name);e->SetAttribute("pos",numbers(p_->m->site_pos+3*i,3).c_str());e->SetAttribute("quat",numbers(p_->m->site_quat+4*i,4).c_str());
+      }
+    }
+    for(auto* child=e->FirstChildElement();child;child=child->NextSiblingElement())self(self,child);
+  };
+  visit(visit,doc.RootElement());tinyxml2::XMLPrinter out;doc.Print(&out);return out.CStr();
+}
 } // namespace simple_rbt

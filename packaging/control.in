@@ -1,0 +1,18 @@
+Package: sprobo
+Version: {version}
+Architecture: amd64
+Maintainer: SpRobo contributors <noreply@sprobo.local>
+Section: science
+Priority: optional
+Breaks: simple-rbt
+Replaces: simple-rbt
+Depends: libc6 (>= 2.35), libstdc++6 (>= 11), libgcc-s1, libgtk-3-0 (>= 3.24), libepoxy0, libpango-1.0-0, libpangocairo-1.0-0, libcairo2, libfreetype6, libharfbuzz0b, fonts-wqy-microhei, libegl1, libgl1, libglfw3, libpng16-16, libtinyxml2-9, libssl3
+Recommends: libgl1-mesa-dri
+Suggests: docker.io
+Installed-Size: {installed_size}
+Homepage: https://github.com/Killow1998/simple_rbt
+Description: SpRobo launcher for the simple_rbt robot simulation framework
+ Headless MuJoCo physics, configurable sensors and an interactive desktop
+ console. ROS 1 and ROS 2 communicate through optional independent adapters.
+ C++ physics and ROS adapters, native Go desktop console; Python is not needed.
+ SpRobo 原生操作台与 simple_rbt 仿真框架，支持传感器及独立 ROS 通信适配。

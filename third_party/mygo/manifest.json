@@ -1,0 +1,16 @@
+{
+  "repository": "https://github.com/egoist/mygo",
+  "commit": "f2eca9f74533b4031b13d9b8d4db89268f5bc0da",
+  "archive_url": "https://codeload.github.com/egoist/mygo/tar.gz/f2eca9f74533b4031b13d9b8d4db89268f5bc0da",
+  "archive_sha256": "7b2cee4080cc8950602bf676c5b0dc3a6ef78d9fe62f42f257cae1aeda40a9de",
+  "license": "MIT",
+  "go": {
+    "filename": "go1.27.1.linux-amd64.tar.gz",
+    "os": "linux",
+    "arch": "amd64",
+    "version": "go1.27.1",
+    "sha256": "63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445",
+    "size": 70553950,
+    "kind": "archive"
+  }
+}

@@ -1,0 +1,6 @@
+# Preserve upstream notices, licenses and digest-pinned meshes byte for byte.
+# 上游来源、许可及哈希固定的网格保持原始字节，包括行尾和空白。
+assets/visual/**/UPSTREAM_* -text -whitespace
+assets/visual/turtlebot3_waffle_pi/LICENSE -text -whitespace
+assets/visual/**/*.obj -text -whitespace
+console/licenses/** -text -whitespace

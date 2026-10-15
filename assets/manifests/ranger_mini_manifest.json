@@ -5,7 +5,7 @@
     "manufacturer": "AgileX Robotics",
     "product": "RANGER MINI 3.0",
     "variant": "four independently steered and driven conventional wheels; not Mini V1/V2, full-size Ranger or mecanum",
-    "representation": "procedural two-box chassis, four steering modules and rounded rigid ellipsoid tires; no suspension"
+    "representation": "Physical model: procedural two-box chassis, four steering modules and rounded rigid ellipsoid tires; no suspension. Visual model: official CAD attached with zero mass and no collisions."
   },
   "source": {
     "product_url": "https://www.agilex.ai/page/6908c1285e78cfa260412be9",
@@ -16,7 +16,7 @@
   },
   "manufacturer_specifications": {
     "wheelbase_m": 0.494,
-    "track_m": 0.370,
+    "track_m": 0.37,
     "ground_clearance_m": 0.105,
     "curb_mass_kg": 73,
     "rated_payload_kg": 120,
@@ -32,24 +32,65 @@
   },
   "implemented_geometry": {
     "wheelbase_m": 0.494,
-    "track_m": 0.370,
-    "wheel_radius_m": 0.110,
-    "wheel_width_m": 0.070,
-    "chassis_keel_dimensions_m": [0.700, 0.140, 0.215],
-    "upper_deck_dimensions_m": [0.700, 0.460, 0.080],
-    "upper_deck_center_in_base_m": [0, 0, 0.0675],
+    "track_m": 0.37,
+    "wheel_radius_m": 0.11,
+    "wheel_width_m": 0.07,
+    "chassis_keel_dimensions_m": [
+      0.7,
+      0.14,
+      0.215
+    ],
+    "upper_deck_dimensions_m": [
+      0.7,
+      0.46,
+      0.08
+    ],
+    "upper_deck_center_in_base_m": [
+      0,
+      0,
+      0.0675
+    ],
     "base_origin_height_above_flat_m": 0.2125,
     "wheel_axle_z_in_base_m": -0.1025,
     "chassis_bottom_above_flat_m": 0.105,
-    "chassis_top_above_flat_m": 0.320,
-    "chassis_collision_geoms": ["chassis", "chassis_deck"],
-    "wheel_order": ["front_left", "front_right", "rear_left", "rear_right"],
-    "wheel_collision_geoms": ["front_left_tire", "front_right_tire", "rear_left_tire", "rear_right_tire"],
-    "steering_axis_module": [0, 0, 1],
-    "wheel_joint_axis_module": [0, 1, 0],
-    "steering_axis_offset_from_wheel_center_m": [0, 0, 0],
+    "chassis_top_above_flat_m": 0.32,
+    "chassis_collision_geoms": [
+      "chassis",
+      "chassis_deck"
+    ],
+    "wheel_order": [
+      "front_left",
+      "front_right",
+      "rear_left",
+      "rear_right"
+    ],
+    "wheel_collision_geoms": [
+      "front_left_tire",
+      "front_right_tire",
+      "rear_left_tire",
+      "rear_right_tire"
+    ],
+    "steering_axis_module": [
+      0,
+      0,
+      1
+    ],
+    "wheel_joint_axis_module": [
+      0,
+      1,
+      0
+    ],
+    "steering_axis_offset_from_wheel_center_m": [
+      0,
+      0,
+      0
+    ],
     "tire_shape": "ellipsoid",
-    "tire_local_semiaxes_m": [0.110, 0.110, 0.035],
+    "tire_local_semiaxes_m": [
+      0.11,
+      0.11,
+      0.035
+    ],
     "base_frame_axes": "+X forward, +Y left, +Z up"
   },
   "engineering_assumptions": {
@@ -68,23 +109,36 @@
     "controller": "swerve",
     "physics_period_s": 0.005,
     "servo_update_period_s": 0.005,
-    "simulator_command_limits_vx_vy_wz": [1.0, 0.6, 1.0],
+    "simulator_command_limits_vx_vy_wz": [
+      1.0,
+      0.6,
+      1.0
+    ],
     "command_limit_scope": "Conservative initial simulator envelope; lower than manufacturer 2m/s. Shared Simulation validates body commands.",
     "wheel_velocity_limit_rad_s": 13.636363636363637,
     "wheel_torque_limit_nm": 20,
     "wheel_velocity_gain_nm_per_rad_s": 6,
-    "steering_range_rad": [-3.141592653589793, 3.141592653589793],
+    "steering_range_rad": [
+      -3.141592653589793,
+      3.141592653589793
+    ],
     "steering_rate_target_limit_rad_s": 2,
     "steering_torque_limit_nm": 20,
     "steering_position_gain_per_s": 8,
     "steering_velocity_gain_nm_per_rad_s": 12,
-    "alignment_release_rad": 0.10,
+    "alignment_release_rad": 0.1,
     "kinematic_mapping": "At module(x,y): ux=vx-wz*y, uy=vy+wz*x. Choose azimuth atan2(uy,ux) or equivalent +/-pi with reversed wheel rate, minimizing actual steering rotation within mechanical bounds.",
     "alignment": "Hold every drive target at zero until all nonzero-speed module heading errors are <=.10rad; steering uses real bounded torque. Zero-speed modules hold current azimuth.",
     "saturation": "Uniformly scale all requested wheel rates to max abs13.63636rad/s. Alignment hold is logged separately from saturation.",
     "stop": "Full zero command latches current actual azimuth once and sets all drive targets to zero. Finite-torque physical brakes; no pose freeze, no endless steering to an obsolete target.",
     "native_feedback": "Joint position/velocity feedback only. Optional outer chassis tracker belongs to shared core and must be reported separately.",
-    "modes": ["brake", "aligning", "translate", "spin", "compound"],
+    "modes": [
+      "brake",
+      "aligning",
+      "translate",
+      "spin",
+      "compound"
+    ],
     "firmware_scope": "General swerve simulation, not exact AgileX CAN mode behavior. Official ROS2 Mini v3 selects parallel for nonzero vy and does not retain simultaneous wz there; this simulator explicitly permits coupled vx/vy/wz."
   },
   "official_software_audit": [
@@ -114,8 +168,9 @@
     }
   ],
   "license_and_assets": {
-    "third_party_meshes_copied": false,
+    "third_party_meshes_copied": true,
     "third_party_code_copied": false,
-    "geometry": "Original procedural primitives and first-principles swerve mapping; factual public specifications only. No dependencies, meshes or weights added."
-  }
+    "geometry": "Original procedural physical geometry and validated dynamics; separate official visual meshes, see assets/visual/ranger_mini/provenance.json"
+  },
+  "visual_assets_provenance": "assets/visual/ranger_mini/provenance.json"
 }

@@ -1,1 +1,101 @@
-<mujoco model="ranger-mini-3-current-spec-swerve-rigid-v1"><compiler angle="radian" autolimits="true" /><option timestep="0.005" integrator="implicitfast" cone="elliptic" iterations="50" /><default><joint damping=".02" /><geom friction=".8 .005 .0001" condim="6" solref=".02 1" solimp=".9 .95 .001" /></default><worldbody><body name="base" pos="0 0 0.2125"><freejoint name="root" /><geom name="chassis" type="box" size="0.35 0.07 0.1075" mass="44" rgba=".22 .25 .28 1" group="2" /><geom name="chassis_deck" type="box" pos="0 0 .0675" size="0.35 0.23 0.04" mass="15" rgba=".91 .66 .12 1" group="2" /><site name="base_origin" pos="0 0 0" size=".002" /><site name="imu" pos="0 0 .04" size=".002" /><site name="lidar" pos="0 0 .1275" size=".002" /><site name="camera_mount" pos=".36 0 .0675" size=".002" /><body name="front_left_steering" pos="0.247 0.185 -0.1025"><joint name="front_left_steering_joint" type="hinge" axis="0 0 1" limited="true" range="-3.141592653589793 3.141592653589793" /><inertial pos="0 0 .04" mass="1.0" diaginertia=".0015 .0015 .001" /><geom name="front_left_steering_visual" type="cylinder" pos="0 0 .075" size=".025 .035" mass="0" contype="0" conaffinity="0" rgba=".75 .4 .08 1" group="2" /><body name="front_left_wheel"><joint name="front_left_wheel_joint" type="hinge" axis="0 1 0" /><geom name="front_left_tire" type="ellipsoid" size="0.11 0.11 0.035" quat=".7071067811865476 -.7071067811865476 0 0" mass="2.5" rgba=".10 .11 .12 1" group="2" priority="1" /></body></body><body name="front_right_steering" pos="0.247 -0.185 -0.1025"><joint name="front_right_steering_joint" type="hinge" axis="0 0 1" limited="true" range="-3.141592653589793 3.141592653589793" /><inertial pos="0 0 .04" mass="1.0" diaginertia=".0015 .0015 .001" /><geom name="front_right_steering_visual" type="cylinder" pos="0 0 .075" size=".025 .035" mass="0" contype="0" conaffinity="0" rgba=".75 .4 .08 1" group="2" /><body name="front_right_wheel"><joint name="front_right_wheel_joint" type="hinge" axis="0 1 0" /><geom name="front_right_tire" type="ellipsoid" size="0.11 0.11 0.035" quat=".7071067811865476 -.7071067811865476 0 0" mass="2.5" rgba=".10 .11 .12 1" group="2" priority="1" /></body></body><body name="rear_left_steering" pos="-0.247 0.185 -0.1025"><joint name="rear_left_steering_joint" type="hinge" axis="0 0 1" limited="true" range="-3.141592653589793 3.141592653589793" /><inertial pos="0 0 .04" mass="1.0" diaginertia=".0015 .0015 .001" /><geom name="rear_left_steering_visual" type="cylinder" pos="0 0 .075" size=".025 .035" mass="0" contype="0" conaffinity="0" rgba=".75 .4 .08 1" group="2" /><body name="rear_left_wheel"><joint name="rear_left_wheel_joint" type="hinge" axis="0 1 0" /><geom name="rear_left_tire" type="ellipsoid" size="0.11 0.11 0.035" quat=".7071067811865476 -.7071067811865476 0 0" mass="2.5" rgba=".10 .11 .12 1" group="2" priority="1" /></body></body><body name="rear_right_steering" pos="-0.247 -0.185 -0.1025"><joint name="rear_right_steering_joint" type="hinge" axis="0 0 1" limited="true" range="-3.141592653589793 3.141592653589793" /><inertial pos="0 0 .04" mass="1.0" diaginertia=".0015 .0015 .001" /><geom name="rear_right_steering_visual" type="cylinder" pos="0 0 .075" size=".025 .035" mass="0" contype="0" conaffinity="0" rgba=".75 .4 .08 1" group="2" /><body name="rear_right_wheel"><joint name="rear_right_wheel_joint" type="hinge" axis="0 1 0" /><geom name="rear_right_tire" type="ellipsoid" size="0.11 0.11 0.035" quat=".7071067811865476 -.7071067811865476 0 0" mass="2.5" rgba=".10 .11 .12 1" group="2" priority="1" /></body></body><site name="mid360_imu" size="0.002" class="main" pos="0.010999999999999999 0.023290000000000002 0.08338000000000001" quat="1 0 0 0" /></body></worldbody><actuator><velocity name="front_left_wheel" joint="front_left_wheel_joint" kv="6.0" ctrllimited="true" ctrlrange="-13.636363636363637 13.636363636363637" forcelimited="true" forcerange="-20.0 20.0" /><velocity name="front_right_wheel" joint="front_right_wheel_joint" kv="6.0" ctrllimited="true" ctrlrange="-13.636363636363637 13.636363636363637" forcelimited="true" forcerange="-20.0 20.0" /><velocity name="rear_left_wheel" joint="rear_left_wheel_joint" kv="6.0" ctrllimited="true" ctrlrange="-13.636363636363637 13.636363636363637" forcelimited="true" forcerange="-20.0 20.0" /><velocity name="rear_right_wheel" joint="rear_right_wheel_joint" kv="6.0" ctrllimited="true" ctrlrange="-13.636363636363637 13.636363636363637" forcelimited="true" forcerange="-20.0 20.0" /><velocity name="front_left_steering" joint="front_left_steering_joint" kv="12.0" ctrllimited="true" ctrlrange="-2.0 2.0" forcelimited="true" forcerange="-20.0 20.0" /><velocity name="front_right_steering" joint="front_right_steering_joint" kv="12.0" ctrllimited="true" ctrlrange="-2.0 2.0" forcelimited="true" forcerange="-20.0 20.0" /><velocity name="rear_left_steering" joint="rear_left_steering_joint" kv="12.0" ctrllimited="true" ctrlrange="-2.0 2.0" forcelimited="true" forcerange="-20.0 20.0" /><velocity name="rear_right_steering" joint="rear_right_steering_joint" kv="12.0" ctrllimited="true" ctrlrange="-2.0 2.0" forcelimited="true" forcerange="-20.0 20.0" /></actuator><sensor><gyro name="gyro" site="imu" /><accelerometer name="accelerometer" site="imu" /><velocimeter name="base_linvel" site="base_origin" /><gyro name="base_angvel" site="base_origin" /><gyro name="mid360_gyro" site="mid360_imu" /><accelerometer name="mid360_accelerometer" site="mid360_imu" /></sensor></mujoco>
+<mujoco model="ranger-mini-3-current-spec-swerve-rigid-v1">
+  <compiler angle="radian" autolimits="true" />
+  <option timestep="0.005" integrator="implicitfast" cone="elliptic" iterations="50" />
+  <default>
+    <joint damping=".02" />
+    <geom friction=".8 .005 .0001" condim="6" solref=".02 1" solimp=".9 .95 .001" />
+  </default>
+  <worldbody>
+    <body name="base" pos="0 0 0.2125">
+      <freejoint name="root" />
+      <geom name="chassis" type="box" size="0.35 0.07 0.1075" mass="44" rgba=".22 .25 .28 0" group="2" />
+      <geom name="chassis_deck" type="box" pos="0 0 .0675" size="0.35 0.23 0.04" mass="15" rgba=".91 .66 .12 0" group="2" />
+      <site name="base_origin" pos="0 0 0" size=".002" />
+      <site name="imu" pos="0 0 .04" size=".002" />
+      <site name="lidar" pos="0 0 .1275" size=".002" />
+      <site name="camera_mount" pos=".36 0 .0675" size=".002" />
+      <body name="front_left_steering" pos="0.247 0.185 -0.1025">
+        <joint name="front_left_steering_joint" type="hinge" axis="0 0 1" limited="true" range="-3.141592653589793 3.141592653589793" />
+        <inertial pos="0 0 .04" mass="1.0" diaginertia=".0015 .0015 .001" />
+        <geom name="front_left_steering_visual" type="cylinder" pos="0 0 .075" size=".025 .035" mass="0" contype="0" conaffinity="0" rgba=".75 .4 .08 0" group="2" />
+        <body name="front_left_wheel">
+          <joint name="front_left_wheel_joint" type="hinge" axis="0 1 0" />
+          <geom name="front_left_tire" type="ellipsoid" size="0.11 0.11 0.035" quat=".7071067811865476 -.7071067811865476 0 0" mass="2.5" rgba=".10 .11 .12 0" group="2" priority="1" />
+          <geom name="official_ranger_mini_2_0" type="mesh" mesh="official_ranger_mini_2_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.0 0.0 0.0 1.0" pos="0 0 0" quat="1 0 0 0" />
+          <geom name="official_ranger_mini_2_1" type="mesh" mesh="official_ranger_mini_2_1_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.17647059 0.17647059 0.17647059 1.0" pos="0 0 0" quat="1 0 0 0" />
+        </body>
+        <geom name="official_ranger_mini_1_0" type="mesh" mesh="official_ranger_mini_1_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.17647059 0.17647059 0.17647059 1.0" pos="0 0 0.12" quat="0 0 0 1" />
+      </body>
+      <body name="front_right_steering" pos="0.247 -0.185 -0.1025">
+        <joint name="front_right_steering_joint" type="hinge" axis="0 0 1" limited="true" range="-3.141592653589793 3.141592653589793" />
+        <inertial pos="0 0 .04" mass="1.0" diaginertia=".0015 .0015 .001" />
+        <geom name="front_right_steering_visual" type="cylinder" pos="0 0 .075" size=".025 .035" mass="0" contype="0" conaffinity="0" rgba=".75 .4 .08 0" group="2" />
+        <body name="front_right_wheel">
+          <joint name="front_right_wheel_joint" type="hinge" axis="0 1 0" />
+          <geom name="front_right_tire" type="ellipsoid" size="0.11 0.11 0.035" quat=".7071067811865476 -.7071067811865476 0 0" mass="2.5" rgba=".10 .11 .12 0" group="2" priority="1" />
+          <geom name="official_ranger_mini_4_0" type="mesh" mesh="official_ranger_mini_2_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.0 0.0 0.0 1.0" pos="0 0 0" quat="0 1 0 0" />
+          <geom name="official_ranger_mini_4_1" type="mesh" mesh="official_ranger_mini_2_1_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.17647059 0.17647059 0.17647059 1.0" pos="0 0 0" quat="0 1 0 0" />
+        </body>
+        <geom name="official_ranger_mini_3_0" type="mesh" mesh="official_ranger_mini_1_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.17647059 0.17647059 0.17647059 1.0" pos="0 0 0.12" quat="1 0 0 0" />
+      </body>
+      <body name="rear_left_steering" pos="-0.247 0.185 -0.1025">
+        <joint name="rear_left_steering_joint" type="hinge" axis="0 0 1" limited="true" range="-3.141592653589793 3.141592653589793" />
+        <inertial pos="0 0 .04" mass="1.0" diaginertia=".0015 .0015 .001" />
+        <geom name="rear_left_steering_visual" type="cylinder" pos="0 0 .075" size=".025 .035" mass="0" contype="0" conaffinity="0" rgba=".75 .4 .08 0" group="2" />
+        <body name="rear_left_wheel">
+          <joint name="rear_left_wheel_joint" type="hinge" axis="0 1 0" />
+          <geom name="rear_left_tire" type="ellipsoid" size="0.11 0.11 0.035" quat=".7071067811865476 -.7071067811865476 0 0" mass="2.5" rgba=".10 .11 .12 0" group="2" priority="1" />
+          <geom name="official_ranger_mini_6_0" type="mesh" mesh="official_ranger_mini_2_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.0 0.0 0.0 1.0" pos="0 0 0" quat="1 0 0 0" />
+          <geom name="official_ranger_mini_6_1" type="mesh" mesh="official_ranger_mini_2_1_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.17647059 0.17647059 0.17647059 1.0" pos="0 0 0" quat="1 0 0 0" />
+        </body>
+        <geom name="official_ranger_mini_5_0" type="mesh" mesh="official_ranger_mini_1_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.17647059 0.17647059 0.17647059 1.0" pos="0 0 0.12" quat="0 0 0 1" />
+      </body>
+      <body name="rear_right_steering" pos="-0.247 -0.185 -0.1025">
+        <joint name="rear_right_steering_joint" type="hinge" axis="0 0 1" limited="true" range="-3.141592653589793 3.141592653589793" />
+        <inertial pos="0 0 .04" mass="1.0" diaginertia=".0015 .0015 .001" />
+        <geom name="rear_right_steering_visual" type="cylinder" pos="0 0 .075" size=".025 .035" mass="0" contype="0" conaffinity="0" rgba=".75 .4 .08 0" group="2" />
+        <body name="rear_right_wheel">
+          <joint name="rear_right_wheel_joint" type="hinge" axis="0 1 0" />
+          <geom name="rear_right_tire" type="ellipsoid" size="0.11 0.11 0.035" quat=".7071067811865476 -.7071067811865476 0 0" mass="2.5" rgba=".10 .11 .12 0" group="2" priority="1" />
+          <geom name="official_ranger_mini_8_0" type="mesh" mesh="official_ranger_mini_2_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.0 0.0 0.0 1.0" pos="0 0 0" quat="0 1 0 0" />
+          <geom name="official_ranger_mini_8_1" type="mesh" mesh="official_ranger_mini_2_1_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.17647059 0.17647059 0.17647059 1.0" pos="0 0 0" quat="0 1 0 0" />
+        </body>
+        <geom name="official_ranger_mini_7_0" type="mesh" mesh="official_ranger_mini_1_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.17647059 0.17647059 0.17647059 1.0" pos="0 0 0.12" quat="1 0 0 0" />
+      </body>
+      <site name="mid360_imu" size="0.002" class="main" pos="0.010999999999999999 0.023290000000000002 0.08338000000000001" quat="1 0 0 0" />
+      <geom name="official_ranger_mini_0_0" type="mesh" mesh="official_ranger_mini_0_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.0 0.0 0.0 1.0" pos="0 0 0.0915" quat="1 0 0 0" />
+      <geom name="official_ranger_mini_0_1" type="mesh" mesh="official_ranger_mini_0_1_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.17647059 0.17647059 0.17647059 1.0" pos="0 0 0.0915" quat="1 0 0 0" />
+      <geom name="official_ranger_mini_0_2" type="mesh" mesh="official_ranger_mini_0_2_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.78431373 0.78431373 0.78431373 1.0" pos="0 0 0.0915" quat="1 0 0 0" />
+      <geom name="official_ranger_mini_0_3" type="mesh" mesh="official_ranger_mini_0_3_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.98039216 0.98039216 0.98039216 1.0" pos="0 0 0.0915" quat="1 0 0 0" />
+      <geom name="official_ranger_mini_0_4" type="mesh" mesh="official_ranger_mini_0_4_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="1.0 1.0 1.0 1.0" pos="0 0 0.0915" quat="1 0 0 0" />
+    </body>
+  </worldbody>
+  <actuator>
+    <velocity name="front_left_wheel" joint="front_left_wheel_joint" kv="6.0" ctrllimited="true" ctrlrange="-13.636363636363637 13.636363636363637" forcelimited="true" forcerange="-20.0 20.0" />
+    <velocity name="front_right_wheel" joint="front_right_wheel_joint" kv="6.0" ctrllimited="true" ctrlrange="-13.636363636363637 13.636363636363637" forcelimited="true" forcerange="-20.0 20.0" />
+    <velocity name="rear_left_wheel" joint="rear_left_wheel_joint" kv="6.0" ctrllimited="true" ctrlrange="-13.636363636363637 13.636363636363637" forcelimited="true" forcerange="-20.0 20.0" />
+    <velocity name="rear_right_wheel" joint="rear_right_wheel_joint" kv="6.0" ctrllimited="true" ctrlrange="-13.636363636363637 13.636363636363637" forcelimited="true" forcerange="-20.0 20.0" />
+    <velocity name="front_left_steering" joint="front_left_steering_joint" kv="12.0" ctrllimited="true" ctrlrange="-2.0 2.0" forcelimited="true" forcerange="-20.0 20.0" />
+    <velocity name="front_right_steering" joint="front_right_steering_joint" kv="12.0" ctrllimited="true" ctrlrange="-2.0 2.0" forcelimited="true" forcerange="-20.0 20.0" />
+    <velocity name="rear_left_steering" joint="rear_left_steering_joint" kv="12.0" ctrllimited="true" ctrlrange="-2.0 2.0" forcelimited="true" forcerange="-20.0 20.0" />
+    <velocity name="rear_right_steering" joint="rear_right_steering_joint" kv="12.0" ctrllimited="true" ctrlrange="-2.0 2.0" forcelimited="true" forcerange="-20.0 20.0" />
+  </actuator>
+  <sensor>
+    <gyro name="gyro" site="imu" />
+    <accelerometer name="accelerometer" site="imu" />
+    <velocimeter name="base_linvel" site="base_origin" />
+    <gyro name="base_angvel" site="base_origin" />
+    <gyro name="mid360_gyro" site="mid360_imu" />
+    <accelerometer name="mid360_accelerometer" site="mid360_imu" />
+  </sensor>
+  <asset>
+    <mesh name="official_ranger_mini_0_0_mesh" file="@PROJECT_ROOT@/assets/visual/ranger_mini/body-0.obj" inertia="shell" scale="1 1 1" />
+    <mesh name="official_ranger_mini_0_1_mesh" file="@PROJECT_ROOT@/assets/visual/ranger_mini/body-1.obj" inertia="shell" scale="1 1 1" />
+    <mesh name="official_ranger_mini_0_2_mesh" file="@PROJECT_ROOT@/assets/visual/ranger_mini/body-2.obj" inertia="shell" scale="1 1 1" />
+    <mesh name="official_ranger_mini_0_3_mesh" file="@PROJECT_ROOT@/assets/visual/ranger_mini/body-3.obj" inertia="shell" scale="1 1 1" />
+    <mesh name="official_ranger_mini_0_4_mesh" file="@PROJECT_ROOT@/assets/visual/ranger_mini/body-4.obj" inertia="shell" scale="1 1 1" />
+    <mesh name="official_ranger_mini_1_0_mesh" file="@PROJECT_ROOT@/assets/visual/ranger_mini/steering-0.obj" inertia="shell" scale="1 1 1" />
+    <mesh name="official_ranger_mini_2_0_mesh" file="@PROJECT_ROOT@/assets/visual/ranger_mini/wheel-0.obj" inertia="shell" scale="1.094203 1.094203 1.094203" />
+    <mesh name="official_ranger_mini_2_1_mesh" file="@PROJECT_ROOT@/assets/visual/ranger_mini/wheel-1.obj" inertia="shell" scale="1.094203 1.094203 1.094203" />
+  </asset>
+</mujoco>

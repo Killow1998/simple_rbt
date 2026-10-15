@@ -2,93 +2,81 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-A MuJoCo robot simulator with an independent C++17 core and optional thin ROS 1 Noetic / ROS 2 Humble wrappers. Send velocity commands and receive physical motion, MID360 LiDAR/IMU, perspective and panoramic cameras, odometry, and TF.
+A robot simulator with a C++17 MuJoCo core and **SpRobo**, its native [MyGo](https://github.com/egoist/mygo) launcher and operator console. The framework and repository remain `simple_rbt`. Configure the robot, terrain and sensors, adjust sensor mounts in a live 3D view, then drive manually or select a program command source. ROS 1 Noetic and ROS 2 Humble are optional independent C++ adapters.
 
-Supported robots: Go2, Go2W, a two-wheel differential-drive reference, Scout Mini, FR-mini, Ridgeback, and Ranger Mini. Wheeled chassis use flat ground, ramps, and continuous hills; Go2 and Go2W also support stairs and stepped terrain.
+Supported robots: Go2, Go2W, TurtleBot3 Waffle Pi, Scout Mini, FR-mini, Ridgeback and Ranger Mini. Pure wheel chassis use flat ground, ramps and continuous hills. Go2 and Go2W also offer stairs and stepped terrain. Command tracking is a simulator aid, rather than a hardware performance claim.
 
-## Quick start
+## Install and launch
 
-Run these commands from the repository root:
+The current package target is Ubuntu 22.04 amd64:
 
-```bash
-# Prepare SDKs, models, policies, and the native build.
+```sh
+sudo apt install ./sprobo_0.2.0_amd64.deb
+sprobo
+```
+
+You can also open **SpRobo** from the application menu. Startup checks Ubuntu 22.04 amd64, the bundled MuJoCo 3.15.0/core compatibility, model/policy assets and any selected ROS container. No host ROS installation is required. Run `sprobo --check-dependencies` for JSON diagnostics, or add `--ros ros1,ros2` to inspect both adapters. See [package details and CI release](packaging/README.md).
+
+Select a robot, terrain preset and sensor outputs in the configuration screen. Numeric position/rotation fields and the 3D translation/rotation handles edit the same mount. MID360 LiDAR and its internal IMU move as one rigid device; their relative transform cannot be edited. Press Start to enter first/third-person viewing and joystick control. Return to configuration creates a fresh session. Settings and results use the user's XDG directories.
+
+## ROS connection
+
+The headless C++ worker stays on the host. Each ROS adapter runs in its own process or container, connected through local Unix sockets. Either adapter, or both, can publish the same core's sensors. Select one command owner in the console: Manual, ROS 1 or ROS 2. Velocity commands use `/<robot>/cmd_vel`, for example `/go2w/cmd_vel`. A stale command times out after 0.5 seconds.
+
+The optional images build from public, pinned ROS bases. No personal Jammy image or host ROS SDK export is required. Image preparation and direct node launch are described in the [ROS guide](docs/noetic.md).
+
+Select **Manual**, **Program · IPC**, **Program · ROS 1** or **Program · ROS 2** in the operator screen. Window focus loss stops only manual input. Program commands continue while the window is unfocused; a 0.5-second command timeout, owner disconnect or explicit Stop still clears motion. The [program-control interface](docs/runtime.md#program-control--程序控制) is intended for mapping/navigation integration.
+
+Go2 and Go2W use CPU ONNX inference. Their motion controllers and MuJoCo physics do not require a GPU. CUDA optionally accelerates LiDAR; camera rendering can use software Mesa. Full sensor throughput depends on the machine.
+
+## Development
+
+Run from the repository root:
+
+```sh
+# Prepare locked simulator SDKs/assets, Go/MyGo dependencies and build.
 ./setup.sh
-
-# Rebuild messages and C++ with SDKs/assets already prepared.
+# With simulator SDKs/assets already prepared:
 ./setup.sh --native-only
-
-# Full sensors, 10 Hz cameras, real-time pacing, and a desktop viewer.
-./run.sh --robot fr_mini --cmd .3 0 0 --sensors full \
-  --backend cuda --camera-hz 10 --realtime --viewer --duration 10
-
+./run.sh --console
+# Core only, without a desktop build:
+./setup.sh --native-only --no-desktop
+./setup.sh --native-only --no-desktop --cpu-only
+./run.sh --robot scout_mini --cmd .3 0 0 --sensors lidar --backend cpu --duration 10
 ./run.sh --help
 ```
 
-`run.sh` starts the C++ runtime. Python supports offline preparation and an independent reference implementation.
-
-Select the communication mode; all three builds reuse the same core:
-
-```bash
-./setup.sh --native-only --no-ros
-SIMPLE_RBT_BUILD_DIR="$PWD/build/standalone" ./run.sh --robot ranger_mini --cmd .3 0 0
-
-./setup.sh --native-only --ros2
-./run.sh --robot go2w --ros2 --sensors full --camera-hz 10
-
-.venv/bin/python tools/test_ros1.py --base-image YOUR_NOETIC_IMAGE --build-only
-./setup.sh --native-only --ros1
-ROS_MASTER_URI=http://127.0.0.1:11311 ./run.sh --robot ranger_mini --ros1
-```
-
-The ROS 1 example needs a running master. Jammy setup exports a local Noetic C++ SDK from the selected image; see [ROS 1 setup and tests](docs/noetic.md).
-
-`--cmd VX VY WZ` sets forward/lateral velocity in m/s and yaw rate in rad/s. With `--ros1` or `--ros2`, commands come directly from `/<robot>/cmd_vel`; the robot stops after 0.5 seconds without a fresh command. For example, Go2W accepts `/go2w/cmd_vel`.
-
-Use `--control-mode native` for the chassis controller alone or `tracked` for additional simulator velocity/heading feedback. Commanded speed is not a guarantee of actual speed on every terrain.
-
-## Repository layout
+Physics, controllers, sensors, scheduling and ROS adapters run in C++. The native GUI runs in Go as required by MyGo. Python is used for preparation, packaging and independent verification. It is not started by the installed simulator or console.
 
 ```text
 simple_rbt/
-├── CMakeLists.txt          C++ build entry
-├── setup.sh / run.sh       Preparation and launch
-├── src/                    C++ core, sensors, scheduling, executable assembly
-├── include/simple_rbt/     C++ module interfaces
-├── assets/                 Models, policies, parameters, scan data
-├── tests/                  Core, ROS 1 and ROS 2 tests
-├── tools/                  Preparation, measurements, end-to-end checks
-├── reference/python/       Independent Python implementation and tests
-├── interfaces/             Shared ROS 1 / ROS 2 message definitions
-├── wrappers/               Thin ROS adapters and shared wire conversions
-│   ├── ros1/               roscpp adapter
-│   ├── ros2/               rclcpp adapter
-│   └── common/             Names, validation and payload conversions
-├── third_party/            Pinned headers and licenses
-├── docs/                   Usage, design, and validation
-├── build/                  Local build products (ignored by Git)
-└── output/                 Experiments and test results (ignored by Git)
+├── src/, include/           C++ core, sensors and headless session
+├── console/                 Native Go/MyGo configuration and operator UI
+├── ipc/                     ROS-independent session protocol
+├── wrappers/                Separate C++ ROS 1 / ROS 2 adapters
+├── deployment/              Official ROS container build definitions
+├── interfaces/              Shared Livox message definitions
+├── assets/                  Models, policies, terrain and scan data
+├── tests/, tools/            E2E checks and offline preparation
+├── reference/python/        Independent reference and verification
+├── third_party/, cmake/     Locked dependencies and build/install rules
+├── packaging/, docs/        Debian package and documentation
+└── build/, output/          Ignored build products and results
 ```
 
-`.venv/` supplies the MuJoCo/ONNX Runtime SDKs and reference tools; `.vendor/` contains model meshes and manifest-managed dependencies. Both are ignored by Git.
-
-See the [runtime guide](docs/runtime.md), [robot and sensor guide](docs/python-reference.md), and [asset guide](assets/README.md) for detailed instructions in Simplified Chinese.
+`.venv/` provides build-time MuJoCo/ONNX SDKs; `.vendor/` contains manifest-managed dependencies. Neither is a runtime requirement of the installed package. See [runtime and module boundaries](docs/runtime.md), [assets](assets/README.md) and [validation records](docs/README.md).
 
 ## Validation
 
-```bash
-source tools/ros_env.sh
-ctest --test-dir build/native --output-on-failure
-PYTHONPATH=reference/python .venv/bin/python -m pytest reference/python/tests
-.venv/bin/python tools/validate_full_run.py --runtime cpp --robot fr_mini \
-  --terrain ramp --control-mode native --speed .6 --output output/full-fr-new
+```sh
+ctest --test-dir build/desktop --output-on-failure
+python3 tools/test_ros_session.py --ros ros1 --skip-build --robots go2w
+python3 tools/test_ros_session.py --ros ros2 --skip-build --robots ranger_mini
+python3 tools/package_deb.py --build-dir build/desktop
+# An isolated Xvfb display, not the user's desktop:
+python3 tools/test_console_native.py --display :114 --output output/native-window-check
+python3 tools/profile_console.py --display :114 --seconds 20 --ros --output output/console-resource-check
 ```
 
-Use a new output directory for each run. GPU and live ROS checks require the corresponding host environment. See the [validation records](docs/README.md) for tested versions and conditions.
-
-## Noetic Docker tests
-
-Test the direct ROS 1 wrapper with an existing Noetic image. See the [Noetic test guide](docs/noetic.md) for image preparation and test coverage.
-
-```bash
-.venv/bin/python tools/test_ros1.py --skip-build
-```
+Live sensor and GUI checks run on a host with graphics access. Fresh-container package checks cover installation, asset/library closure, CPU physics and removal. Dated reports identify the exact tested version and conditions.
+See the [completed console acceptance and resource measurements](docs/desktop-console-plan.md).

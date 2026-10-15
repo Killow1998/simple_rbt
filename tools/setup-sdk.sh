@@ -3,6 +3,9 @@
 set -euo pipefail
 project_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$project_root"
+minimal=false
+if [[ "${1:-}" == --minimal ]]; then minimal=true; shift; fi
+if [[ $# != 0 ]]; then echo "Usage: tools/setup-sdk.sh [--minimal]" >&2; exit 2; fi
 # A staging worktree may borrow these directories read-only from another checkout.
 if [[ -L .venv || -L .vendor ]]; then
   echo "SDK preparation requires checkout-local .venv and .vendor; use ./setup.sh --native-only for borrowed dependencies." >&2
@@ -24,8 +27,14 @@ fi
 if [[ ! -x .venv/bin/python ]]; then
   uv venv --python /usr/bin/python3.10 .venv
 fi
-uv pip install --python .venv/bin/python -r reference/python/requirements.lock
-uv pip install --python .venv/bin/python --no-deps -e "$vendor_path" -e reference/python
+if [[ "$minimal" == true ]]; then
+  mapfile -t sdk_packages < <(rg '^(mujoco|onnxruntime|numpy|pillow|typing-extensions)==' reference/python/requirements.lock)
+  uv pip install --python .venv/bin/python --no-deps "${sdk_packages[@]}"
+else
+  uv pip install --python .venv/bin/python -r reference/python/requirements.lock
+  uv pip install --python .venv/bin/python --no-deps -e "$vendor_path" -e reference/python
+fi
 .venv/bin/python tools/bootstrap_rl_sar_assets.py --manifest assets/manifests/go2_manifest.json
 .venv/bin/python tools/bootstrap_rl_sar_assets.py --manifest assets/manifests/go2w_manifest.json
+.venv/bin/python tools/bootstrap_turtlebot3_assets.py
 echo "SDK and assets prepared."

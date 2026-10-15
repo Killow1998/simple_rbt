@@ -1,1 +1,84 @@
-<mujoco model="scout-mini-current-spec-rounded-rigid-v2"><compiler angle="radian" autolimits="true" /><option timestep="0.005" integrator="implicitfast" cone="elliptic" iterations="50" /><default><joint damping=".02" /><geom friction=".8 .005 .0001" condim="6" solref=".02 1" solimp=".9 .95 .001" /></default><worldbody><body name="base" pos="0 0 0.18"><freejoint name="root" /><geom name="chassis" type="box" size="0.306 0.2 0.065" mass="19.0" rgba=".78 .70 .25 1" group="2" /><site name="base_origin" pos="0 0 0" size=".002" /><site name="imu" pos="0 0 .04" size=".002" /><site name="lidar" pos="0 0 .085" size=".002" /><site name="camera_mount" pos=".31 0 .035" size=".002" /><body name="front_left_wheel" pos="0.2255 0.245 -0.1"><joint name="front_left_wheel_joint" type="hinge" axis="0 1 0" /><inertial pos="0 0 0" mass="1.0" quat=".7071067811865476 -.7071067811865476 0 0" diaginertia="0.0022749999999999997 0.0022749999999999997 0.0032000000000000002" /><geom name="front_left_tire" type="ellipsoid" size="0.08 0.08 0.045" quat=".7071067811865476 -.7071067811865476 0 0" mass="1.0" rgba=".12 .12 .13 1" group="2" priority="1" /></body><body name="front_right_wheel" pos="0.2255 -0.245 -0.1"><joint name="front_right_wheel_joint" type="hinge" axis="0 1 0" /><inertial pos="0 0 0" mass="1.0" quat=".7071067811865476 -.7071067811865476 0 0" diaginertia="0.0022749999999999997 0.0022749999999999997 0.0032000000000000002" /><geom name="front_right_tire" type="ellipsoid" size="0.08 0.08 0.045" quat=".7071067811865476 -.7071067811865476 0 0" mass="1.0" rgba=".12 .12 .13 1" group="2" priority="1" /></body><body name="rear_left_wheel" pos="-0.2255 0.245 -0.1"><joint name="rear_left_wheel_joint" type="hinge" axis="0 1 0" /><inertial pos="0 0 0" mass="1.0" quat=".7071067811865476 -.7071067811865476 0 0" diaginertia="0.0022749999999999997 0.0022749999999999997 0.0032000000000000002" /><geom name="rear_left_tire" type="ellipsoid" size="0.08 0.08 0.045" quat=".7071067811865476 -.7071067811865476 0 0" mass="1.0" rgba=".12 .12 .13 1" group="2" priority="1" /></body><body name="rear_right_wheel" pos="-0.2255 -0.245 -0.1"><joint name="rear_right_wheel_joint" type="hinge" axis="0 1 0" /><inertial pos="0 0 0" mass="1.0" quat=".7071067811865476 -.7071067811865476 0 0" diaginertia="0.0022749999999999997 0.0022749999999999997 0.0032000000000000002" /><geom name="rear_right_tire" type="ellipsoid" size="0.08 0.08 0.045" quat=".7071067811865476 -.7071067811865476 0 0" mass="1.0" rgba=".12 .12 .13 1" group="2" priority="1" /></body><site name="mid360_imu" size="0.002" class="main" pos="0.010999999999999999 0.023290000000000002 0.040880000000000007" quat="1 0 0 0" /></body></worldbody><actuator><velocity name="front_left_wheel" joint="front_left_wheel_joint" kv="4.0" ctrllimited="true" ctrlrange="-18.75 18.75" forcelimited="true" forcerange="-8.0 8.0" /><velocity name="front_right_wheel" joint="front_right_wheel_joint" kv="4.0" ctrllimited="true" ctrlrange="-18.75 18.75" forcelimited="true" forcerange="-8.0 8.0" /><velocity name="rear_left_wheel" joint="rear_left_wheel_joint" kv="4.0" ctrllimited="true" ctrlrange="-18.75 18.75" forcelimited="true" forcerange="-8.0 8.0" /><velocity name="rear_right_wheel" joint="rear_right_wheel_joint" kv="4.0" ctrllimited="true" ctrlrange="-18.75 18.75" forcelimited="true" forcerange="-8.0 8.0" /></actuator><sensor><gyro name="gyro" site="imu" /><accelerometer name="accelerometer" site="imu" /><velocimeter name="base_linvel" site="base_origin" /><gyro name="base_angvel" site="base_origin" /><gyro name="mid360_gyro" site="mid360_imu" /><accelerometer name="mid360_accelerometer" site="mid360_imu" /></sensor></mujoco>
+<mujoco model="scout-mini-current-spec-rounded-rigid-v2">
+  <compiler angle="radian" autolimits="true" />
+  <option timestep="0.005" integrator="implicitfast" cone="elliptic" iterations="50" />
+  <default>
+    <joint damping=".02" />
+    <geom friction=".8 .005 .0001" condim="6" solref=".02 1" solimp=".9 .95 .001" />
+  </default>
+  <worldbody>
+    <body name="base" pos="0 0 0.18">
+      <freejoint name="root" />
+      <geom name="chassis" type="box" size="0.306 0.2 0.065" mass="19.0" rgba=".78 .70 .25 0" group="2" />
+      <site name="base_origin" pos="0 0 0" size=".002" />
+      <site name="imu" pos="0 0 .04" size=".002" />
+      <site name="lidar" pos="0 0 .085" size=".002" />
+      <site name="camera_mount" pos=".31 0 .035" size=".002" />
+      <body name="front_left_wheel" pos="0.2255 0.245 -0.1">
+        <joint name="front_left_wheel_joint" type="hinge" axis="0 1 0" />
+        <inertial pos="0 0 0" mass="1.0" quat=".7071067811865476 -.7071067811865476 0 0" diaginertia="0.0022749999999999997 0.0022749999999999997 0.0032000000000000002" />
+        <geom name="front_left_tire" type="ellipsoid" size="0.08 0.08 0.045" quat=".7071067811865476 -.7071067811865476 0 0" mass="1.0" rgba=".12 .12 .13 0" group="2" priority="1" />
+        <geom name="official_scout_mini_1_0" type="mesh" mesh="official_scout_mini_1_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.29411765 0.29411765 0.29411765 1.0" pos="0 -0.03675 0" quat="1 0 0 0" />
+        <geom name="official_scout_mini_1_1" type="mesh" mesh="official_scout_mini_1_1_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.89803922 0.91764706 0.92941176 1.0" pos="0 -0.03675 0" quat="1 0 0 0" />
+        <geom name="official_scout_mini_1_2" type="mesh" mesh="official_scout_mini_1_2_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="1.0 0.05882353 0.05882353 1.0" pos="0 -0.03675 0" quat="1 0 0 0" />
+      </body>
+      <body name="front_right_wheel" pos="0.2255 -0.245 -0.1">
+        <joint name="front_right_wheel_joint" type="hinge" axis="0 1 0" />
+        <inertial pos="0 0 0" mass="1.0" quat=".7071067811865476 -.7071067811865476 0 0" diaginertia="0.0022749999999999997 0.0022749999999999997 0.0032000000000000002" />
+        <geom name="front_right_tire" type="ellipsoid" size="0.08 0.08 0.045" quat=".7071067811865476 -.7071067811865476 0 0" mass="1.0" rgba=".12 .12 .13 0" group="2" priority="1" />
+        <geom name="official_scout_mini_2_0" type="mesh" mesh="official_scout_mini_1_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.29411765 0.29411765 0.29411765 1.0" pos="0 0.03675 0" quat="0 1 0 0" />
+        <geom name="official_scout_mini_2_1" type="mesh" mesh="official_scout_mini_1_1_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.89803922 0.91764706 0.92941176 1.0" pos="0 0.03675 0" quat="0 1 0 0" />
+        <geom name="official_scout_mini_2_2" type="mesh" mesh="official_scout_mini_1_2_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="1.0 0.05882353 0.05882353 1.0" pos="0 0.03675 0" quat="0 1 0 0" />
+      </body>
+      <body name="rear_left_wheel" pos="-0.2255 0.245 -0.1">
+        <joint name="rear_left_wheel_joint" type="hinge" axis="0 1 0" />
+        <inertial pos="0 0 0" mass="1.0" quat=".7071067811865476 -.7071067811865476 0 0" diaginertia="0.0022749999999999997 0.0022749999999999997 0.0032000000000000002" />
+        <geom name="rear_left_tire" type="ellipsoid" size="0.08 0.08 0.045" quat=".7071067811865476 -.7071067811865476 0 0" mass="1.0" rgba=".12 .12 .13 0" group="2" priority="1" />
+        <geom name="official_scout_mini_3_0" type="mesh" mesh="official_scout_mini_1_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.29411765 0.29411765 0.29411765 1.0" pos="0 -0.03675 0" quat="1 0 0 0" />
+        <geom name="official_scout_mini_3_1" type="mesh" mesh="official_scout_mini_1_1_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.89803922 0.91764706 0.92941176 1.0" pos="0 -0.03675 0" quat="1 0 0 0" />
+        <geom name="official_scout_mini_3_2" type="mesh" mesh="official_scout_mini_1_2_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="1.0 0.05882353 0.05882353 1.0" pos="0 -0.03675 0" quat="1 0 0 0" />
+      </body>
+      <body name="rear_right_wheel" pos="-0.2255 -0.245 -0.1">
+        <joint name="rear_right_wheel_joint" type="hinge" axis="0 1 0" />
+        <inertial pos="0 0 0" mass="1.0" quat=".7071067811865476 -.7071067811865476 0 0" diaginertia="0.0022749999999999997 0.0022749999999999997 0.0032000000000000002" />
+        <geom name="rear_right_tire" type="ellipsoid" size="0.08 0.08 0.045" quat=".7071067811865476 -.7071067811865476 0 0" mass="1.0" rgba=".12 .12 .13 0" group="2" priority="1" />
+        <geom name="official_scout_mini_4_0" type="mesh" mesh="official_scout_mini_1_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.29411765 0.29411765 0.29411765 1.0" pos="0 0.03675 0" quat="0 1 0 0" />
+        <geom name="official_scout_mini_4_1" type="mesh" mesh="official_scout_mini_1_1_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.89803922 0.91764706 0.92941176 1.0" pos="0 0.03675 0" quat="0 1 0 0" />
+        <geom name="official_scout_mini_4_2" type="mesh" mesh="official_scout_mini_1_2_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="1.0 0.05882353 0.05882353 1.0" pos="0 0.03675 0" quat="0 1 0 0" />
+      </body>
+      <site name="mid360_imu" size="0.002" class="main" pos="0.010999999999999999 0.023290000000000002 0.040880000000000007" quat="1 0 0 0" />
+      <geom name="official_scout_mini_0_0" type="mesh" mesh="official_scout_mini_0_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.0 0.0 0.0 1.0" pos="0 0 -0.004" quat="1 0 0 0" />
+      <geom name="official_scout_mini_0_1" type="mesh" mesh="official_scout_mini_0_1_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.41176471 0.41176471 0.41176471 1.0" pos="0 0 -0.004" quat="1 0 0 0" />
+      <geom name="official_scout_mini_0_2" type="mesh" mesh="official_scout_mini_0_2_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.8 0.8 0.8 1.0" pos="0 0 -0.004" quat="1 0 0 0" />
+      <geom name="official_scout_mini_0_3" type="mesh" mesh="official_scout_mini_0_3_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="1.0 0.05098039 0.07058824 1.0" pos="0 0 -0.004" quat="1 0 0 0" />
+      <geom name="official_scout_mini_0_4" type="mesh" mesh="official_scout_mini_0_4_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="1.0 0.69803922 0.05882353 1.0" pos="0 0 -0.004" quat="1 0 0 0" />
+      <geom name="official_scout_mini_0_5" type="mesh" mesh="official_scout_mini_0_5_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="1.0 0.69803922 0.18039216 1.0" pos="0 0 -0.004" quat="1 0 0 0" />
+      <geom name="official_scout_mini_0_6" type="mesh" mesh="official_scout_mini_0_6_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="1.0 1.0 1.0 1.0" pos="0 0 -0.004" quat="1 0 0 0" />
+    </body>
+  </worldbody>
+  <actuator>
+    <velocity name="front_left_wheel" joint="front_left_wheel_joint" kv="4.0" ctrllimited="true" ctrlrange="-18.75 18.75" forcelimited="true" forcerange="-8.0 8.0" />
+    <velocity name="front_right_wheel" joint="front_right_wheel_joint" kv="4.0" ctrllimited="true" ctrlrange="-18.75 18.75" forcelimited="true" forcerange="-8.0 8.0" />
+    <velocity name="rear_left_wheel" joint="rear_left_wheel_joint" kv="4.0" ctrllimited="true" ctrlrange="-18.75 18.75" forcelimited="true" forcerange="-8.0 8.0" />
+    <velocity name="rear_right_wheel" joint="rear_right_wheel_joint" kv="4.0" ctrllimited="true" ctrlrange="-18.75 18.75" forcelimited="true" forcerange="-8.0 8.0" />
+  </actuator>
+  <sensor>
+    <gyro name="gyro" site="imu" />
+    <accelerometer name="accelerometer" site="imu" />
+    <velocimeter name="base_linvel" site="base_origin" />
+    <gyro name="base_angvel" site="base_origin" />
+    <gyro name="mid360_gyro" site="mid360_imu" />
+    <accelerometer name="mid360_accelerometer" site="mid360_imu" />
+  </sensor>
+  <asset>
+    <mesh name="official_scout_mini_0_0_mesh" file="@PROJECT_ROOT@/assets/visual/scout_mini/body-0.obj" inertia="shell" scale="1 1 1" />
+    <mesh name="official_scout_mini_0_1_mesh" file="@PROJECT_ROOT@/assets/visual/scout_mini/body-1.obj" inertia="shell" scale="1 1 1" />
+    <mesh name="official_scout_mini_0_2_mesh" file="@PROJECT_ROOT@/assets/visual/scout_mini/body-2.obj" inertia="shell" scale="1 1 1" />
+    <mesh name="official_scout_mini_0_3_mesh" file="@PROJECT_ROOT@/assets/visual/scout_mini/body-3.obj" inertia="shell" scale="1 1 1" />
+    <mesh name="official_scout_mini_0_4_mesh" file="@PROJECT_ROOT@/assets/visual/scout_mini/body-4.obj" inertia="shell" scale="1 1 1" />
+    <mesh name="official_scout_mini_0_5_mesh" file="@PROJECT_ROOT@/assets/visual/scout_mini/body-5.obj" inertia="shell" scale="1 1 1" />
+    <mesh name="official_scout_mini_0_6_mesh" file="@PROJECT_ROOT@/assets/visual/scout_mini/body-6.obj" inertia="shell" scale="1 1 1" />
+    <mesh name="official_scout_mini_1_0_mesh" file="@PROJECT_ROOT@/assets/visual/scout_mini/wheel-0.obj" inertia="shell" scale="1 1 1" />
+    <mesh name="official_scout_mini_1_1_mesh" file="@PROJECT_ROOT@/assets/visual/scout_mini/wheel-1.obj" inertia="shell" scale="1 1 1" />
+    <mesh name="official_scout_mini_1_2_mesh" file="@PROJECT_ROOT@/assets/visual/scout_mini/wheel-2.obj" inertia="shell" scale="1 1 1" />
+  </asset>
+</mujoco>

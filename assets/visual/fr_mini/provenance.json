@@ -1,0 +1,308 @@
+{
+  "schema_version": 1,
+  "robot": "fr_mini",
+  "identity": "FR-mini Ackermann, front steering/rear drive; official source axle .4m, track .312m, radius .07m match validated geometry",
+  "representation": "Official visual CAD only; original validated dynamics/contact/controller remain unchanged",
+  "source_repository": "https://github.com/YUHESEN-Robot/YHS-ROBOT-Description",
+  "source_commit": "c2d6caf23f5a4c7374db6f54e1f3691a5d49940f",
+  "license_status": "Upstream package.xml declares TODO; no LICENSE found in repository; Xian-authorized local use, no public redistribution license asserted",
+  "source_files": [
+    {
+      "repo": "YUHESEN-Robot/YHS-ROBOT-Description",
+      "commit": "c2d6caf23f5a4c7374db6f54e1f3691a5d49940f",
+      "path": "FR-Robot/FR-mini-gazebo-ros1/fr-mini/meshes/FR-mini-chassis.STL",
+      "git_blob": "4b77fea947a368f49345ac852cd3b0f2fa233f03",
+      "bytes": 1197584,
+      "download_url": "https://raw.githubusercontent.com/YUHESEN-Robot/YHS-ROBOT-Description/c2d6caf23f5a4c7374db6f54e1f3691a5d49940f/FR-Robot/FR-mini-gazebo-ros1/fr-mini/meshes/FR-mini-chassis.STL",
+      "sha256": "be3035651507e1d8b573c307aab3530b98cde283ce27ca0d91177586dd63a3e1"
+    },
+    {
+      "repo": "YUHESEN-Robot/YHS-ROBOT-Description",
+      "commit": "c2d6caf23f5a4c7374db6f54e1f3691a5d49940f",
+      "path": "FR-Robot/FR-mini-gazebo-ros1/fr-mini/meshes/FR-mini-luntai.STL",
+      "git_blob": "027bc35acd5237d3954330d066d2688ef4ecc9cb",
+      "bytes": 172384,
+      "download_url": "https://raw.githubusercontent.com/YUHESEN-Robot/YHS-ROBOT-Description/c2d6caf23f5a4c7374db6f54e1f3691a5d49940f/FR-Robot/FR-mini-gazebo-ros1/fr-mini/meshes/FR-mini-luntai.STL",
+      "sha256": "321309b22dac3f5900abf078495c71573c2fde9fe275da8fac32ea5f86eef470"
+    },
+    {
+      "repo": "YUHESEN-Robot/YHS-ROBOT-Description",
+      "commit": "c2d6caf23f5a4c7374db6f54e1f3691a5d49940f",
+      "path": "FR-Robot/FR-mini-gazebo-ros1/fr-mini/package.xml",
+      "git_blob": "66ecd8cae335f92c95a09f5e0db77be186c6f021",
+      "bytes": 3179,
+      "download_url": "https://raw.githubusercontent.com/YUHESEN-Robot/YHS-ROBOT-Description/c2d6caf23f5a4c7374db6f54e1f3691a5d49940f/FR-Robot/FR-mini-gazebo-ros1/fr-mini/package.xml",
+      "sha256": "ec4af77802f5f9efe8620a5166c896a5c466540fb61f019a8aaffcc05448fdd6"
+    },
+    {
+      "repo": "YUHESEN-Robot/YHS-ROBOT-Description",
+      "commit": "c2d6caf23f5a4c7374db6f54e1f3691a5d49940f",
+      "path": "FR-Robot/FR-mini-gazebo-ros1/fr-mini/urdf/fr-mini.gazebo",
+      "git_blob": "9259bb389c33b594cfe2ff9f2858f63ca5c239fb",
+      "bytes": 1936,
+      "download_url": "https://raw.githubusercontent.com/YUHESEN-Robot/YHS-ROBOT-Description/c2d6caf23f5a4c7374db6f54e1f3691a5d49940f/FR-Robot/FR-mini-gazebo-ros1/fr-mini/urdf/fr-mini.gazebo",
+      "sha256": "833a21af685d4f0457a7df994e4a0e60926d2766c5ae5593d3aa25fa1635de5b"
+    },
+    {
+      "repo": "YUHESEN-Robot/YHS-ROBOT-Description",
+      "commit": "c2d6caf23f5a4c7374db6f54e1f3691a5d49940f",
+      "path": "FR-Robot/FR-mini-gazebo-ros1/fr-mini/urdf/fr-mini.xacro",
+      "git_blob": "ae080e5a1f58d98c487618023dfd6a3a25ce629b",
+      "bytes": 8787,
+      "download_url": "https://raw.githubusercontent.com/YUHESEN-Robot/YHS-ROBOT-Description/c2d6caf23f5a4c7374db6f54e1f3691a5d49940f/FR-Robot/FR-mini-gazebo-ros1/fr-mini/urdf/fr-mini.xacro",
+      "sha256": "2e3c1b26fc748d2db039fbb35b9bfcd14625e907453f7eab24576a6f317728fb"
+    },
+    {
+      "repo": "YUHESEN-Robot/YHS-ROBOT-Description",
+      "commit": "c2d6caf23f5a4c7374db6f54e1f3691a5d49940f",
+      "path": "FR-Robot/FR-mini-gazebo-ros1/fr-mini/urdf/macros.xacro",
+      "git_blob": "08c3b68d60831108483998417878a9f1eadc56ff",
+      "bytes": 2021,
+      "download_url": "https://raw.githubusercontent.com/YUHESEN-Robot/YHS-ROBOT-Description/c2d6caf23f5a4c7374db6f54e1f3691a5d49940f/FR-Robot/FR-mini-gazebo-ros1/fr-mini/urdf/macros.xacro",
+      "sha256": "3bf493f3d4fdf0cefa4ef48c3a8088391b81b674e225f3cd07495ba7201b2999"
+    }
+  ],
+  "recipes": [
+    {
+      "part": "body",
+      "source": "YUHESEN-Robot/YHS-ROBOT-Description/FR-Robot/FR-mini-gazebo-ros1/fr-mini/meshes/FR-mini-chassis.STL",
+      "rpy": [
+        1.5707963267948966,
+        0,
+        1.5707963267948966
+      ],
+      "position": [
+        -0.27,
+        -0.175,
+        -0.005
+      ],
+      "color": [
+        255,
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "part": "wheel",
+      "source": "YUHESEN-Robot/YHS-ROBOT-Description/FR-Robot/FR-mini-gazebo-ros1/fr-mini/meshes/FR-mini-luntai.STL",
+      "rpy": [
+        0,
+        0,
+        1.5707963267948966
+      ],
+      "position": [
+        0.07,
+        -0.36,
+        -0.475
+      ],
+      "color": [
+        0,
+        0,
+        0,
+        255
+      ]
+    }
+  ],
+  "preparation": {
+    "transform": "Expand imported CAD scene transforms; apply recorded URDF visual pose/scale; emit metric OBJ grouped by source RGBA",
+    "simplification": "Visual-only quadric decimation; reject any group with >5mm bounding deviation; original physics is not replaced",
+    "dependencies": {
+      "numpy": "2.2.6",
+      "trimesh": "5.1.1",
+      "pycollada": "0.9.3",
+      "fast-simplification": "0.2.0",
+      "lxml": "6.1.3",
+      "networkx": "3.4.2",
+      "python-dateutil": "2.9.0.post0",
+      "six": "1.17.0"
+    },
+    "script": "tools/prepare_visual_assets.py"
+  },
+  "mesh_asset_contract": {
+    "inertia": "shell",
+    "geom_mass": 0,
+    "contype": 0,
+    "conaffinity": 0,
+    "group": 2
+  },
+  "parts": [
+    {
+      "part": "body",
+      "recipe": {
+        "part": "body",
+        "source": "YUHESEN-Robot/YHS-ROBOT-Description/FR-Robot/FR-mini-gazebo-ros1/fr-mini/meshes/FR-mini-chassis.STL",
+        "rpy": [
+          1.5707963267948966,
+          0,
+          1.5707963267948966
+        ],
+        "position": [
+          -0.27,
+          -0.175,
+          -0.005
+        ],
+        "color": [
+          255,
+          255,
+          255,
+          255
+        ]
+      },
+      "files": [
+        {
+          "file": ".vendor/visual-fr-mini/body-0.obj",
+          "rgba": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "source_faces": 23927,
+          "faces": 23927,
+          "vertices": 11445,
+          "bounds_m": [
+            [
+              -0.2696142869349569,
+              -0.1640822805464268,
+              -0.004980354914441701
+            ],
+            [
+              0.2676830697059631,
+              0.1657978117465973,
+              0.1434508514404297
+            ]
+          ],
+          "bbox_deviation_m": 0.0,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "bd28ad0299fbb057e362df4d8637a258d9738abdee52df7abce1144d9fdbc83f",
+          "bytes": 854758
+        }
+      ]
+    },
+    {
+      "part": "wheel",
+      "recipe": {
+        "part": "wheel",
+        "source": "YUHESEN-Robot/YHS-ROBOT-Description/FR-Robot/FR-mini-gazebo-ros1/fr-mini/meshes/FR-mini-luntai.STL",
+        "rpy": [
+          0,
+          0,
+          1.5707963267948966
+        ],
+        "position": [
+          0.07,
+          -0.36,
+          -0.475
+        ],
+        "color": [
+          0,
+          0,
+          0,
+          255
+        ]
+      },
+      "files": [
+        {
+          "file": ".vendor/visual-fr-mini/wheel-0.obj",
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "source_faces": 3442,
+          "faces": 3442,
+          "vertices": 1725,
+          "bounds_m": [
+            [
+              -0.07000000059604641,
+              -0.05973650574684142,
+              -0.07058817744255064
+            ],
+            [
+              0.06995219155243834,
+              0.044713511466979994,
+              0.06938793659210207
+            ]
+          ],
+          "bbox_deviation_m": 0.0,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "f87b2a31d5a8dec2a59e87acc34f699d4b1ec5307e6be54d0bc9d6fb92e8170f",
+          "bytes": 120027
+        }
+      ]
+    }
+  ],
+  "output_directory": ".vendor/visual-fr-mini",
+  "reference_differences": {
+    "official_urdf_wheelbase_m": 0.4,
+    "validated_wheelbase_m": 0.4,
+    "official_urdf_track_m": 0.312,
+    "validated_track_m": 0.312,
+    "official_urdf_radius_m": 0.07,
+    "validated_radius_m": 0.07,
+    "body_fit": "Source mid-axle frame shifted +.2m into validated rear-axle frame; roof aligned at current .19m world height"
+  },
+  "mjcf_overlay": {
+    "hide_geoms": [
+      "chassis",
+      "upper_deck",
+      "front_left_tire",
+      "front_right_tire",
+      "rear_left_tire",
+      "rear_right_tire"
+    ],
+    "attachments": [
+      {
+        "part": "body",
+        "body": "base",
+        "position": [
+          0.2,
+          0,
+          -0.078951
+        ]
+      },
+      {
+        "part": "wheel",
+        "body": "front_left_wheel",
+        "quaternion": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "part": "wheel",
+        "body": "front_right_wheel",
+        "quaternion": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "part": "wheel",
+        "body": "rear_left_wheel",
+        "quaternion": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "part": "wheel",
+        "body": "rear_right_wheel",
+        "quaternion": [
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    ]
+  }
+}

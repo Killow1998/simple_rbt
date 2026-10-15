@@ -1,59 +1,79 @@
-# Direct ROS 1 / ROS 1 直连
+# Independent ROS adapters / 独立 ROS 适配器
 
-[English](#english) | [简体中文](#简体中文)
+The host C++ simulator and native console are independent of ROS. ROS 1 Noetic and ROS 2 Humble each run in their own C++ node process/container, using the same local session protocol. They connect directly to ROS peers. The production Dockerfiles pin public official ROS bases and compile the shared Livox definitions; no personal image or host SDK export is needed.
 
-## English
+宿主 C++ 仿真和原生操作台独立于 ROS。ROS 1 Noetic、ROS 2 Humble 各自运行在独立 C++ 节点进程／容器，通过同一会话协议连接核心，直接与各自 ROS 节点通信。正式 Dockerfile 固定公开的官方 ROS 基础镜像，并编译共用 Livox 消息；不需要个人镜像或宿主 SDK 导出。
 
-The simulator runs its C++ core and thin roscpp wrapper on the Jammy host. A Noetic container supplies the ROS master and independent test clients. Commands and sensor messages use TCPROS directly. The test image contains the shared Livox messages and reuses your existing Noetic development image, including its compiler and message generators.
+SpRobo validates the actual ROS installation inside each selected container: Noetic uses Ubuntu 20.04; Humble uses Ubuntu 22.04. The supported simulator host is Ubuntu 22.04 amd64. Host `ROS_DISTRO` is not used as evidence that a container is compatible.
 
-```bash
-# Prepare a test image from an existing local Noetic development image.
-.venv/bin/python tools/test_ros1.py --base-image YOUR_NOETIC_IMAGE --build-only
+SpRobo 检查选中容器内实际的 ROS 安装：Noetic 使用 Ubuntu 20.04，Humble 使用 Ubuntu 22.04；仿真宿主支持 Ubuntu 22.04 amd64，不把宿主的 `ROS_DISTRO` 当成容器版本证据。
 
-# Prepare the host roscpp build; reuse the existing simulator SDK/assets.
-./setup.sh --native-only --ros1
+## Livox publication / Livox 发布
 
-# Test every registered robot, or select a subset.
-.venv/bin/python tools/test_ros1.py --skip-build
-.venv/bin/python tools/test_ros1.py --skip-build --robots ranger_mini \
-  --control-mode tracked --output output/ros1-selected
+With MID360 and a ROS adapter enabled, the core sends its real scan through IPC to the independent C++ node. That node publishes `/livox/lidar` as `livox_ros_driver2/CustomMsg` (ROS 1) or `livox_ros_driver2/msg/CustomMsg` (ROS 2), alongside PointCloud2 on `/livox/points`. The conversion preserves scan timebase, point count, per-point offset time, XYZ and line. Tag and reflectivity are simulator values. IMU, odometry, TF and clock use the same core's samples.
+
+启用 MID360 与 ROS 适配器后，核心通过 IPC 将实际扫描交给独立 C++ 节点，节点在 `/livox/lidar` 发布 ROS 1 的 `livox_ros_driver2/CustomMsg` 或 ROS 2 的 `livox_ros_driver2/msg/CustomMsg`，并在 `/livox/points` 提供 PointCloud2。转换保留扫描 timebase、点数、逐点 offset_time、XYZ 与 line；tag 和 reflectivity 为模拟值。IMU、里程计、TF 与时钟也来自同一核心。
+
+## Prepare / 准备
+
+From a source checkout / 在源码目录：
+
+```sh
+python3 tools/test_ros_session.py --ros ros1 --build-only
+python3 tools/test_ros_session.py --ros ros2 --build-only
 ```
 
-`SIMPLE_RBT_NOETIC_IMAGE` selects another image for setup. The local SDK is under `build/ros1-sdk`, generated messages under `build/interfaces/ros1`, and the executable under `build/ros1`. Export retains the required Noetic libraries, matching Boost headers and license notices. A small Boost 1.71 header compatibility change preserves the stack-size bounds check on Jammy glibc; identical license content shares disk storage. No system ROS installation is changed.
+From an installed package / 安装后：
 
-For normal use, start a ROS master and run:
-
-```bash
-ROS_MASTER_URI=http://127.0.0.1:11311 ./run.sh --robot go2w --ros1 \
-  --sensors full --camera-hz 10 --backend cuda
+```sh
+docker build -f /usr/share/simple-rbt/ros-adapters/deployment/ros1/Dockerfile \
+  -t simple-rbt-ros1:noetic /usr/share/simple-rbt/ros-adapters
+docker build -f /usr/share/simple-rbt/ros-adapters/deployment/ros2/Dockerfile \
+  -t simple-rbt-ros2:humble /usr/share/simple-rbt/ros-adapters
 ```
 
-The wrapper subscribes to `/<robot>/cmd_vel` and stops after 0.5 seconds without a fresh command. Topics, frames, raw/SI IMU conventions and Livox fields match the ROS 2 wrapper. Physics, model inference, sensor sampling and rendering stay in the shared core. A standalone build and direct ROS 2 build are described in [runtime](runtime.md).
+The console can prepare and start optional adapters when Docker is available. Physics and GPU rendering remain on the host. Adapters need no GPU and can both publish a session's sensors. The selected command source alone controls motion.
 
-Tests use a private master port, default 11383, configurable with `--master-port`. An occupied port fails before launch. The runner removes its own container on completion or failure. CUDA LiDAR and camera rendering execute on the host; the Noetic container has no GPU devices. `--backend cpu` selects CPU LiDAR. The probe waits for the simulator's two-second settling interval before sending movement commands.
+Docker 可用时，操作台可以准备并启动可选适配器。物理与 GPU 渲染仍在宿主机。适配器不需要 GPU，两者可同时发布一个会话的传感器；只有选中的指令来源控制运动。
 
-Each case verifies forward/reverse motion, namespace isolation and timeout stopping; Livox and PointCloud2 payload bytes; raw/SI IMU values and frames; rigid MID360 IMU/LiDAR extrinsics; odometry, TF, camera intrinsics and four image streams; complete periodic sensor delivery and real-time pacing. Image bytes are compared with a separate Noetic receiver of actual publications. The cases use flat ground; terrain routes are tested with `tools/validate_full_run.py`.
+## Direct launch / 直接启动
 
-## 简体中文
+For a core already running with `--session-dir /absolute/session/path`, mount that directory at `/session`. The socket directory belongs to the current user and is private; adapters need matching permissions. The console owns its sessions and shows their path.
 
-仿真核心与薄 roscpp 适配层都在 Jammy 宿主机以 C++ 运行。Noetic 容器提供 ROS master 和独立测试客户端，通过 TCPROS 直接收发指令与传感器消息。测试镜像复用已有 Noetic 开发镜像，只构建同一份 Livox 消息定义；基础镜像需要编译器和消息生成工具。
+核心已通过 `--session-dir /absolute/session/path` 运行时，将该目录挂载为 `/session`。socket 目录归当前用户所有且为私有目录，适配器需要相应权限。操作台拥有自己的会话，并显示路径。
 
-先按上面的命令准备测试镜像、执行 `./setup.sh --native-only --ros1`，再运行 `tools/test_ros1.py`。`SIMPLE_RBT_NOETIC_IMAGE` 可选择其他准备镜像。本地 SDK、消息和可执行程序分别位于 `build/ros1-sdk`、`build/interfaces/ros1`、`build/ros1`。导出保留需要的 Noetic 库、匹配的 Boost 头文件及版权说明；Boost 1.71 的局部兼容补丁保留栈大小检查，适配 Jammy glibc。相同版权文本共用磁盘存储，不修改宿主系统的 ROS 安装。
+```sh
+docker run --rm --network host \
+  --mount type=bind,source=/absolute/session/path,target=/session \
+  -e ROS_MASTER_URI=http://127.0.0.1:11311 -e ROS_IP=127.0.0.1 \
+  simple-rbt-ros1:noetic --session-dir /session
 
-正常使用时先启动 master，再用 `ROS_MASTER_URI=... ./run.sh --robot go2w --ros1`。适配层订阅 `/<robot>/cmd_vel`，0.5 秒无新指令后停车。消息字段、传感器话题、坐标系以及原始／SI IMU 约定与 ROS 2 适配层一致。物理、模型推理、采样和渲染由共用核心负责；无 ROS 与 ROS 2 直连构建见[运行说明](runtime.md)。
+docker run --rm --network host \
+  --mount type=bind,source=/absolute/session/path,target=/session \
+  -e ROS_DOMAIN_ID=83 -e ROS_LOCALHOST_ONLY=1 \
+  simple-rbt-ros2:humble --session-dir /session
+```
 
-测试默认 master 端口为 11383，可用 `--master-port` 修改；已占用时先报错。测试结束或失败后清理自己的容器。GPU 雷达和相机在宿主机执行，Noetic 容器不使用 GPU；`--backend cpu` 可选择 CPU 雷达。运动检查等待模拟时钟越过两秒初始化阶段，再发送指令。
+ROS 1 reuses a reachable master; if the default local master is absent, the container starts its own. A configured unreachable remote master produces an error. ROS 2 peers must use the same domain. Remote peers additionally need normal ROS networking configuration.
 
-检查包括前进、倒退、命名空间隔离、超时停车；Livox／PointCloud2 有效载荷字节；两种 IMU 数值与坐标系、MID360 固定外参；里程计、TF、相机内参和四路图像；周期数据完整性与实时节奏。图像字节与独立 Noetic 接收器记录的实际发送帧比较。此处使用平地，多地形路线由 `tools/validate_full_run.py` 验证。
+ROS 1 复用可达的 master；默认本地 master 未启动时，容器自行启动。配置的远程 master 不可达时明确报错。ROS 2 对端需要使用相同 domain；远程节点还需要正常的 ROS 网络配置。
 
-## Verified on Jammy / Jammy 验证结果 — 2026-10-14
+`/<robot>/cmd_vel` accepts planar m/s, m/s, rad/s commands. Invalid or unsupported commands clear all components. A 0.5 s timeout, adapter disconnect or owner change stops the prior command. Physics, IMU/LiDAR timing, camera rendering and simulation time remain core responsibilities. The MID360 internal transform is fixed and is published consistently by both wrappers.
 
-All seven robots passed 46/46 direct ROS 1 checks in native mode with full sensors, CUDA LiDAR and 10 Hz cameras. RTF was 0.999786–0.999992. Ranger Mini also passed 46/46 in tracked mode: +0.30 / -0.25 m/s commands measured +0.306 / -0.257 m/s, with speed near zero after timeout.
+`/<robot>/cmd_vel` 接收平面速度，单位为 m/s、m/s、rad/s。非法或不支持的指令会整体清零。0.5 秒超时、适配器断开或切换来源会停止先前指令。物理、IMU／雷达时序、相机渲染与仿真时钟由核心负责；MID360 内部外参固定，两种 wrapper 一致发布。
 
-七台机器人在 native 模式、完整传感器、CUDA 雷达和 10 Hz 相机下，各通过 46/46 项 ROS 1 直连检查；RTF 为 0.999786–0.999992。Ranger Mini 的 tracked 模式也通过 46/46：+0.30／-0.25 m/s 指令实测 +0.306／-0.257 m/s，超时停车后速度接近零。
+## E2E checks / 端到端检查
 
-The outer-feedback stopping fix remains in the core: a full zero target passes to the physical brakes on pure wheel chassis and clears feedback memory. Go2/Go2W retain stance feedback; geometry, torque bounds and steering alignment protection are unchanged.
+```sh
+python3 tools/test_ros_session.py --ros ros1 --skip-build --robots go2w
+python3 tools/test_ros_session.py --ros ros2 --skip-build --robots ranger_mini --terrain hills
+# Compatibility entry for the same independent ROS 1 runner:
+python3 tools/test_ros1.py --skip-build --robots go2w
+```
 
-纯轮式底盘在完整零指令下直接执行物理刹车并清除反馈记忆，解决 Ranger Mini 停车误差引发舵轮追逐、持续禁止驱动的问题。Go2/Go2W 保留站立反馈，几何、扭矩限制和舵轮对齐保护没有修改。
+Omit `--robots` to test all registered robots. The runner launches the real host core and an official adapter container, then sends commands and inspects real ROS outputs from a separate receiver. It checks namespace isolation, physical forward/reverse motion, stopping, sensor outputs and rigid device transforms. It uses its own session and container, then cleans those resources. Test clients use Python; production nodes remain C++.
 
-Evidence / 本机证据：[seven ROS 1 cases / 七台 ROS 1 验收](../output/ros1-direct-final-20261014/summary.json), [Ranger tracked](../output/ros1-ranger-tracked-final-20261014/summary.json), [direct ROS 2 hills / ROS 2 直连起伏路线](../output/ros2-wrapper-hills-final-20261014/report.json), [29 core comparisons / 29 组核心对照](../output/ros-wrapper-core-parity-20261014/summary.json).
+不指定 `--robots` 时检查全部登记车型。测试启动真实宿主核心与官方适配器容器，由独立接收器发送指令并检查实际 ROS 输出，覆盖命名空间、物理前进／倒退、停车、传感器数据和设备刚性外参。测试创建并清理自己的会话及容器。测试客户端使用 Python；正式节点仍为 C++。
+
+Current results and binary identities are linked in [console validation](desktop-console-plan.md). Earlier same-process ROS acceptance belongs to its dated development stage and does not describe this launch path.
+当前结果与二进制身份见[操作台验收](desktop-console-plan.md)。此前同进程 ROS 验收属于当时的开发阶段，不描述当前启动路径。

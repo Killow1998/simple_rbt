@@ -4,7 +4,7 @@
   "identity": {
     "manufacturer": "YUHESEN / Shenzhen Yuhesen Technology Co., Ltd.",
     "product": "FR-mini",
-    "representation": "front Ackermann steering, two rear driven wheels; procedural geometry and rigid suspension"
+    "representation": "Physical model: front Ackermann steering, two rear driven wheels; procedural geometry and rigid suspension. Visual model: official CAD attached with zero mass and no collisions."
   },
   "sources": [
     {
@@ -150,5 +150,10 @@
     "geometry": "Original procedural primitives from factual public dimensions; no downloaded CAD/mesh/model code redistributed.",
     "manual": "Read for factual configuration only, not copied into repository.",
     "sdk_lookup": "Official download page links FR-mini-ros and FR-mini-ros2; GitHub API returned404 during this audit. Model does not depend on these unavailable endpoints."
+  },
+  "visual_assets_provenance": "assets/visual/fr_mini/provenance.json",
+  "license_and_assets": {
+    "third_party_meshes_copied": true,
+    "geometry": "Original procedural physical geometry and validated dynamics; separate official visual meshes, see assets/visual/fr_mini/provenance.json"
   }
 }

@@ -82,7 +82,9 @@ void RosBridge::publish_camera(std::uint64_t ns, const CameraFrame& frame, bool 
   if (frame.width <= 0 || frame.height <= 0 || frame.width > std::numeric_limits<int>::max() / 4)
     throw std::invalid_argument("camera width and height must be positive and fit ROS row stride");
   const std::size_t count = static_cast<std::size_t>(frame.width) * frame.height;
-  if (frame.rgb.size() != count * 3 || frame.depth.size() != count)
+  if ((frame.rgb.size() != count * 3 && !frame.rgb.empty()) ||
+      (frame.depth.size() != count && !frame.depth.empty()) ||
+      (frame.rgb.empty() && frame.depth.empty()))
     throw std::invalid_argument("camera RGB/depth sizes must match width and height");
   if (frame.radial_depth != panorama)
     throw std::invalid_argument("camera radial_depth must match panorama kind");
@@ -95,10 +97,11 @@ void RosBridge::publish_camera(std::uint64_t ns, const CameraFrame& frame, bool 
   messages::Image depth;
   depth.header = rgb.header; depth.height = frame.height; depth.width = frame.width;
   depth.encoding = "32FC1"; depth.is_bigendian = false; depth.step = frame.width * 4;
-  depth.data.resize(count * sizeof(float));
-  for (std::size_t index = 0; index < count; ++index)
+  depth.data.resize(frame.depth.size() * sizeof(float));
+  for (std::size_t index = 0; index < frame.depth.size(); ++index)
     little_endian(depth.data.data() + index * sizeof(float), frame.depth[index]);
-  send(impl_->rgb[kind], rgb); send(impl_->depth[kind], depth);
+  if (!frame.rgb.empty()) send(impl_->rgb[kind], rgb);
+  if (!frame.depth.empty()) send(impl_->depth[kind], depth);
   if (!panorama) {
     messages::CameraInfo info;
     info.header = rgb.header; info.height = frame.height; info.width = frame.width;

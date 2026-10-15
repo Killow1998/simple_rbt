@@ -1,9 +1,7 @@
 # simple_rbt 的 MuJoCo 原型
 
-目前可在 Jammy 运行 **七个配置**，共用雷达、IMU、相机和 ROS 2 接口。
-`run.sh` 默认启动 **C++17** 可执行程序：物理调度、七种控制器、传感器、ROS 2 和桌面窗口
-均在原生程式中执行。GPU 雷达使用预先编译的 CUDA kernel；执行时不启动 Python、Warp 或 LLVM。
-Python 版本保留为模型准备及测试对照，用 `reference/python/run.sh` 明确选择。
+本文保留机器人／传感器规格、独立 Python 对照和此前阶段的验证记录。当前操作台、C++ 核心与 ROS 独立进程的启动方式以 [运行说明](runtime.md)和 [ROS 指南](noetic.md)为准。MyGo 界面使用 Go；核心与 ROS 节点使用 C++；Python 仅用于准备和独立验证。
+
 [C++ 迁移与资源验证](cpp-runtime-validation-20261013.md)保存迁移阶段的完整验收和 CPU／RAM 对照；
 本轮[架构整理与消融验证](cpp-architecture-ablation-20261013.md)记录模块拆分、等价性、故障拦截及交错 A/B 实测。
 三台轮式车的程序峰值 RSS 均值减少 8.7–13.2 MiB，CPU 差异不足以宣称明确加速。
@@ -154,7 +152,7 @@ GetUp 曾让 12 cm 楼梯走完，但速度仍不合格，因此保留为实验�
 相机默认 1 Hz，完整运行建议明确指定 `--camera-hz 10`。
 `--summary-only` 仍计算所选传感器，只保存摘要以限制磁碟输出。
 
-每次运行会建立新的 `output/mujoco/native-<识别码>/`，包含：
+每次运行会在用户 XDG state 目录下建立新结果目录，或使用显式 `--output`，包含：
 
 - `summary.json`：位移、控制模式、地形、传感器耗时、CPU／RAM 和模型限制。
 - `trajectory.csv`：10 Hz 地面真值轨迹和机体座标速度。
@@ -168,35 +166,15 @@ GetUp 曾让 12 cm 楼梯走完，但速度仍不合格，因此保留为实验�
 不同传感器的保存时间可能不同，应读取各自的 metadata，不能只按档名视为同步帧。
 普通相机深度是沿光轴的 Z 距离，全景深度是从相机中心到表面的径向距离；均以公尺表示，无表面为 `inf`。
 
-## ROS 2
+## ROS 接口
 
-使用 Humble 与本专案 `interfaces/` 构建的 Livox 讯息库；未载入硬体驱动。
-其他机器可用 `SIMPLE_RBT_LIVOX_PREFIX` 指定套件安装前缀，构建时也可用
-`SIMPLE_RBT_LIVOX_SETUP` 指定 `local_setup.bash`。目前完整 C++ 可执行程序构建／载入需要 ROS 库；
-不加 `--ros2` 时不建立 ROS 节点，仍可独立运行仿真。
+ROS 1／ROS 2 各自使用独立 C++ 适配进程；启动方式见 [ROS 指南](noetic.md)。在操作台选择相应指令来源后，可在对端 ROS 环境发送 `/<robot>/cmd_vel`。
 
-终端一：
-
-```bash
-./run.sh --robot go2w --terrain rough --backend warp --ros2 \
-  --sensors full --camera-hz 10 --duration 60
-```
-
-终端二：
-
-```bash
-source /opt/ros/humble/setup.bash
-export ROS_DOMAIN_ID=83
-export ROS_LOCALHOST_ONLY=1
+```sh
 ros2 topic pub -r 10 /go2w/cmd_vel geometry_msgs/msg/Twist '{linear: {x: 0.3}, angular: {z: 0.1}}'
 ```
 
-控制话题按 `--robot` 自动选择：Go2 用 `/go2/cmd_vel`，Go2W 用 `/go2w/cmd_vel`，
-Scout Mini 用 `/scout_mini/cmd_vel`，FR-mini 用 `/fr_mini/cmd_vel`，Ridgeback 用 `/ridgeback/cmd_vel`，
-Ranger Mini 用 `/ranger_mini/cmd_vel`，双轮底盘用 `/diffdrive/cmd_vel`。节点也在相同的机器人命名空间中。
-收到所选底盘不支持的侧移或原地转向 ROS 指令时，整条速度指令立即清零，仿真继续运行；后续有效指令可恢复。
-停止发送指令后，0.5 秒超时会把速度指令设为零。`--ros2` 模式由对应话题控制，`--cmd` 不生效。
-两个终端应使用相同 domain；默认为 localhost / domain 83。下游节点使用 `use_sim_time:=true`。
+非法或不支持的指令整体清零，后续有效指令可恢复；停止发送 0.5 秒后超时停车。消息字段约定如下，适用于两种 wrapper：
 
 | 话题 | 内容／频率 |
 |---|---|
@@ -251,7 +229,7 @@ IMU 使用共用模拟时钟、零时刻起的 5 ms 栅格；Go2W 的 2 ms 物�
 ROS_DOMAIN_ID=89 ROS_LOCALHOST_ONLY=1 ctest --test-dir build/native --output-on-failure
 ```
 
-完整 C++ ROS＋传感器路线（先 source Humble 与 Livox）：
+此前同进程版本的完整路线验收命令（对应带日期的版本；当前 C++ ROS 验收使用 `tools/test_ros_session.py`）：
 
 ```bash
 .venv/bin/python tools/validate_full_run.py --runtime cpp \

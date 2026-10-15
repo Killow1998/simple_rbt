@@ -1,5 +1,7 @@
 /.venv
 /.vendor
+# Restored from the pinned ROBOTIS manifest during preparation.
+/assets/visual/turtlebot3_waffle_pi/*.stl
 /build/
 /output/
 __pycache__/

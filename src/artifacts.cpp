@@ -1,5 +1,6 @@
 #include "artifacts.hpp"
 #include "resources.hpp"
+#include "simple_rbt/paths.hpp"
 #include "simple_rbt/lidar.hpp"
 #include <cmath>
 #include <iomanip>
@@ -63,11 +64,12 @@ ArtifactWriter::ArtifactWriter(const fs::path &project_root,
                                const fs::path &requested_output,
                                bool summary_only, bool precreated)
     : output_(requested_output), summary_only_(summary_only) {
+  (void)project_root;
   if (output_.empty()) {
     std::ostringstream s;
     s << "native-" << getpid() << '-'
       << std::uint64_t(monotonic_seconds() * 1e6);
-    output_ = project_root / "output/mujoco" / s.str();
+    output_ = user_output_root() / s.str();
   }
   if (precreated) {
     if (!fs::is_directory(output_) ||

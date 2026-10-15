@@ -1,0 +1,529 @@
+{
+  "schema_version": 1,
+  "robot": "ranger_mini",
+  "identity": "Ranger Mini V3; four independently steered/driven wheels, not tracked/full-size Ranger",
+  "representation": "Official visual CAD only; original validated dynamics/contact/controller remain unchanged",
+  "source_repository": "https://github.com/agilexrobotics/ugv_gazebo_sim",
+  "source_commit": "27633a956c845903ee630538afeb17fe70afdd84",
+  "license_status": "BSD as declared by upstream package.xml; BSD variant unspecified; declaration preserved",
+  "source_files": [
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "ranger_mini/ranger_mini_v3/meshes/ranger_base.dae",
+      "git_blob": "68f6f05adaf269671596b6c66ebc91ae409fffaf",
+      "bytes": 133,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/ranger_mini/ranger_mini_v3/meshes/ranger_base.dae",
+      "sha256": "e4c1c6376f29b1629bb62384899ed29beae3802c631d2f93457a8a21990c7a3a",
+      "lfs_sha256": "cf8d73c2d048b781f7dcd6d63122a79114836961ee347a9c5be716f5eef5501e",
+      "lfs_bytes": 38454037,
+      "download_lfs_url": "https://media.githubusercontent.com/media/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/ranger_mini/ranger_mini_v3/meshes/ranger_base.dae"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "ranger_mini/ranger_mini_v3/meshes/ranger_base.zip",
+      "git_blob": "bc1ca4d0c1a7b27a8e1ae7aa62391df67456d7a5",
+      "bytes": 6776729,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/ranger_mini/ranger_mini_v3/meshes/ranger_base.zip",
+      "sha256": "8b2463a6e3538dd0e7a1074330a01ff3c5552bb4ff902514b2cbe4defbfe734f"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "ranger_mini/ranger_mini_v3/meshes/steering_wheel.dae",
+      "git_blob": "01d64a89c847322a4e4f203444e73c789a449cb8",
+      "bytes": 171983,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/ranger_mini/ranger_mini_v3/meshes/steering_wheel.dae",
+      "sha256": "d8448b8856920bbdc74b21c36114cab3782a840e276511969f1ee91f8d443028"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "ranger_mini/ranger_mini_v3/meshes/wheel_v3.dae",
+      "git_blob": "f398fe371bb69be8fdb1faa40c1a73cff2237c2a",
+      "bytes": 1041026,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/ranger_mini/ranger_mini_v3/meshes/wheel_v3.dae",
+      "sha256": "d45ddac792ac54ba44cf516cf575a3b768cf7e95fd65c2c14af8b1061878253f"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "ranger_mini/ranger_mini_v3/package.xml",
+      "git_blob": "69815020207bbbe78d0ca3cfbc617572a4d0ac2f",
+      "bytes": 651,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/ranger_mini/ranger_mini_v3/package.xml",
+      "sha256": "0c4b1cca134c534baed836130bd21e090ee039e97cbc8230ff3a9991f5442db4"
+    },
+    {
+      "repo": "agilexrobotics/ugv_gazebo_sim",
+      "commit": "27633a956c845903ee630538afeb17fe70afdd84",
+      "path": "ranger_mini/ranger_mini_v3/urdf/ranger_mini.xacro",
+      "git_blob": "fb594df737aff78c514a322690bd2f02d04bbb3c",
+      "bytes": 14239,
+      "download_url": "https://raw.githubusercontent.com/agilexrobotics/ugv_gazebo_sim/27633a956c845903ee630538afeb17fe70afdd84/ranger_mini/ranger_mini_v3/urdf/ranger_mini.xacro",
+      "sha256": "925fa108e23a931d5c98b27a3eda0d0056a50e0889a8fcbdaea97d5090f7675e"
+    }
+  ],
+  "recipes": [
+    {
+      "part": "body",
+      "source": "agilexrobotics/ugv_gazebo_sim/ranger_mini/ranger_mini_v3/meshes/ranger_base.dae",
+      "target_faces": 60000
+    },
+    {
+      "part": "steering",
+      "source": "agilexrobotics/ugv_gazebo_sim/ranger_mini/ranger_mini_v3/meshes/steering_wheel.dae",
+      "scale": 10
+    },
+    {
+      "part": "wheel",
+      "source": "agilexrobotics/ugv_gazebo_sim/ranger_mini/ranger_mini_v3/meshes/wheel_v3.dae",
+      "scale": 10,
+      "target_faces": 6000
+    }
+  ],
+  "preparation": {
+    "transform": "Expand imported CAD scene transforms; apply recorded URDF visual pose/scale; emit metric OBJ grouped by source RGBA",
+    "simplification": "Visual-only quadric decimation; reject any group with >5mm bounding deviation; original physics is not replaced",
+    "dependencies": {
+      "numpy": "2.2.6",
+      "trimesh": "5.1.1",
+      "pycollada": "0.9.3",
+      "fast-simplification": "0.2.0",
+      "lxml": "6.1.3",
+      "networkx": "3.4.2",
+      "python-dateutil": "2.9.0.post0",
+      "six": "1.17.0"
+    },
+    "script": "tools/prepare_visual_assets.py"
+  },
+  "mesh_asset_contract": {
+    "inertia": "shell",
+    "geom_mass": 0,
+    "contype": 0,
+    "conaffinity": 0,
+    "group": 2
+  },
+  "parts": [
+    {
+      "part": "body",
+      "recipe": {
+        "part": "body",
+        "source": "agilexrobotics/ugv_gazebo_sim/ranger_mini/ranger_mini_v3/meshes/ranger_base.dae",
+        "target_faces": 60000
+      },
+      "files": [
+        {
+          "file": "assets/visual/ranger_mini/body-0.obj",
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "source_faces": 43738,
+          "faces": 43738,
+          "vertices": 21829,
+          "bounds_m": [
+            [
+              -0.39401891827583313,
+              -0.13500000536441803,
+              -0.16038596630096436
+            ],
+            [
+              0.31698107719421387,
+              0.24943679571151733,
+              0.01599999889731407
+            ]
+          ],
+          "bbox_deviation_m": 0.0,
+          "simplification_rejected_for_bounds": true,
+          "sha256": "95855ade28b070d52ce00c65aa17f98adb32912d28f7615f4a99490cf9d13027",
+          "bytes": 1690990
+        },
+        {
+          "file": "assets/visual/ranger_mini/body-1.obj",
+          "rgba": [
+            0.17647059,
+            0.17647059,
+            0.17647059,
+            1.0
+          ],
+          "source_faces": 49871,
+          "faces": 8465,
+          "vertices": 3830,
+          "bounds_m": [
+            [
+              -0.3954004445297752,
+              -0.2485000044107437,
+              -0.21800000965595248
+            ],
+            [
+              0.3559810817241669,
+              0.25,
+              0.01680822880478414
+            ]
+          ],
+          "bbox_deviation_m": 0.0014999955892562866,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "c00d41259a8c0b11ad0298a44b0c8b10cd6c22720e29edccec0ebfc554c625b9",
+          "bytes": 289674
+        },
+        {
+          "file": "assets/visual/ranger_mini/body-2.obj",
+          "rgba": [
+            0.78431373,
+            0.78431373,
+            0.78431373,
+            1.0
+          ],
+          "source_faces": 19387,
+          "faces": 3290,
+          "vertices": 1522,
+          "bounds_m": [
+            [
+              -0.38345593214035034,
+              -0.2503414824397553,
+              -0.2180000096559525
+            ],
+            [
+              0.3544811010360718,
+              0.2520312226246617,
+              2.607702942469814e-11
+            ]
+          ],
+          "bbox_deviation_m": 0.0020312226246617104,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "4702c1575a7b26375148729cf807a1dca769a5c421acefd6ff85f2a3b76f50f9",
+          "bytes": 109752
+        },
+        {
+          "file": "assets/visual/ranger_mini/body-3.obj",
+          "rgba": [
+            0.98039216,
+            0.98039216,
+            0.98039216,
+            1.0
+          ],
+          "source_faces": 239840,
+          "faces": 40713,
+          "vertices": 20198,
+          "bounds_m": [
+            [
+              -0.35723473584657356,
+              -0.24625000357627871,
+              -0.22403487339345934
+            ],
+            [
+              0.3384810984134674,
+              0.2462500035762787,
+              -0.002682506326925125
+            ]
+          ],
+          "bbox_deviation_m": 0.00031749369915190723,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "716ddc7a24d82efcaaae22f196b35fcbc094d0be19a9b25a5d9d80f5f980d2ed",
+          "bytes": 1560095
+        },
+        {
+          "file": "assets/visual/ranger_mini/body-4.obj",
+          "rgba": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "source_faces": 48,
+          "faces": 48,
+          "vertices": 52,
+          "bounds_m": [
+            [
+              0.35268110036849976,
+              -0.1850000023841858,
+              -0.06549999862909317
+            ],
+            [
+              0.35268110036849976,
+              0.1850000023841858,
+              -0.020500000566244125
+            ]
+          ],
+          "bbox_deviation_m": 0.0,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "28b25313165ddeb26ddfdd4a4fedb48f7333f92f17b85f9833598e9cafd84988",
+          "bytes": 2593
+        }
+      ]
+    },
+    {
+      "part": "steering",
+      "recipe": {
+        "part": "steering",
+        "source": "agilexrobotics/ugv_gazebo_sim/ranger_mini/ranger_mini_v3/meshes/steering_wheel.dae",
+        "scale": 10
+      },
+      "files": [
+        {
+          "file": "assets/visual/ranger_mini/steering-0.obj",
+          "rgba": [
+            0.17647059,
+            0.17647059,
+            0.17647059,
+            1.0
+          ],
+          "source_faces": 2212,
+          "faces": 2212,
+          "vertices": 1054,
+          "bounds_m": [
+            [
+              -0.03497223284230522,
+              -0.05613217960816819,
+              -0.12267282272441449
+            ],
+            [
+              0.035215718145735764,
+              0.04914980477098929,
+              0.017703153957597806
+            ]
+          ],
+          "bbox_deviation_m": 0.0,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "865ffc51a51915b4fb61d4add6880d7550bcc67eaefd63e1dce4fbf1ba9518ff",
+          "bytes": 72032
+        }
+      ]
+    },
+    {
+      "part": "wheel",
+      "recipe": {
+        "part": "wheel",
+        "source": "agilexrobotics/ugv_gazebo_sim/ranger_mini/ranger_mini_v3/meshes/wheel_v3.dae",
+        "scale": 10,
+        "target_faces": 6000
+      },
+      "files": [
+        {
+          "file": "assets/visual/ranger_mini/wheel-0.obj",
+          "rgba": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "source_faces": 522,
+          "faces": 290,
+          "vertices": 173,
+          "bounds_m": [
+            [
+              -0.05442244813898317,
+              -0.08756393979132308,
+              -0.0546284174867279
+            ],
+            [
+              0.054467241508352936,
+              0.049804207772519184,
+              0.05398966056552687
+            ]
+          ],
+          "bbox_deviation_m": 0.00036060750964452687,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "26efadee4afa0280459b7e6fa15d1331b843cf2735921bc42a28afabd30c0078",
+          "bytes": 10387
+        },
+        {
+          "file": "assets/visual/ranger_mini/wheel-1.obj",
+          "rgba": [
+            0.17647059,
+            0.17647059,
+            0.17647059,
+            1.0
+          ],
+          "source_faces": 10272,
+          "faces": 5710,
+          "vertices": 2892,
+          "bounds_m": [
+            [
+              -0.10041962472531829,
+              -0.035919804899252145,
+              -0.10047192769256753
+            ],
+            [
+              0.10023869808761096,
+              0.03566838168776081,
+              0.10015529832346802
+            ]
+          ],
+          "bbox_deviation_m": 0.0003965036719484061,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "f69d6c03049cdda74f9579e46ca2418010e99e1a591ef3491735949f9083594c",
+          "bytes": 204489
+        }
+      ]
+    }
+  ],
+  "reference_differences": {
+    "official_urdf_wheelbase_m": 0.5,
+    "validated_wheelbase_m": 0.494,
+    "official_urdf_track_m": 0.38,
+    "validated_track_m": 0.37,
+    "cad_body_extent_m": [
+      0.7505,
+      0.5,
+      0.239989426
+    ],
+    "validated_chassis_extent_m": [
+      0.7,
+      0.46,
+      0.215
+    ],
+    "cad_visual_wheel_radius_m": 0.1005298,
+    "validated_wheel_radius_m": 0.11,
+    "source_urdf_base_scale": "1000, not blindly applied; exported scene already has plausible metre bounds"
+  },
+  "mjcf_overlay": {
+    "hide_geoms": [
+      "chassis",
+      "chassis_deck",
+      "front_left_steering_visual",
+      "front_right_steering_visual",
+      "rear_left_steering_visual",
+      "rear_right_steering_visual",
+      "front_left_tire",
+      "front_right_tire",
+      "rear_left_tire",
+      "rear_right_tire"
+    ],
+    "attachments": [
+      {
+        "part": "body",
+        "body": "base",
+        "position": [
+          0,
+          0,
+          0.0915
+        ]
+      },
+      {
+        "part": "steering",
+        "body": "front_left_steering",
+        "position": [
+          0,
+          0,
+          0.12
+        ],
+        "quaternion": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "part": "wheel",
+        "body": "front_left_wheel",
+        "quaternion": [
+          1,
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1.094203,
+          1.094203,
+          1.094203
+        ]
+      },
+      {
+        "part": "steering",
+        "body": "front_right_steering",
+        "position": [
+          0,
+          0,
+          0.12
+        ],
+        "quaternion": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "part": "wheel",
+        "body": "front_right_wheel",
+        "quaternion": [
+          0,
+          1,
+          0,
+          0
+        ],
+        "scale": [
+          1.094203,
+          1.094203,
+          1.094203
+        ]
+      },
+      {
+        "part": "steering",
+        "body": "rear_left_steering",
+        "position": [
+          0,
+          0,
+          0.12
+        ],
+        "quaternion": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "part": "wheel",
+        "body": "rear_left_wheel",
+        "quaternion": [
+          1,
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1.094203,
+          1.094203,
+          1.094203
+        ]
+      },
+      {
+        "part": "steering",
+        "body": "rear_right_steering",
+        "position": [
+          0,
+          0,
+          0.12
+        ],
+        "quaternion": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "part": "wheel",
+        "body": "rear_right_wheel",
+        "quaternion": [
+          0,
+          1,
+          0,
+          0
+        ],
+        "scale": [
+          1.094203,
+          1.094203,
+          1.094203
+        ]
+      }
+    ]
+  }
+}

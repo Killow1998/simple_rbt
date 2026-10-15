@@ -1,4 +1,5 @@
 #include "simple_rbt/full_run.hpp"
+#include "simple_rbt/paths.hpp"
 #include "simple_rbt/course.hpp"
 #include "simple_rbt/robots.hpp"
 #include "simple_rbt/transport.hpp"
@@ -82,11 +83,7 @@ struct FullRunObserver::Impl {
   Hash imu_hash, imu_si_hash;
 
   explicit Impl(const fs::path& path) : config(read_json(path)), output(config.at("output").get<std::string>()) {
-#ifdef SIMPLE_RBT_PROJECT_ROOT
-    project_root = SIMPLE_RBT_PROJECT_ROOT;
-#else
-    project_root = fs::current_path();
-#endif
+    project_root = default_project_root();
     sources = read_json(output / "sources.json");
     config_sha = digest_text(config.dump(-1, ' ', true));
   }

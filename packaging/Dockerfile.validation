@@ -1,0 +1,18 @@
+# Public Ubuntu base; no ROS SDK, development checkout or preparation venv.
+ARG UBUNTU_IMAGE=ubuntu:22.04
+FROM ${UBUNTU_IMAGE}
+ENV DEBIAN_FRONTEND=noninteractive
+RUN --mount=type=cache,target=/var/cache/apt \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get -o Acquire::Retries=5 update \
+    && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
+    libc6 libstdc++6 libgcc-s1 libgtk-3-0 libepoxy0 libpango-1.0-0 \
+    libpangocairo-1.0-0 libcairo2 libfreetype6 libharfbuzz0b \
+    libegl1 libgl1 libglfw3 libpng16-16 libtinyxml2-9 libssl3 \
+    libgl1-mesa-dri desktop-file-utils binutils xvfb xauth jq \
+    && rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-get -o Acquire::Retries=5 update \
+    && apt-get -o Acquire::Retries=5 install -y --no-install-recommends fonts-wqy-microhei \
+    && rm -rf /var/lib/apt/lists/*
+CMD ["/bin/sh"]

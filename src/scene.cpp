@@ -78,6 +78,19 @@ std::string build_scene(const SimulationOptions &o, const Json &catalog,
          {"size", sizes[i]},
          {"rgba", colors[i]},
          {"group", "1"}});
+  // Visual markers are sites, so editing sensors adds no collision or inertia.
+  auto markers=[&](auto&& self,tinyxml2::XMLElement* e)->void {
+    if(std::string(e->Name())=="site") {
+      const char* name=e->Attribute("name");
+      if(name && (std::string(name)=="lidar" || std::string(name)=="camera_mount")) {
+        e->SetAttribute("type","box");e->SetAttribute("group","3");
+        e->SetAttribute("size",std::string(name)=="lidar"?".022 .022 .023":".027 .018 .014");
+        e->SetAttribute("rgba",std::string(name)=="lidar"?".18 .60 .78 1":".74 .54 .18 1");
+      }
+    }
+    for(auto* child=e->FirstChildElement();child;child=child->NextSiblingElement())self(self,child);
+  };
+  markers(markers,root);
   auto *visual = root->FirstChildElement("visual");
   if (!visual)
     visual = add(root, "visual", {});

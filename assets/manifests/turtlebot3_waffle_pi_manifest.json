@@ -1,0 +1,174 @@
+{
+  "schema": 1,
+  "robot": "turtlebot3_waffle_pi",
+  "upstream": {
+    "repository": "https://github.com/ROBOTIS-GIT/turtlebot3",
+    "revision": "90a68bd2e3c61c12966779da89d8eeaec82730e9",
+    "reference_branch": "humble",
+    "description_version": "2.3.7",
+    "license": "Apache-2.0"
+  },
+  "files": [
+    {
+      "upstream": "LICENSE",
+      "file": "assets/visual/turtlebot3_waffle_pi/LICENSE",
+      "sha256": "f9946796a8a5bd5981565142fa42e3b0cc36aef6f80e86beaf5905b3c0fef1b5",
+      "bytes": 11361
+    },
+    {
+      "upstream": "turtlebot3_description/package.xml",
+      "file": "assets/visual/turtlebot3_waffle_pi/package.xml",
+      "sha256": "6c208f957addb35bbf2ee2abc1da354796d638b63da1d7d95ade693403bdcbb6",
+      "bytes": 957
+    },
+    {
+      "upstream": "turtlebot3_description/urdf/turtlebot3_waffle_pi.urdf",
+      "file": "assets/visual/turtlebot3_waffle_pi/turtlebot3_waffle_pi.urdf",
+      "sha256": "33c201d21492246e9eba8ecd7f1ca9ae4bd7c88a1da5bc360584002ba61ab9ce",
+      "bytes": 7431
+    },
+    {
+      "upstream": "turtlebot3_node/param/waffle_pi.yaml",
+      "file": "assets/visual/turtlebot3_waffle_pi/waffle_pi.yaml",
+      "sha256": "d91756067bb965f17d93f00f251d82c2360844f995debc1f14b2704208b706bf",
+      "bytes": 632
+    },
+    {
+      "upstream": "turtlebot3_description/meshes/bases/waffle_pi_base.stl",
+      "file": "assets/visual/turtlebot3_waffle_pi/waffle_pi_base.stl",
+      "sha256": "706230121a287ff953c4c84d344014a147fc27615b0e95221aaf04cb0dca7e42",
+      "bytes": 7878884
+    },
+    {
+      "upstream": "turtlebot3_description/meshes/wheels/left_tire.stl",
+      "file": "assets/visual/turtlebot3_waffle_pi/left_tire.stl",
+      "sha256": "578c9452ee51c2f71e5e6723b503d784e58a6ac317fa53ee308e645f204c8d6a",
+      "bytes": 1083684
+    },
+    {
+      "upstream": "turtlebot3_description/meshes/wheels/right_tire.stl",
+      "file": "assets/visual/turtlebot3_waffle_pi/right_tire.stl",
+      "sha256": "407aaf271ba7051c6186b220e1dc36b2a6eca688fced66a3347f49747b684596",
+      "bytes": 1083684
+    },
+    {
+      "upstream": "turtlebot3_description/meshes/sensors/lds.stl",
+      "file": "assets/visual/turtlebot3_waffle_pi/lds.stl",
+      "sha256": "98f0bd7046159f83caab9509293112ef13534368535669124b91b5114c3132f6",
+      "bytes": 728384
+    }
+  ],
+  "physical_parameters": {
+    "base_link": {
+      "mass_kg": 1.3729096,
+      "origin": {
+        "xyz": "0 0 0",
+        "rpy": "0 0 0"
+      },
+      "inertia_kg_m2": {
+        "ixx": 0.0087002718,
+        "ixy": -4.7576583e-05,
+        "ixz": 0.00011160499,
+        "iyy": 0.0086195418,
+        "iyz": -3.5422299e-06,
+        "izz": 0.014612727
+      }
+    },
+    "wheel_left_link": {
+      "mass_kg": 0.02849894,
+      "origin": {
+        "xyz": "0 0 0"
+      },
+      "inertia_kg_m2": {
+        "ixx": 1.117558e-05,
+        "ixy": -4.2369783e-11,
+        "ixz": -5.9381719e-09,
+        "iyy": 1.1192413e-05,
+        "iyz": -1.4400107e-11,
+        "izz": 2.0712558e-05
+      }
+    },
+    "wheel_right_link": {
+      "mass_kg": 0.02849894,
+      "origin": {
+        "xyz": "0 0 0"
+      },
+      "inertia_kg_m2": {
+        "ixx": 1.117558e-05,
+        "ixy": -4.2369783e-11,
+        "ixz": -5.9381719e-09,
+        "iyy": 1.1192413e-05,
+        "iyz": -1.4400107e-11,
+        "izz": 2.0712558e-05
+      }
+    },
+    "caster_back_right_link": {
+      "mass_kg": 0.005,
+      "origin": {
+        "xyz": "0 0 0"
+      },
+      "inertia_kg_m2": {
+        "ixx": 0.001,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": 0.001,
+        "iyz": 0.0,
+        "izz": 0.001
+      }
+    },
+    "caster_back_left_link": {
+      "mass_kg": 0.005,
+      "origin": {
+        "xyz": "0 0 0"
+      },
+      "inertia_kg_m2": {
+        "ixx": 0.001,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": 0.001,
+        "iyz": 0.0,
+        "izz": 0.001
+      }
+    },
+    "base_scan": {
+      "mass_kg": 0.114,
+      "origin": {
+        "xyz": "0 0 0"
+      },
+      "inertia_kg_m2": {
+        "ixx": 0.001,
+        "ixy": 0.0,
+        "ixz": 0.0,
+        "iyy": 0.001,
+        "iyz": 0.0,
+        "izz": 0.001
+      }
+    }
+  },
+  "geometry": {
+    "wheel_radius_m": 0.033,
+    "wheel_width_m": 0.018,
+    "wheel_center_y_m": [
+      0.144,
+      -0.144
+    ],
+    "urdf_track_m": 0.288,
+    "upstream_driver_track_m": 0.287,
+    "controller_track_m": 0.287
+  },
+  "adaptation": {
+    "description": "Official ROBOTIS URDF dynamics and mesh geometry converted offline to MJCF; no runtime Python or ROS dependency.",
+    "inertia_source": "URDF values, including its simplified fixed caster/LDS inertias; not measured hardware identification.",
+    "caster_model": "Original fixed box support contacts retained with low sliding friction; not free-spinning caster dynamics.",
+    "actuation": "MuJoCo ideal wheel velocity servos: kv=1.0 N m s/rad, force limit=1 N m; simulator parameters, not a measured XL430 motor model.",
+    "track_note": "Official URDF wheel centers give 0.288 m; official driver YAML uses a nominal calibrated 0.287 m. Geometry and controller values are preserved separately.",
+    "sensor_mounts": "Existing simple_rbt MID360/camera selectable sites, rigid MID360 assembly; native LDS mesh retained as robot visual/collision geometry.",
+    "integration": "MuJoCo implicitfast at 1 ms for the original small wheel inertias and a stable ideal wheel velocity servo; not a measured motor/electronics dynamics model."
+  },
+  "command_limits_source": {
+    "url": "https://raw.githubusercontent.com/ROBOTIS-GIT/turtlebot3/90a68bd2e3c61c12966779da89d8eeaec82730e9/turtlebot3_teleop/turtlebot3_teleop/script/teleop_keyboard.py",
+    "sha256": "824d4b2037773eed4617d0945e78c5e17ee21def47cb19208a472b5dd9eebcef",
+    "max_linear_m_s": 0.26,
+    "max_yaw_rad_s": 1.82
+  }
+}
