@@ -1,7 +1,7 @@
 # Desktop console and session architecture / 操作台与会话架构
 
-Status: SpRobo 0.2.0 released after all GitHub acceptance jobs passed. Framework name remains `simple_rbt`. / 状态：SpRobo 0.2.0 已通过全部 GitHub 验收并发布；框架名称保持 `simple_rbt`。[Release / 发行](https://github.com/Killow1998/simple_rbt/releases/tag/v0.2.0) · [Successful CI / 通过的 CI](https://github.com/Killow1998/simple_rbt/actions/runs/38692673470)。
-Date / 日期：2026-10-14。
+Status: SpRobo 0.2.1 released after all GitHub acceptance jobs passed and installed on Jammy. Framework name remains `simple_rbt`. / 状态：SpRobo 0.2.1 已通过全部 GitHub 验收、发布并安装到 Jammy；框架名称保持 `simple_rbt`。[Release / 发行](https://github.com/Killow1998/simple_rbt/releases/tag/v0.2.1) · [Successful CI / 通过的 CI](https://github.com/Killow1998/simple_rbt/actions/runs/38708515822)。
+Date / 日期：2026-10-15。
 
 ## Product / 产品
 
@@ -91,7 +91,20 @@ Runtime installs under `/usr/bin`, `/usr/lib/simple-rbt` and `/usr/share/simple-
 
 程序位于 `/usr/bin`，运行库与数据分别位于 `/usr/lib/simple-rbt`、`/usr/share/simple-rbt`；采用相对 SDK 路径。包内包含实际引用的模型／策略／扫描数据与来源文本，不包含源码目录、准备环境或未使用的 vendor 数据；重复大资源共用存储。可选 ROS 构建资料作为数据安装，需要时单独构建。详见[安装说明](../packaging/README.md)与 [ROS 启动](noetic.md)。
 
-## SpRobo 0.2 stage / SpRobo 0.2 阶段
+## SpRobo 0.2.1 acceptance / SpRobo 0.2.1 验收
+
+Release source / 发行源码：`3ba2ac9ad1b78671f0159d452803cc265fb39c34`.
+CI passed CPU/CUDA builds, CTest, Go race/vet, Pango font regression, clean package installation/removal, 24 native-window checks and analytical camera geometry. The native checks cover all four appearance/language combinations, saved preferences after reopening, editing and motion controls; measured text contrast ranges from 7.10:1 to 13.21:1. Noetic passed 140 checks and Humble passed 147 across seven robots each. The ROS matrix excludes camera streams, which have separate core camera acceptance.
+
+CI 通过 CPU／CUDA 构建、CTest、Go 竞争／静态检查、Pango 字体回归、干净安装／卸载、24 项真实窗口检查及解析相机几何。窗口验收覆盖四种配色／语言组合、重开后恢复偏好、外参编辑及运动控制；抽样文字对比度为 7.10:1–13.21:1。七车型的 Noetic 140 项与 Humble 147 项均通过；本轮 ROS 矩阵不包含图像流，相机另由核心验收覆盖。
+
+The published package is 25,162,228 bytes and installs 119,550 KiB. Its SHA256 is `07299205a4e68ce7e9da0f49f72cd70fd5cee8cb97e938808726622cbdaff6c7`. Downloaded bytes agree with GitHub asset digests, the checksum file, package metadata and CI. Jammy now has this exact package; both installed executable hashes match its metadata and startup dependency checks pass.
+
+发布包为 25,162,228 字节，安装内容为 119,550 KiB；实际下载文件与 GitHub 资产摘要、校验文件、打包记录及 CI 一致。Jammy 已安装此正式包，两个可执行文件哈希均符合打包记录，启动依赖检查通过。[Download verification / 下载核验](../output/releases/v0.2.1/verification.json) · [Installed dependency checks / 安装后依赖检查](../output/releases/v0.2.1/installed-dependencies.json)。
+
+The installed release was also inspected on the actual Jammy desktop in dark Simplified Chinese and light English. Both windows displayed the robot, sensor markers and mounting controls with readable text, continued rendering, and closed their worker normally. / 安装后的正式版也在 Jammy 实际桌面检查了深色简体中文与浅色英文：机器人、传感器标记及外参控件正常显示，文字清晰，窗口持续绘制并正常关闭核心。[Host report / 实机报告](../output/ui-contrast-20261015/installed/verified/report.json) · [Dark Chinese / 深色中文](../output/ui-contrast-20261015/installed/verified/dark-zh-CN/actual-window.png) · [Light English / 浅色英文](../output/ui-contrast-20261015/installed/verified/light-en/actual-window.png)。
+
+## SpRobo 0.2.0 stage / SpRobo 0.2.0 阶段
 
 The launcher command and Debian package are `sprobo`; the UI title is SpRobo. Framework code, repository, `simple-rbt-sim`, ROS message names and existing user paths remain unchanged in identity. `packaging/VERSION` supplies the build/release version. Startup reads the loaded SDK and verifies Ubuntu 22.04 amd64, pinned MuJoCo 3.15.0, model XML/policy digests and referenced assets before opening a worker. Optional ROS probes source the actual Noetic/Humble installation inside their containers; a missing ROS adapter does not block standalone CPU physics.
 
@@ -107,7 +120,7 @@ Local evidence / 本机证据：
 
 The GitHub workflow builds CPU-only and CUDA-capable cores, runs CTest and Go race tests, validates the installed package and actual native inputs, checks analytical RGB/depth, then checks both independent ROS versions with all registered robots. Release publication depends on every job succeeding and preserves existing published versions. / GitHub 流程先执行双构建、CTest 与 Go 竞争检查，再验收安装后的程序、真实窗口输入及解析 RGB／深度，随后两种 ROS 对全部登记车型验收；全部成功后才发布，已发布版本不覆盖。[Workflow / 流程](../.github/workflows/build-release.yml)。
 
-Published source / 发行源码：`aafd0f008c23487a202d31b85b9b1a4152f8625a`. Online acceptance passed both builds, seven CTest cases per build, Go race/vet, clean installation/removal, all 14 native-input checks and analytic camera geometry, then all seven robots in Noetic and Humble: 14 cases, 287 checks. The native test uses keyboard focus and actual window geometry across font configurations. / 线上通过双构建、各七项 CTest、Go 竞争／静态检查、干净安装／卸载、14 项原生输入和解析相机几何，随后七车型在 Noetic／Humble 中共 14 个案例、287 项检查全部通过。原生输入测试按键盘焦点与实际窗口几何定位，适应不同字体布局。
+Published 0.2.0 source / 0.2.0 发行源码：`aafd0f008c23487a202d31b85b9b1a4152f8625a`. Online acceptance passed both builds, seven CTest cases per build, Go race/vet, clean installation/removal, all 14 native-input checks and analytic camera geometry, then all seven robots in Noetic and Humble: 14 cases, 287 checks. The native test uses keyboard focus and actual window geometry across font configurations. / 线上通过双构建、各七项 CTest、Go 竞争／静态检查、干净安装／卸载、14 项原生输入和解析相机几何，随后七车型在 Noetic／Humble 中共 14 个案例、287 项检查全部通过。原生输入测试按键盘焦点与实际窗口几何定位，适应不同字体布局。
 
 The published Debian package is 25,153,764 bytes; installed content is 119,514 KiB. Downloaded release bytes, the checksum file, package metadata and CI agree on SHA256 `94ab8b989805ec324236dc23828455813635f9da77d506453719366d0fee9561`. / 发布包为 25,153,764 字节，安装内容为 119,514 KiB；实际下载文件、校验文件、打包元数据和 CI 的 SHA256 一致。[Download verification / 下载核验](../output/releases/v0.2.0/verification.json)。
 
