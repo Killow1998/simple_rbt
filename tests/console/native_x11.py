@@ -42,6 +42,9 @@ class Inputs:
             "XMapWindow": ([C.c_void_p, C.c_ulong], C.c_int),
             "XDestroyWindow": ([C.c_void_p, C.c_ulong], C.c_int),
             "XGetInputFocus": ([C.c_void_p, C.POINTER(C.c_ulong), C.POINTER(C.c_int)], C.c_int),
+            "XGetGeometry": ([C.c_void_p, C.c_ulong, C.POINTER(C.c_ulong), C.POINTER(C.c_int),
+                               C.POINTER(C.c_int), C.POINTER(C.c_uint), C.POINTER(C.c_uint),
+                               C.POINTER(C.c_uint), C.POINTER(C.c_uint)], C.c_int),
             "XGetImage": ([C.c_void_p, C.c_ulong, C.c_int, C.c_int, C.c_uint, C.c_uint,
                            C.c_ulong, C.c_int], C.POINTER(XImage)),
             "XDestroyImage": ([C.c_void_p], C.c_int),
@@ -141,6 +144,13 @@ class Inputs:
 
     def number(self, x, y, value):
         self.click(x, y)
+        self.type_number(value)
+
+    def press(self, name):
+        self.key(name, True)
+        self.key(name, False)
+
+    def type_number(self, value):
         self.key("Control_L", True)
         self.key("a", True)
         self.key("a", False)
@@ -152,7 +162,13 @@ class Inputs:
         self.key("Return", True)
         self.key("Return", False)
 
-    def capture(self, window, path, width=1320, height=900):
+    def pixels(self, window):
+        root, x, y = C.c_ulong(), C.c_int(), C.c_int()
+        width, height, border, depth = (C.c_uint() for _ in range(4))
+        if not self.x.XGetGeometry(self.d, window, C.byref(root), C.byref(x), C.byref(y),
+                                  C.byref(width), C.byref(height), C.byref(border), C.byref(depth)):
+            raise RuntimeError("Cannot read native window geometry")
+        width, height = width.value, height.value
         image = self.x.XGetImage(self.d, window, 0, 0, width, height, C.c_ulong(-1).value, 2)
         if not image:
             raise RuntimeError("Cannot capture the actual X11 window")
@@ -160,21 +176,63 @@ class Inputs:
             info = image.contents
             if info.bpp != 32 or info.byte_order != 0 or (info.red, info.green, info.blue) != (0xff0000, 0xff00, 0xff):
                 raise RuntimeError("Native test display needs 32-bit little-endian BGR pixels")
-            pixels = C.string_at(info.data, info.stride*height)
-            rows = bytearray()
+            raw = C.string_at(info.data, info.stride*height)
+            pixels = bytearray(width*height*3)
             for y in range(height):
-                rows.append(0)
-                row = pixels[y*info.stride:y*info.stride+width*4]
-                rgb = bytearray(width*3)
-                rgb[0::3], rgb[1::3], rgb[2::3] = row[2::4], row[1::4], row[0::4]
-                rows.extend(rgb)
-            def chunk(kind, data):
-                return struct.pack(">I",len(data))+kind+data+struct.pack(">I",zlib.crc32(kind+data))
-            path.write_bytes(b"\x89PNG\r\n\x1a\n"+
-                chunk(b"IHDR",struct.pack(">IIBBBBB",width,height,8,2,0,0,0))+
-                chunk(b"IDAT",zlib.compress(rows))+chunk(b"IEND",b""))
+                row = raw[y*info.stride:y*info.stride+width*4]
+                start = y*width*3
+                pixels[start:start+width*3:3] = row[2::4]
+                pixels[start+1:start+width*3:3] = row[1::4]
+                pixels[start+2:start+width*3:3] = row[0::4]
+            return width, height, pixels
         finally:
             self.x.XDestroyImage(image)
+
+    def viewport(self, window, image_width, image_height):
+        """Locate the actual rendered rectangle, independent of font line heights."""
+        width, height, pixels = self.pixels(window)
+        # The right pane has a fixed 18px inset. Sample inside the rounded
+        # image corners; the image is dark, while surrounding controls are light.
+        left, right = width-18-image_width, width-18
+        def dark(y):
+            return sum(max(pixels[(y*width+x)*3:(y*width+x)*3+3]) < 220
+                       for x in (right-16, right-24, right-32)) >= 2
+        runs, start = [], None
+        for y in range(66, height):
+            if dark(y):
+                if start is None:
+                    start = y
+            elif start is not None:
+                runs.append((start, y-start))
+                start = None
+        matches = [(y, h) for y, h in runs if abs(h-image_height) <= 2]
+        if len(matches) != 1:
+            raise RuntimeError(f"Cannot identify native observer rectangle {image_width}x{image_height}: {runs}")
+        return left, matches[0][0], image_width, image_height
+
+    def primary_button(self, window):
+        """Find the large blue Start button, rather than assuming a footer height."""
+        width, height, pixels = self.pixels(window)
+        def blue(x, y):
+            r, g, b = pixels[(y*width+x)*3:(y*width+x)*3+3]
+            return b > 180 and b > r+80 and g > r+40
+        rows = [y for y in range(66, height)
+                if sum(blue(x, y) for x in range(30, 330, 10)) >= 24]
+        if not rows or rows[-1]-rows[0] > 50:
+            raise RuntimeError("Cannot identify the native Start button")
+        return 180, (rows[0]+rows[-1])/2
+
+    def capture(self, window, path):
+        width, height, pixels = self.pixels(window)
+        rows = bytearray()
+        for y in range(height):
+            rows.append(0)
+            rows.extend(pixels[y*width*3:(y+1)*width*3])
+        def chunk(kind, data):
+            return struct.pack(">I",len(data))+kind+data+struct.pack(">I",zlib.crc32(kind+data))
+        path.write_bytes(b"\x89PNG\r\n\x1a\n"+
+            chunk(b"IHDR",struct.pack(">IIBBBBB",width,height,8,2,0,0,0))+
+            chunk(b"IDAT",zlib.compress(rows))+chunk(b"IEND",b""))
 
     def close(self):
         if self.dummy:

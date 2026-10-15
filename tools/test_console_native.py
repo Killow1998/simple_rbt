@@ -49,7 +49,7 @@ def child_session(parent, exclude=None, robot=None):
     raise RuntimeError("Owned C++ worker did not create a session")
 
 
-def project(metadata, point):
+def project(metadata, point, viewport):
     observer, base = metadata["observer"], metadata["base_pose"]["position"]
     eye, look, up = observer["position"], observer["lookat"], observer["up"]
     def unit(v):
@@ -63,10 +63,11 @@ def project(metadata, point):
     right = unit(cross(forward, up)); up = cross(right, forward)
     relative = [point[i]+base[i]-eye[i] for i in range(3)]
     width, height = observer["width"], observer["height"]
-    scale = min(924/width, 646/height)
+    vx, vy, vw, vh = viewport
+    scale = min(vw/width, vh/height)
     focal = height*scale*.5/math.tan(math.radians(observer["vertical_fov_deg"])*.5)
     depth = dot(relative, forward)
-    return 378+462+focal*dot(relative, right)/depth, 185+323-focal*dot(relative, up)/depth
+    return vx+vw*.5+focal*dot(relative, right)/depth, vy+vh*.5-focal*dot(relative, up)/depth
 
 
 def main():
@@ -124,11 +125,19 @@ def main():
             time.sleep(.5)
             check("rapid native robot changes retain one latest worker", len(owned_workers(process.pid)) == 1)
             check("superseded worker processes exit", all(not Path(f"/proc/{pid}").exists() for pid,_ in old_workers))
-            inputs.number(115, 618, "0.03000")
+            inputs.capture(window, output / "native-configuration.png")
+            # The Robot selector retains focus after Enter. Walk the real
+            # keyboard order: five other selectors, four sensor checkboxes,
+            # the sensor selector, then X. Font metrics cannot change this order.
+            for _ in range(11):
+                inputs.press("Tab")
+            inputs.type_number("0.03000")
             metadata, _ = observer.wait(lambda m, v: abs(m.get("mounts", {}).get("mid360", {}).get("position", [99])[0]-.03)<1e-6)
             check("native keyboard numeric edit reaches C++ core", True)
             original = metadata["mounts"]["mid360"]["position"][:]
-            tip = project(metadata, [original[0]+.22, original[1], original[2]])
+            viewport = inputs.viewport(window, metadata["observer"]["width"], metadata["observer"]["height"])
+            (output / "native-layout.json").write_text(json.dumps({"observer_rectangle": viewport}, indent=2)+"\n")
+            tip = project(metadata, [original[0]+.22, original[1], original[2]], viewport)
             inputs.move(*tip); inputs.button(True); inputs.move(tip[0]+22, tip[1]-8); inputs.button(False)
             metadata, _ = observer.wait(lambda m, v: abs(m["mounts"]["mid360"]["position"][0]-.03)>.005)
             check("native XTEST translation drag changes core mount", True, metadata["mounts"]["mid360"])
@@ -137,7 +146,7 @@ def main():
             inputs.key("Return", True); inputs.key("Return", False)
             time.sleep(.2)
             mount = metadata["mounts"]["mid360"]["position"]
-            ring = lambda angle: project(metadata, [mount[0]+.16*math.cos(angle), mount[1]+.16*math.sin(angle), mount[2]])
+            ring = lambda angle: project(metadata, [mount[0]+.16*math.cos(angle), mount[1]+.16*math.sin(angle), mount[2]], viewport)
             inputs.move(*ring(.73)); inputs.button(True); inputs.move(*ring(1.13)); inputs.button(False)
             metadata, _ = observer.wait(lambda m, v: abs(m["mounts"]["mid360"]["quaternion"][0])<.995)
             check("native XTEST rotation ring changes core quaternion", True, metadata["mounts"]["mid360"])
@@ -151,7 +160,7 @@ def main():
             rotated = [2*vector[i]*dot+(2*w*w-1)*offset[i]+2*w*cross[i] for i in range(3)]
             check("MID360 internal IMU remains rigid", all(abs(imu[i]-mount[i]-rotated[i])<1e-7 for i in range(3)))
             check("controller body IMU remains independent", metadata["body_imu_mount"]["position"] == [0,0,.04])
-            inputs.click(180, 818)
+            inputs.click(*inputs.primary_button(window))
             observer.wait(lambda m, v: m.get("session_state") == "running")
             time.sleep(2)
             initial, _ = observer.snapshot(); initial = initial["base_pose"]["position"]
@@ -201,6 +210,11 @@ def main():
             check("native console closes owned core gracefully", process.returncode == 0)
             check("actual X11 window screenshot exists", (output / "native-window.png").is_file())
         except Exception as error:
+            if inputs:
+                try:
+                    inputs.capture(window, output / "native-failure.png")
+                except Exception as capture_error:
+                    checks.append({"check": "failure screenshot", "passed": False, "evidence": str(capture_error)})
             checks.append({"check": "exception", "passed": False, "evidence": str(error)})
         finally:
             program_stop.set()
