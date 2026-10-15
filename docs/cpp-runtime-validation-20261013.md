@@ -4,7 +4,7 @@
 七種機器人的控制器、MuJoCo 步進、感測器調度、MID360 雷達／IMU、雙相機、ROS 2 收發與 GUI
 已移入 `mujoco_sim_cpp/`。Python 保留作離線模型準備及獨立測試對照，入口是 `run-python.sh`。
 原生程式使用 MuJoCo／ONNX Runtime 的 C／C++ API，CUDA 射線在建置時編譯，執行時不啟動 Python。
-建置與操作見 [原生 README](runtime.md)；現行操作入口仍是 [仿真 README](python-reference.md)。
+建置與操作見 [原生 README](runtime.md)；現行操作入口仍是 [仿真 README](https://github.com/Killow1998/simple_rbt/blob/8684c5d927c5ae869aa433c6754ea7d86088bfe9/docs/python-reference.md)。
 
 ## 功能與驗收
 

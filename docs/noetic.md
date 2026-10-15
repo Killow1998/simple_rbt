@@ -67,8 +67,6 @@ ROS 1 复用可达的 master；默认本地 master 未启动时，容器自行�
 ```sh
 python3 tools/test_ros_session.py --ros ros1 --skip-build --robots go2w
 python3 tools/test_ros_session.py --ros ros2 --skip-build --robots ranger_mini --terrain hills
-# Compatibility entry for the same independent ROS 1 runner:
-python3 tools/test_ros1.py --skip-build --robots go2w
 ```
 
 Omit `--robots` to test all registered robots. The runner launches the real host core and an official adapter container, then sends commands and inspects real ROS outputs from a separate receiver. It checks namespace isolation, physical forward/reverse motion, stopping, sensor outputs and rigid device transforms. It uses its own session and container, then cleans those resources. Test clients use Python; production nodes remain C++.

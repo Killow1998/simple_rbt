@@ -92,7 +92,7 @@ Go2 另做 **12 案** RobotLab 材料對照：0.3 m/s、兩啟動、15／20／25
 
 ## Go2W：同一次物理運行的完整聯合驗收
 
-新 [validate_full_run.py](../tools/validate_full_run.py) 使用 fresh worker 與獨立 DDS 接收程序。
+新 [validate_full_run.py](https://github.com/Killow1998/simple_rbt/blob/8684c5d927c5ae869aa433c6754ea7d86088bfe9/tools/validate_full_run.py) 使用 fresh worker 與獨立 DDS 接收程序。
 運動指令只經 `/cmd_vel`；原路線門檻每個物理步檢查，速度窗只涵蓋穩定期後到終點／失敗，
 不包含通關後失聯停車。雙方用 run ID、PID、配置與來源 SHA、時間戳核對同一執行。
 所有可靠訊息數量及實際 payload hash 必須吻合，odom／TF／相機外參也交叉核對。

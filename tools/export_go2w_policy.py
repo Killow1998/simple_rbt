@@ -8,7 +8,7 @@ import numpy as np
 import onnxruntime as ort
 import torch
 
-from project import ROOT
+ROOT = Path(__file__).resolve().parents[1]
 SOURCE_HASH = "eda0c490dfc75428fb6706d50924ebe2a91fca40ef21fae8747565699c81a2ac"
 
 

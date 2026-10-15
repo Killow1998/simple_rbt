@@ -13,7 +13,7 @@ from pathlib import Path
 import subprocess
 import urllib.request
 
-from project import ROOT
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def install(manifest_path, source_repo=None, zoo_repo=None):

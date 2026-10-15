@@ -1,6 +1,6 @@
 # 执行资产
 
-此目录是 C++ 模拟器与 Python 对照共用的数据；执行 C++ 不需要 Python 对照代码。
+此目录保存 C++ 模拟器使用的模型、策略、参数与扫描数据。
 
 | 路径 | 用途 |
 | --- | --- |
@@ -20,7 +20,9 @@ Ranger Mini V3、普通四轮 Scout Mini、FR-mini 和 Ridgeback 的外观使用
 外观网格挂在现有机身／关节上，质量与碰撞掩码为零；原碰撞体、惯量、执行器和控制参数保留。
 `visual/*/provenance.json` 记录来源 commit、原始及转换文件哈希、转换参数和与物理近似的差异。
 `tools/prepare_visual_assets.py` 核验已有资源，缺失时从固定来源离线准备；
-`tools/export_models.py` 汇出时通过 `tools/visual_models.py` 应用同一外观变换。
+模型 XML 与 `catalog.json` 是当前运行数据的来源；修改模型后须同步记录 catalog 中的 SHA256，
+并验证物理行为。TurtleBot3 可用 `python3 tools/bootstrap_turtlebot3_assets.py --export`
+从固定 URDF 重建该模型；其他现有 XML 不依赖旧 Python 仿真器生成。
 
 Official visual CAD is separate from validated dynamics. Preparation scripts verify source and
 derived hashes; runtime C++ loads the exported model directly and never invokes these scripts.

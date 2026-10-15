@@ -30,7 +30,7 @@ Git object stores:
 ```
 
 For a deliberate one-time ONNX re-export, use an existing CPU Python environment
-with Torch, ONNX and ONNX Runtime; run `scripts/export_go2w_policy.py`. This is
+with Torch, ONNX and ONNX Runtime; run `tools/export_go2w_policy.py`. This is
 not a setup requirement. The retained export used Torch 2.7.0 and opset 17.
 The export comparison reports absolute and normwise float32 differences rather
 than claiming bit-identical inference. At synthetic observation scales 1/10/100,
@@ -96,7 +96,7 @@ real-time performance.
 
 Evidence: [Go2 HIM and Go2W motion measurements](../../output/validation-20261013/planar-motion.json),
 [Go2 RobotLab motion measurements](../../output/stage2-20261013/planar-motion-go2-robot_lab.json).
-Reproduce into a new output file using `scripts/check_motion.py`, selecting
+Historical reproduction uses [the archived motion tool](https://github.com/Killow1998/simple_rbt/blob/8684c5d927c5ae869aa433c6754ea7d86088bfe9/tools/check_motion.py), selecting
 `--go2-controller himloco` or `--go2-controller robot_lab` explicitly. The Go2W
 option always uses its separate pinned `rl_sar` adapter and checkpoint; selecting
 a Go2 policy does not replace the Go2W policy.

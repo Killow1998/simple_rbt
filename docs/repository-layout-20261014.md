@@ -1,4 +1,55 @@
-# 倉庫結構整理 — 2026-10-14
+# Repository maintenance / 仓库整理
+
+## Python cleanup — 2026-10-15 / Python 清理
+
+The current runtime remains the C++ simulator, independent C++ ROS adapters and
+Go/MyGo console. The complete pre-cleanup tree is preserved in
+[`archive_python`](https://github.com/Killow1998/simple_rbt/tree/archive_python)
+at `8684c5d927c5ae869aa433c6754ea7d86088bfe9`; this includes the old Python simulator,
+its tests, exporters and historical evaluation tools. Current instructions are
+[runtime.md](runtime.md) and [noetic.md](noetic.md).
+
+当前运行链路保持为 C++ 仿真器、独立 C++ ROS 节点与 Go／MyGo 操作台。
+清理前的完整代码保存在上述分支与固定提交，包含 Python 旧实现、测试、导出器及
+历史评测工具。当前操作以上述运行与 ROS 文档为准。
+
+- Python: **83 → 13 files**, **14,915 → 1,929 lines** including comments/blanks,
+  **806,768 → 102,788 bytes**. No Linguist exclusions were added.
+- Archived the old reference package, its dedicated evaluators and the unused
+  same-process ROS tests. ROS 1/ROS 2 now share one current E2E runner.
+- Removed the reference path injection, editable package installation, old SDK
+  exporter, unused FullRun observer/comparison targets and duplicate native executable.
+- Preparation now locks five native SDK/camera-check packages. Retained Python
+  scripts only prepare assets/dependencies, package, observe E2E behavior or measure
+  resources; [the build guide](runtime.md#preparation-and-verification--准备与验证)
+  lists their responsibilities.
+- Resource profiling and native E2E share passive session helpers; profiling uses
+  the current primary-button locator and supports explicit CPU measurements.
+
+Python 从 83 个文件减为 13 个，文本行数从 14,915 减为 1,929，字节数从 806,768
+减为 102,788；未修改语言统计排除规则。旧参考实现及其专用工具、旧 ROS 测试与 SDK
+导出路径、未使用的 C++ 观测／对照目标和重复启动目标均移出主分支。
+资源测量与窗口验收复用被动会话工具，使用当前控件定位；模型、策略及传感器数据保持原样。
+
+Before applying the cleanup, a separate candidate tree without the removed files
+built against a fresh five-package SDK environment. CTest passed **7/7**, native
+window E2E passed **24/24**, and freshly compiled ROS adapters passed **106** checks
+across Go2/Scout Mini (Humble) and Go2W/Ranger Mini (Noetic), with camera/depth enabled.
+The retained asset-preparation tools, resource profiler and Debian packaging also
+passed. Local ROS recompilation used existing runtime images because registry
+metadata requests timed out; the normal CI remains responsible for clean builds
+from the pinned public base images. [Local evidence](../output/python-cleanup-20261015/validation.json).
+
+应用清理前，独立候选目录使用全新的五依赖 SDK 环境完成编译；CTest 7/7、窗口 E2E
+24/24、新编译的双 ROS 节点共 106 项通过，覆盖上述四车型及相机／深度输出。
+保留的资源准备、资源测量与 Debian 打包也通过。本地因注册表元数据请求超时，在已有
+运行镜像内重编译验证；固定公开基础镜像的干净构建由现行 CI 继续把关。证据见上述记录。
+
+## Historical snapshot — 2026-10-14 / 历史快照
+
+The paths and commands below describe that dated stage, not the current layout.
+以下路径与命令对应当时阶段，不作为当前操作入口。
+
 
 本輪只調整工程結構與依賴範圍。輸入速度、機器人物理、控制器、傳感器格式、ROS topic 和安全門檻維持原行為。
 舊版基準為 `823a581ac2c32cbf75f708127307104920850d8d`；Gazebo 來源另由 `archive_gazebo`（`64385758c95ba729b41faa0a9a7c72657f112c49`）保存。

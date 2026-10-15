@@ -1,0 +1,7 @@
+# Native SDK distribution and offline camera checks; no Python simulator.
+# MuJoCo/ONNX wheels supply C++ headers and shared libraries.
+mujoco==3.15.0
+onnxruntime==1.19.2
+numpy==1.26.4
+pillow==12.3.0
+typing-extensions==4.16.0

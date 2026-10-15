@@ -8,9 +8,13 @@ import os
 from pathlib import Path
 import statistics
 import subprocess
+import sys
 import time
 import uuid
-from test_console_native import ROOT, Inputs, Observer, child_session, owned_workers
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tests/console"))
+from native_x11 import Inputs
+from observe_session import Observer, child_session, owned_workers
 
 
 def process_stats(pid, container=None):
@@ -35,10 +39,10 @@ def process_stats(pid, container=None):
 
 def run(args):
     output = args.output.resolve(); output.mkdir(parents=True, exist_ok=False)
-    config = {"robot": "ranger_mini", "terrain": "flat", "controller": "auto", "backend": "cuda",
+    config = {"robot": "ranger_mini", "terrain": "flat", "controller": "auto", "backend": args.backend,
               "camera_hz": 10, "sensors": {"mid360": True,"camera": True,"depth": True,"panorama": True}}
     (output / "config.json").write_text(json.dumps(config))
-    env = dict(os.environ, DISPLAY=args.display, XDG_CONFIG_HOME=str(output / "config"),
+    env = dict(os.environ, DISPLAY=args.display, LC_ALL="C.UTF-8", XDG_CONFIG_HOME=str(output / "config"),
                XDG_STATE_HOME=str(output / "state"), XDG_CACHE_HOME=str(output / "cache"))
     containers, docker_clients, samples = [], [], []
     observer, inputs = None, None
@@ -60,12 +64,12 @@ def run(args):
                     options += ["simple-rbt-ros1:noetic" if version=="ros1" else "simple-rbt-ros2:humble", "--session-dir", "/session"]
                     docker_clients.append(subprocess.Popen(options,stdout=log,stderr=subprocess.STDOUT))
                 observer.wait(lambda m,v:all(m.get("connections",{}).get(x,0)>0 for x in ("ros1","ros2")), timeout=20)
-            inputs.click(180,818)
+            inputs.click(*inputs.primary_button(window))
             observer.wait(lambda m,v:m.get("session_state")=="running")
             time.sleep(2)
             # Approximately .30 m/s, through the actual joystick rather than IPC commands.
-            inputs.move(180,272); inputs.button(True)
-            observer.wait(lambda m,v:m.get("applied_command",[0])[0]>.2)
+            inputs.move(180,248); inputs.button(True)
+            observer.wait(lambda m,v:m.get("applied_command",[0])[0]>.15)
             pids = {"console": [process.pid],"core": [pid for pid,_ in owned_workers(process.pid)]}
             for version,name in zip(("ros1","ros2"),containers):
                 result = subprocess.run(["docker","top",name,"-eo","pid"],check=True,capture_output=True,text=True)
@@ -93,7 +97,7 @@ def run(args):
             inputs.button(False)
             observer.wait(lambda m,v:m.get("applied_command")==[0,0,0] and math.hypot(v[0],v[1])<.1)
             inputs.capture(window,output / "native-window.png")
-            report = {"conditions":{"robot":"ranger_mini","terrain":"flat","backend":"cuda","sensor_outputs":["MID360 20000 rays/10Hz","IMU200Hz","RGB/Z-depth10Hz","panorama RGB/depth10Hz"],"gui":"native MyGo/Xvfb software GL; live first+third views","ros":args.ros,"cpu_unit":"100%=one logical CPU","memory":"summed process RSS and PSS; tool/X server excluded","external_ros_receivers":False},
+            report = {"conditions":{"robot":"ranger_mini","terrain":"flat","backend":args.backend,"sensor_outputs":["MID360 20000 rays/10Hz","IMU200Hz","RGB/Z-depth10Hz","panorama RGB/depth10Hz"],"gui":"native MyGo/Xvfb software GL; live first+third views","ros":args.ros,"cpu_unit":"100%=one logical CPU","memory":"summed process RSS and PSS; tool/X server excluded","external_ros_receivers":False},
                       "pids":pids,"samples":samples,"container_pss_reader":"docker exec cat /proc/<namespace-pid>/smaps_rollup" if containers else None,
                       "mean_cpu_percent_one_core":statistics.mean(x["total"]["cpu_percent_one_core"] for x in samples),
                       "peak_rss_mib":max(x["total"]["rss_mib"] for x in samples),
@@ -120,6 +124,7 @@ def main():
     parser.add_argument("--display",required=True)
     parser.add_argument("--seconds",type=float,default=20)
     parser.add_argument("--ros",action="store_true")
+    parser.add_argument("--backend", choices=("cpu", "auto", "cuda"), default="auto")
     parser.add_argument("--output",type=Path,required=True)
     args = parser.parse_args()
     if not 5<=args.seconds<=120: parser.error("seconds must be5..120")

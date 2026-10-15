@@ -63,7 +63,6 @@ simple_rbt/
 ├── interfaces/              Shared Livox message definitions
 ├── assets/                  Models, policies, terrain and scan data
 ├── tests/, tools/            E2E checks and offline preparation
-├── reference/python/        Independent reference and verification
 ├── third_party/, cmake/     Locked dependencies and build/install rules
 ├── packaging/, docs/        Debian package and documentation
 └── build/, output/          Ignored build products and results

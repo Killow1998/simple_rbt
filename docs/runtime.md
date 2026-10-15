@@ -62,6 +62,31 @@ The installed package carries its runtime SDK libraries and referenced assets wi
 
 安装包携带运行 SDK 库与实际引用的资源，并采用相对运行库查找。开发准备使用 `.venv` 提供锁定的 MuJoCo／ONNX SDK，以及经哈希核验的 Go 工具链／MyGo 源码。源码构建需要 C++17、CMake 3.22+、EGL／OpenGL、GLFW、PNG、TinyXML2、OpenSSL 和原生 GTK3 库；CUDA 12.9 可选。`./setup.sh --native-only --cpu-only` 或 `-DSIMPLE_RBT_CUDA=OFF` 构建不链接 CUDA 的版本。可用 `--no-desktop` 省略 GUI；ROS 镜像独立编译，不需要仿真 SDK。
 
+## Preparation and verification / 准备与验证
+
+`tools/requirements-sdk.lock` pins five packages for native SDK distribution and
+independent camera checks. Setup does not install a Python simulator, Warp or
+an editable reference package. Committed model XML/catalog data remain the runtime
+source; asset preparation verifies their pinned inputs. Python tools have these roles:
+
+`tools/requirements-sdk.lock` 仅固定五个 SDK 分发／独立相机检查依赖。
+准备过程不安装 Python 仿真器、Warp 或 editable 参考包；已提交的模型 XML／catalog
+保持为运行数据来源。保留的 Python 工具分工如下：
+
+| Tools / 工具 | Purpose / 用途 |
+| --- | --- |
+| `bootstrap_rl_sar_assets.py`, `bootstrap_turtlebot3_assets.py`, `turtlebot3_model.py` | Verify pinned sources and convert Waffle Pi URDF / 核验固定来源、转换 Waffle Pi URDF |
+| `prepare_visual_assets.py`, `export_go2w_policy.py` | Offline mesh/policy preparation / 离线网格与策略准备 |
+| `setup-gui.py`, `package_deb.py` | Locked GUI dependencies and packaging / 固定 GUI 依赖与打包 |
+| `test_console_native.py`, `tests/console/` | Actual window input, readability and motion E2E / 真实窗口输入、可读性与运动验收 |
+| `test_ros_session.py`, `tests/ipc/ros_probe.py` | One ROS 1/ROS 2 runner observing the C++ core / 双 ROS 共用入口，观测 C++ 核心 |
+| `profile_console.py` | CPU/RAM measurements using the same passive session helpers / 复用被动会话工具测量 CPU／RAM |
+
+These tools do not provide another simulator implementation. CTest remains the
+owner of native core/sensor/IPC checks; the two E2E runners own observable desktop
+and middleware behavior. / 这些工具不实现第二套仿真器；原生核心、传感器与 IPC 由
+CTest 验证，桌面与中间件的可观察行为由两个 E2E 入口验证。
+
 ## Program control / 程序控制
 
 The operator explicitly selects one command owner: `gui` (manual joystick), `program` (direct IPC), `ros1` or `ros2`. Focus loss clears only manual input. Changing owner clears the old command; a program must continue sending commands within 0.5 seconds. Disconnect, explicit Stop and Pause remain effective in every mode. ROS programs publish `geometry_msgs/Twist` to `/<robot>/cmd_vel`, for example `/turtlebot3_waffle_pi/cmd_vel`.
@@ -93,7 +118,7 @@ Headless sessions can instead set `"source":"program"` and `"start_immediately":
 | `ipc/`, `include/simple_rbt/ipc.hpp` | Neutral wire protocol / 普通进程通信协议 |
 | `console/` | UI, projected gizmos, input and process lifecycle / 界面、三维手柄、输入与进程生命周期 |
 | `wrappers/`, `deployment/` | Independent ROS nodes and images / 独立 ROS 节点与镜像 |
-| `tests/`, `tools/`, `reference/python/` | Preparation and independent validation / 准备与独立验证 |
+| `tests/`, `tools/` | Preparation and independent validation / 准备与独立验证 |
 
 User settings use `$XDG_CONFIG_HOME/simple-rbt`; state/results use `$XDG_STATE_HOME/simple-rbt` or the standard home-directory defaults. CLI output refuses an existing destination. `--summary-only` keeps the summary and compiled model without step/sensor files. Package removal preserves user data.
 

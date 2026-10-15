@@ -148,7 +148,7 @@ source /home/user/ros_ws/to_migrate_ws/install/livox_ros_driver2/share/livox_ros
 ```
 
 外部 ROS 控制加 `--ros2`，向相應車名話題發布 Twist；同一 domain、localhost，資料消費節點用模擬時鐘。
-一般 `run.sh` 預設 tracked；詳細啟動例與話題表在 [使用說明](python-reference.md)。
+一般 `run.sh` 預設 tracked；詳細啟動例與話題表在 [使用說明](https://github.com/Killow1998/simple_rbt/blob/8684c5d927c5ae869aa433c6754ea7d86088bfe9/docs/python-reference.md)。
 桌面查看可加 `--viewer`，本輪資源表沒有計入額外 GUI 視窗。
 
 完整回歸在已授權 Jammy 宿主機啟用 render／Warp／CUDA／ROS：

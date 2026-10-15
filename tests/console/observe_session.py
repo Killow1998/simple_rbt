@@ -1,10 +1,42 @@
-"""Passive IPC telemetry for native-input acceptance; sends no control requests."""
+"""Discover owned core sessions and observe IPC telemetry for native GUI checks."""
 import json
+from pathlib import Path
 import socket
 import struct
 import threading
 import time
 import uuid
+
+
+def owned_workers(parent):
+    children = set()
+    for task in Path(f"/proc/{parent}/task").glob("*/children"):
+        try:
+            children.update(task.read_text().split())
+        except FileNotFoundError:
+            pass
+    result = []
+    for pid in children:
+        try:
+            values = Path(f"/proc/{pid}/cmdline").read_bytes().decode().split("\0")
+        except FileNotFoundError:
+            continue
+        if "--session-dir" in values:
+            result.append((int(pid), Path(values[values.index("--session-dir")+1])))
+    return result
+
+
+def child_session(parent, exclude=None, robot=None):
+    deadline = time.monotonic()+15
+    while time.monotonic() < deadline:
+        for _, directory in owned_workers(parent):
+            if directory == exclude or not (directory / "data.sock").exists():
+                continue
+            if robot and json.loads((directory / "config.json").read_text())["robot"] != robot:
+                continue
+            return directory
+        time.sleep(.05)
+    raise RuntimeError("Owned C++ worker did not create a session")
 
 
 def read_exact(connection, count):

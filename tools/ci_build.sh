@@ -8,7 +8,7 @@ version=${1:-$(cat packaging/VERSION)}
   { printf 'Version must match packaging/VERSION\n' >&2; exit 2; }
 mkdir -p output/ci
 export PATH="$HOME/.local/bin:$PATH"
-./tools/setup-sdk.sh --minimal
+./tools/setup-sdk.sh
 python3 tools/prepare_visual_assets.py
 python3 tools/setup-gui.py
 cmake -S . -B build/ci-cpu -DCMAKE_BUILD_TYPE=Release \

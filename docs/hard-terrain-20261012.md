@@ -10,7 +10,7 @@ Xian 指出原有 6 cm 台階和 8° 短坡太容易。本輪增加明確的 mod
 三檔樓梯為每階 12／18／22 cm、6／6／8 級，踏面 30 cm，總高 0.72／1.08／1.76 m。
 坡道為 15°／20°／25°，單側水平長度 3／4／4 m，平台長 1 m，頂高 0.804／1.456／1.865 m。
 起伏塊最大高度為 5／8／12 cm，保留同一個 seed 0 排列。
-尺寸入口見 [使用指南](python-reference.md)，完整幾何保存在每個案例的 `terrain` metadata。
+尺寸入口見 [使用指南](https://github.com/Killow1998/simple_rbt/blob/8684c5d927c5ae869aa433c6754ea7d86088bfe9/docs/python-reference.md)，完整幾何保存在每個案例的 `terrain` metadata。
 
 坡道終點隨實際尺寸延長至 x=8.6／10.6／10.6 m，樓梯終點 x=6／6／7.1 m。
 時間上限為 `2 秒站立 + max(8 m, finish_x + 2 m) / 指令速度`，

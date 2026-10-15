@@ -10,7 +10,7 @@ import socket
 import subprocess
 import time
 import uuid
-from project import ROOT
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def stop(process):
@@ -106,12 +106,12 @@ def run_case(args, robot, output):
     return result
 
 
-def main(default_ros=None):
+def main():
     catalog = json.loads((ROOT / "assets/catalog.json").read_text())
     all_robots = sorted({key.split("-", 1)[0] for key in catalog["models"]})
     robots = sorted({key.split("-", 1)[0] for key, value in catalog["models"].items() if not value.get("legacy", False)})
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--ros", choices=["ros1", "ros2"], default=default_ros or "ros2")
+    parser.add_argument("--ros", choices=["ros1", "ros2"], default="ros2")
     parser.add_argument("--image")
     parser.add_argument("--base-image", help="Optional public base override; production Dockerfile pins the official image")
     parser.add_argument("--build-only", action="store_true")

@@ -81,7 +81,7 @@ MUJOCO_GL=egl .venv/bin/python mujoco_sim/scripts/check_ros2.py \
   --backend warp --domain 84 --output output/ros2-new-validation.json
 ```
 
-安裝與日常運行入口見 [README](python-reference.md)。新輸出應選新名稱，保留舊證據。
+安裝與日常運行入口見 [README](https://github.com/Killow1998/simple_rbt/blob/8684c5d927c5ae869aa433c6754ea7d86088bfe9/docs/python-reference.md)。新輸出應選新名稱，保留舊證據。
 依賴固定在 `requirements.lock`，MuJoCo-LiDAR 固定提交 `e6b879df4b96daaed30ef10fe02650d29048fa9b`。
 
 ## 下一階段
