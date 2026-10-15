@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CACHE = ROOT / "build/visual-preparation"
 DEPENDENCIES = {"numpy": "2.2.6", "trimesh": "5.1.1", "pycollada": "0.9.3",
                 "fast-simplification": "0.2.0", "lxml": "6.1.3", "networkx": "3.4.2",
-                "python-dateutil": "2.9.0.post0", "six": "1.17.0"}
+                "python-dateutil": "2.9.0.post0", "six": "1.17.0", "scipy": "1.15.3"}
 
 
 def sha256(path):
