@@ -151,8 +151,8 @@ class Inputs:
         self.x.XFlush(self.d)
         time.sleep(.025)
 
-    def button(self, pressed):
-        self.t.XTestFakeButtonEvent(self.d, 1, bool(pressed), 0)
+    def button(self, pressed, button=1):
+        self.t.XTestFakeButtonEvent(self.d, button, bool(pressed), 0)
         self.x.XFlush(self.d)
         time.sleep(.025)
 

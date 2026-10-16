@@ -388,3 +388,92 @@ remains manual; see [scene schema and limits](runtime.md#workspace-and-user-scen
 踏步深度、级数和期望单级高度。例如 3 米高差、期望 0.18 米，得到 17 级、每级约
 0.1765 米。几何始终依据楼层标高生成，修改层高后会更新。C++ 射线验证逐级踏面、
 净宽边界及坡面高度；控件测试实际输入单级高度与坡度。两端平面位置仍需手动摆放。
+
+
+## Scene editing and resource acceptance — 2026-10-16 / 场景编辑与资源验收
+
+The scene page now supports deleting objects, undo/redo, configurable translation
+and rotation snapping, and object alignment. Undo groups a continuous drag or
+field edit and restores the selection; history is bounded to 64 operations and
+is local to the current scene/session. Saved scenes remain separate from drafts.
+Floor slabs support rectangular through-openings. Connections can generate two
+flights with left/right 90° or 180° return landings, including integer stair-step
+splits and exact upper-floor elevation. See [usage and schema](runtime.md#workspace-and-user-scenes--工作区与用户场景).
+
+场景页已支持删除物体、撤销／重做、平移／旋转吸附和物体对齐。连续拖动或同一
+输入框的编辑合并为一步，撤销恢复选择；历史最多 64 步，仅属于当前场景／会话。
+保存的场景与草稿分离。楼板支持矩形贯穿洞口；连接件可自动生成左／右 90 度及
+180 度回转平台，按整数楼梯级数分段，并精确接上层标高。洞口与平台同时进入
+C++ 碰撞、雷达和渲染几何。平面布置和机器人路线可通行性仍由用户检查。
+
+Validation includes native-window save/reopen and scene-switch continuity,
+delete/undo/redo and turn selection; widget tests cover grouped snapped gestures,
+keyboard shortcuts and opening controls; C++ rays check opening rims, rotated
+openings and turned-flight/landing heights. Resource profiling uses a separate
+four-storey, 242-object fixture with partitions, furniture, openings, ramps and
+stairs. It is a workload fixture, not a proof of autonomous inter-floor navigation.
+
+验收覆盖真实窗口保存／重开／切换连续性、删除／撤销／重做及转折选择；控件验收
+覆盖吸附拖动合并、快捷键和洞口开关；C++ 射线检查洞口边缘、旋转洞口、转折梯段
+及平台高度。资源测试使用独立四层、242 个物体的场景，包含隔墙、家具、洞口、
+坡道和楼梯；该场景用于负载测量，不代表已验证自主跨楼层导航。
+
+Reproduce with `python3 tools/profile_scene.py --display DISPLAY --output NEW_DIR
+--image NOETIC_IMAGE`, then use `--flat` with a different output directory for the
+baseline. Use a normally built standalone Noetic adapter image; the tool does not
+depend on a particular host's container configuration. It uses isolated XDG data,
+a private test master and an owned disposable container, with read-only real ROS
+subscribers. Python is measurement/verification code only.
+
+复现使用 `python3 tools/profile_scene.py --display DISPLAY --output NEW_DIR
+--image NOETIC_IMAGE`；加 `--flat` 并换输出目录可跑平地对照。镜像使用常规构建的
+独立 Noetic adapter，不依赖某台机器的专用容器配置。测试使用隔离的 XDG 数据、
+独立测试 master、自有临时容器及只读 ROS 接收节点；Python 仅用于测量和验证。
+
+Both 60-second runs use Go2W, CPU policy/physics/LiDAR (20,000 points at 10 Hz),
+MID360 and D435i IMUs, RGB/depth/panorama at 10 Hz, live operator views and the
+independent Noetic adapter. Ten ROS topics have actual receivers, including
+CustomMsg, PointCloud2 and panorama RGB/depth. The native GUI ran under Xvfb with
+software GL; the core used host-default EGL. CPU 100% means one logical core;
+means are weighted by sample intervals. Totals include GUI/core/ROS, excluding
+the X server, Docker daemon, measurement code, external receiver and GPU memory.
+
+两组各运行 60 秒：Go2W、CPU 策略／物理／雷达（20,000 点／10 Hz）、MID360 与
+D435i 的 IMU、10 Hz RGB／深度／全景、实时操控视图，以及独立 Noetic adapter。
+十个话题均有实际接收者，包括 CustomMsg、PointCloud2 和全景 RGB／深度。原生
+GUI 在 Xvfb 下使用软件 GL，核心使用宿主默认 EGL。CPU 100% 为一个逻辑核，均值
+按采样间隔加权。总量包括 GUI／核心／ROS，不含 X server、Docker daemon、测量
+程序、外部接收器和显存。
+
+| Scenario / 场景 | Mean CPU / 平均 CPU | Runtime peak CPU / 运行峰值 CPU | Peak RSS / 峰值 RSS | Peak PSS / 峰值 PSS | RTF |
+|---|---:|---:|---:|---:|---:|
+| Flat / 平地 | 54.8% | 64.1% | 952.1 MiB | 850.5 MiB | 0.997 |
+| 4 floors, 242 objects / 四层 242 物体 | 89.8% | 96.8% | 962.6 MiB | 862.6 MiB | 0.998 |
+
+For the complex case, GUI/core/ROS mean CPU is 18.2% / 66.6% / 5.0%; individual
+peak RSS is 145.0 / 672.3 / 146.0 MiB. The separate receiver uses 4.5% mean CPU
+and 55.2 MiB peak RSS. Orbiting the scene editor uses 44.7% mean GUI CPU; five
+seconds after orbiting average 3.2%. Sampled startup peak for GUI+core is 174%
+CPU. These are sampled peaks, not worst-case guarantees or an endurance test;
+phase-boundary samples can include activity immediately before the transition.
+The main increase over flat ground is core CPU, while runtime peak PSS rises by
+about 12 MiB. This does not establish performance for all scenes or hardware.
+
+复杂场景 GUI／核心／ROS 平均 CPU 分别为 18.2%／66.6%／5.0%，各自峰值 RSS
+为 145.0／672.3／146.0 MiB；独立接收器平均 CPU 4.5%、峰值 RSS 55.2 MiB。
+环绕编辑场景时 GUI 平均 CPU 44.7%，停止操作后的五秒平均为 3.2%。GUI＋核心
+启动采样峰值 CPU 为 174%。以上为采样峰值，非最坏情况保证或耐久测试，阶段边界
+样本可能包含切换前的活动。相对平地，主要增加核心 CPU，运行峰值 PSS 约增加
+12 MiB；不代表任意场景或硬件上的性能。
+
+Evidence / 证据：[complex / 复杂场景](../output/editor-resources-20261016/complex-final/report.json),
+[flat / 平地](../output/editor-resources-20261016/flat-final/report.json),
+[native workspace / 原生工作区](../output/editor-resources-20261016/workspace-appearance/report.json).
+Reports retain raw samples, binary hashes, image digest and ROS reception counts.
+Local CTest passes 9/9; Go tests and vet pass; native workspace checks pass 17/17.
+This is a source/local-build stage; the installed 0.2.1 package and published
+release remain unchanged. Run `./run.sh --console` from the repository to test.
+
+报告保留原始采样、程序哈希、镜像摘要与 ROS 消息计数。本地 CTest 9/9、Go 测试
+与 vet、真实窗口工作区 17/17 通过。本阶段为源码及本机构建，已安装的 0.2.1 与
+发布版本未替换；在仓库执行 `./run.sh --console` 测试。

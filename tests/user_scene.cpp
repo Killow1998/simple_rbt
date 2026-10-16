@@ -84,9 +84,74 @@ void check_connections() {
   std::cout << "Parametric stairs, width, ramp incline, endpoints and "
                "floor-height changes passed\n";
 }
+void check_openings_and_landings() {
+  SimulationOptions options;
+  options.project_root = SIMPLE_RBT_PROJECT_ROOT;
+  options.robot = "turtlebot3_waffle_pi";
+  options.scene = scene();
+  options.scene["spawn"]["floor"] = "ground";
+  options.scene["objects"][1]["opening"] = {{"center", {0, 0}},
+                                            {"size", {2, 4}}};
+  auto height = [](Simulation &sim, double x, double y) {
+    mjtNum origin[3]{x, y, 6}, direction[3]{0, 0, -1};
+    mjtByte groups[6]{0, 1, 0, 0, 0, 0};
+    int geom = -1;
+    double d = mj_ray(sim.model(), sim.data(), origin, direction, groups, 1, -1,
+                      &geom, nullptr);
+    require(d >= 0, "Missing physical surface");
+    return 6 - d;
+  };
+  Simulation opening(options);
+  require(std::abs(height(opening, 0, 0)) < 1e-7 &&
+              std::abs(height(opening, 2, 0) - 3) < 1e-7,
+          "Opening still has a collider or lost its rim");
+  options.scene["objects"][1]["quaternion"] = {std::sqrt(.5), 0, 0,
+                                               std::sqrt(.5)};
+  Simulation rotated(options);
+  require(std::abs(height(rotated, 1.5, 0)) < 1e-7 &&
+              std::abs(height(rotated, 0, 1.5) - 3) < 1e-7,
+          "Opening did not rotate with its slab");
+  options.scene["objects"][1].erase("opening");
+  options.scene["objects"][1]["position"] = {30, 0, -.1};
+  options.scene["objects"].push_back({{"id", "turn"},
+                                      {"name", "Turn"},
+                                      {"floor", "ground"},
+                                      {"kind", "stairs"},
+                                      {"position", {0, 0, 0}},
+                                      {"quaternion", {1, 0, 0, 0}},
+                                      {"size", {4.2, 1.2, .2}},
+                                      {"connection",
+                                       {{"to_floor", "upper"},
+                                        {"steps", 15},
+                                        {"turn_deg", 90},
+                                        {"landing_m", 1.2}}}});
+  for (int turn : {90, -90, 180}) {
+    options.scene["objects"][2]["connection"]["turn_deg"] = turn;
+    Simulation sim(options);
+    require(std::abs(height(sim, 2.56, 0) - 1.4) < 1e-7,
+            "Landing elevation incorrect");
+    double x = turn == 180 ? -.14 : 2.56, y = turn == 180  ? 1.2
+                                              : turn == 90 ? 2.7
+                                                           : -2.7;
+    require(std::abs(height(sim, x, y) - 3) < 1e-7,
+            "Turned stairs miss the upper elevation");
+  }
+  options.scene["objects"][2]["kind"] = "ramp";
+  options.scene["objects"][2]["size"] = {12, 2, .2};
+  options.scene["objects"][2]["connection"]["turn_deg"] = 90;
+  options.scene["objects"][2]["connection"]["landing_m"] = 2;
+  Simulation ramp(options);
+  require(std::abs(height(ramp, 3, 0) - .75) < 1e-7 &&
+              std::abs(height(ramp, 7, 0) - 1.5) < 1e-7 &&
+              std::abs(height(ramp, 7, 4) - 2.25) < 1e-7,
+          "Turning ramp/landing is discontinuous");
+  std::cout << "Slab openings, rotated cuts, three stair turns and turning "
+               "ramp passed\n";
+}
 int main() {
   try {
     check_connections();
+    check_openings_and_landings();
     for (auto robot : {"turtlebot3_waffle_pi", "go2w"}) {
       SimulationOptions o;
       o.project_root = SIMPLE_RBT_PROJECT_ROOT;

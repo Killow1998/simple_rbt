@@ -26,6 +26,7 @@ type RobotConfig struct {
 	CameraHz         float64         `json:"camera_hz"`
 }
 type Workspace struct {
+	Snap        sceneSnap              `json:"snap"`
 	Version     int                    `json:"version"`
 	Config      Config                 `json:"config"`
 	RobotID     string                 `json:"robot_id"`
@@ -117,6 +118,12 @@ func (a *app) initWorkspace(restore bool) {
 	}
 	if a.sceneDraft.Version != 1 || len(a.sceneDraft.Floors) == 0 {
 		a.sceneDraft = a.newScene(true)
+	}
+	if a.workspace.Snap.Grid <= 0 {
+		a.workspace.Snap.Grid = .1
+	}
+	if a.workspace.Snap.Angle <= 0 {
+		a.workspace.Snap.Angle = 15
 	}
 	a.sceneFloor = a.sceneDraft.Floors[0].ID
 	a.sceneLookat = Vec3{4, 0, 1}

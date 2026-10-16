@@ -73,15 +73,58 @@ from the two floors; stairs divide run and rise equally among the steps. The UI
 couples ramp incline/run and stair target height/count, and displays the actual
 step height after integer rounding. Generated geometry is limited to 2048 boxes.
 Changing either floor elevation regenerates the connection. Height alignment is
-automatic; users still place both ends against floor slabs in XY. No automatic
-landings, slab openings or route validation are provided.
+automatic; users still place both ends against floor slabs in XY. Route
+traversability is not automatically validated.
 
 连接式坡道／楼梯还包含 `connection: {"to_floor": "上层 ID"}`，楼梯增加整数
 `steps`（1–128）。位姿为下端地面锚点及偏航角，`size` 表示水平长度、净宽和
 坡板厚度。高差由两层标高决定；楼梯等分长度和高差。界面联动坡度／水平长度、
 期望单级高度／级数，并显示整数级数对应的实际单级高度。展开后最多 2048 个
 物理盒体；修改层高会重新生成连接件。标高自动对齐，平面位置仍由用户拖动两端
-对准楼板；暂不自动生成休息平台、楼板开洞或校验可通行路线。
+对准楼板；暂不自动校验路线可通行性。
+
+Scene editing supports object deletion, undo/redo (64 operations for the current
+scene; history is not persisted across launches), grid/angle snapping, and world
+bounding-box alignment: X/Y centres, +X/+Y edge joins and placement on top. A
+continuous drag or field edit is one undo operation. Use toolbar buttons or,
+with the viewport focused, Delete, Ctrl+Z, Ctrl+Shift+Z / Ctrl+Y. Text inputs keep
+their own editing shortcuts. Grid spacing and angle persist in the workspace;
+world translation snaps absolute coordinates, local translation snaps the delta,
+and rotation snaps the angle delta. “Snap selected” also rounds the current pose.
+Saving the scene remains explicit; undo changes the draft, not an earlier save.
+
+场景编辑支持删除物体、撤销／重做（当前场景最多 64 步，关闭后不保存历史）、
+网格／角度吸附，以及按世界包围盒 X/Y 居中、贴合 +X/+Y 边和放到顶面的对齐。
+连续拖动或同一输入框的一次编辑合并为一步。可用工具栏按钮，或聚焦视图后使用
+Delete、Ctrl+Z、Ctrl+Shift+Z／Ctrl+Y；文字输入框保留自己的编辑快捷键。
+网格与角度设置保存在工作区；世界平移吸附绝对坐标，局部平移和旋转吸附变化量。
+“对齐网格”可直接调整当前位姿。撤销仅修改草稿，更新已保存场景仍需点击保存。
+
+A floor slab accepts one rectangular through-opening:
+`opening: {"center": [0, 0], "size": [2, 3]}` in slab-local XY metres. The UI
+exposes its centre and dimensions. It expands into up to four solid rim boxes,
+so the hole affects collision, LiDAR and rendering. It must remain inside the slab;
+multiple openings can be made with separate slabs. This is not arbitrary mesh CSG.
+
+楼板支持一个矩形贯穿洞口：`opening: {"center": [0, 0], "size": [2, 3]}`，
+使用楼板局部 XY 米制坐标。界面可调中心和尺寸；核心将楼板拆为最多四块边缘实体，
+洞口同时影响碰撞、雷达和渲染。洞口必须位于楼板内；多个洞口可用多块楼板布置，
+不支持任意网格布尔运算。
+
+Connections optionally set `turn_deg` to 90, -90 or 180 and `landing_m` to a
+platform depth at least equal to the clear width. Zero or absent turn stays
+straight. Two flights and a level landing are generated together; turned stairs
+need at least two steps. `size[0]` is the total horizontal run of the flights,
+excluding the landing. Ramps split the rise equally; stairs split the integer
+step count while retaining equal riser height and tread depth. A 180-degree
+landing spans both parallel flights (twice the clear width). Rotate and position
+the connection as one object; the upper-end marker follows the resulting geometry.
+
+连接件可选 `turn_deg` 为 90、-90 或 180，并设置不小于净宽的平台深度
+`landing_m`；省略或为 0 时直行。两段坡道／楼梯和水平转折平台作为整体生成，
+转折楼梯至少两级。`size[0]` 为两段水平长度之和，不含平台。坡道等分高差；
+楼梯按整数级数分段，保持单级高度和踏步深度一致。180 度平台横跨两个平行梯段，
+总宽为两倍净宽。整体移动、旋转时，上端标记随实际几何更新。
 
 ### Keyboard driving / 键盘驾驶
 

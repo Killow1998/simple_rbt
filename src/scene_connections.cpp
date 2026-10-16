@@ -14,6 +14,11 @@ Json scene_boxes(const Json &scene) {
   };
   for (const auto &object : scene.at("objects")) {
     const std::string kind = object.at("kind");
+    if (object.contains("opening")) {
+      for (auto &part : opening_boxes(object))
+        result.push_back(std::move(part));
+      continue;
+    }
     if (!object.contains("connection")) {
       require(kind != "stairs", "Stairs require a floor connection");
       result.push_back(object);
@@ -45,26 +50,73 @@ Json scene_boxes(const Json &scene) {
       value["size"] = dimensions;
       result.push_back(std::move(value));
     };
+    int steps = 0;
     if (kind == "stairs") {
       require(connection.at("steps").is_number_integer(),
               "Step count must be an integer");
-      int steps = connection.at("steps");
+      steps = connection.at("steps");
       require(steps >= 1 && steps <= 128, "Stairs require 1..128 steps");
-      double tread = size[0] / steps, height = rise / steps;
-      require(tread >= .02 && height >= .02,
+      require(size[0] / steps >= .02 && rise / steps >= .02,
               "Step dimensions must be at least 0.02 m");
-      for (int i = 1; i <= steps; ++i)
-        box({(i - .5) * tread, 0, i * height * .5},
-            {tread, size[1], i * height}, {1, 0, 0, 0});
-    } else {
-      double angle = std::atan2(rise, size[0]);
-      require(angle <= 80 * 3.14159265358979323846 / 180,
+    } else
+      require(std::atan2(rise, size[0]) <= 80 * 3.14159265358979323846 / 180,
               "Ramp incline exceeds 80 degrees");
-      // The upper surface, rather than the slab centre, joins the floor levels.
-      box({size[0] * .5, 0, rise * .5 - size[2] / (2 * std::cos(angle))},
-          {std::hypot(size[0], rise) + size[2] * std::tan(angle), size[1],
-           size[2]},
-          {std::cos(angle * .5), 0, -std::sin(angle * .5), 0});
+    require(!connection.contains("turn_deg") ||
+                connection.at("turn_deg").is_number_integer(),
+            "Turn must be an integer angle");
+    int turn = connection.value("turn_deg", 0);
+    double landing = connection.value("landing_m", 0.);
+    require(turn == 0 || turn == 90 || turn == -90 || turn == 180,
+            "Unsupported connection turn");
+    if (turn)
+      require(std::isfinite(landing) && landing >= size[1] && landing <= 200 &&
+                  (kind != "stairs" || steps >= 2),
+              "Invalid landing depth or step count");
+    auto flight = [&](Vec3 start, double yaw, double run, double height,
+                      int count) {
+      double half = yaw * 3.14159265358979323846 / 360;
+      Quat heading{std::cos(half), 0, 0, std::sin(half)};
+      auto part = [&](Vec3 local, Vec3 dimensions, Quat rotation) {
+        Vec3 at;
+        Quat orientation;
+        mju_rotVecQuat(at.data(), local.data(), heading.data());
+        for (int i = 0; i < 3; ++i)
+          at[i] += start[i];
+        mju_mulQuat(orientation.data(), heading.data(), rotation.data());
+        box(at, dimensions, orientation);
+      };
+      if (kind == "stairs") {
+        double tread = run / count, h = height / count;
+        for (int i = 1; i <= count; ++i)
+          part({(i - .5) * tread, 0, i * h / 2}, {tread, size[1], i * h},
+               {1, 0, 0, 0});
+      } else {
+        double angle = std::atan2(height, run);
+        part({run / 2, 0, height / 2 - size[2] / (2 * std::cos(angle))},
+             {std::hypot(run, height) + size[2] * std::tan(angle), size[1],
+              size[2]},
+             {std::cos(angle / 2), 0, -std::sin(angle / 2), 0});
+      }
+    };
+    if (!turn)
+      flight({0, 0, 0}, 0, size[0], rise, steps);
+    else {
+      int first = steps / 2;
+      double fraction = kind == "stairs" ? double(first) / steps : .5;
+      double run = size[0] * fraction, height = rise * fraction,
+             width = size[1];
+      flight({0, 0, 0}, 0, run, height, first);
+      Vec3 center{run + landing / 2, 0, height - size[2] / 2},
+          dimensions{landing, width, size[2]};
+      Vec3 start{run + landing / 2, turn == -90 ? -width / 2 : width / 2,
+                 height};
+      if (turn == 180) {
+        center[1] = width / 2;
+        dimensions[1] = 2 * width;
+        start = {run, width, height};
+      }
+      box(center, dimensions, {1, 0, 0, 0});
+      flight(start, turn, size[0] - run, rise - height, steps - first);
     }
     require(result.size() <= 2048, "Scene exceeds 2048 physical boxes");
   }

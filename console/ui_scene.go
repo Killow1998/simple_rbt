@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 	"github.com/egoist/mygo/ui"
-	"math"
 )
 
 func (a *app) sceneSidebar(c *ui.Context) {
+	c = c.Key(a.sceneRevision)
 	ui.Text(c, a.tr("Scene library", "场景库")).Bold()
-	ui.TextInput(c.Key("scene-name"), &a.sceneDraft.Name).FillWidth().Label(a.tr("Scene name", "场景名称"))
+	a.sceneFieldFocus(ui.TextInput(c.Key("scene-name"), &a.sceneDraft.Name).FillWidth().Label(a.tr("Scene name", "场景名称")), "scene-name")
 	if a.sceneDirty() {
 		ui.Text(c, a.tr("Unsaved changes", "未保存的修改")).TextColor(c.Theme().Warning)
 	}
@@ -112,6 +112,7 @@ func (a *app) addSceneObject(kind string) {
 	a.sceneObject = o.ID
 }
 func (a *app) sceneEditor(c *ui.Context) {
+	a.sceneActions(c)
 	ui.Row(c).Gap(8).Children(func() {
 		ui.Text(c, a.tr("Scene editor", "场景编辑器")).Bold().Grow(1)
 		a.localizedSelect(c.Key("tool"), &a.tool, []string{"Move / 平移", "Rotate / 旋转"}).Width(130)
@@ -120,10 +121,9 @@ func (a *app) sceneEditor(c *ui.Context) {
 			if p, ok := a.editPose(); ok {
 				a.sceneLookat = p.Position
 				a.viewport.Distance = 8
-				if o := a.sceneDraft.object(a.sceneObject); o != nil && o.Connection != nil {
-					rise := a.sceneDraft.connectionRise(*o)
-					a.sceneLookat = add(p.Position, rotate(Vec3{o.Size[0] * .5, 0, rise * .5}, o.Quaternion))
-					a.viewport.Distance = clamp(math.Hypot(o.Size[0], rise)*1.5, 8, 100)
+				if low, high, ok := a.sceneDraft.bounds(a.sceneObject); ok {
+					a.sceneLookat = mul(add(low, high), .5)
+					a.viewport.Distance = clamp(norm(sub(high, low))*1.5, 8, 100)
 				}
 			}
 		})
@@ -141,6 +141,7 @@ func (a *app) sceneEditor(c *ui.Context) {
 	})
 }
 func (a *app) sceneInspector(c *ui.Context) {
+	c = c.Key(a.sceneRevision)
 	ui.Text(c, a.tr("Properties", "属性")).Bold()
 	if a.sceneObject == "spawn" {
 		names := []string{}
@@ -158,7 +159,7 @@ func (a *app) sceneInspector(c *ui.Context) {
 			a.sceneDraft.Spawn.Floor = ids[selected]
 		}
 		a.editVector(c, a.tr("Spawn position", "出生位置"), &a.sceneDraft.Spawn.Position, -100, 100)
-		ui.NumberInput(c, &a.sceneDraft.Spawn.Yaw, -180, 180, 1).Label(a.tr("Spawn yaw", "出生朝向")).FillWidth()
+		a.sceneFieldFocus(ui.NumberInput(c, &a.sceneDraft.Spawn.Yaw, -180, 180, 1).Label(a.tr("Spawn yaw", "出生朝向")).FillWidth(), "spawn-yaw")
 		ui.Text(c, a.tr("Position is a ground point relative to its floor; chassis clearance is added automatically.", "位置是相对所在楼层的地面点，底盘离地高度自动添加。")).FontSize(12)
 		return
 	}
@@ -167,15 +168,15 @@ func (a *app) sceneInspector(c *ui.Context) {
 		for i := range a.sceneDraft.Floors {
 			f := &a.sceneDraft.Floors[i]
 			if f.ID == a.sceneFloor {
-				ui.TextInput(c, &f.Name).FillWidth().Label(a.tr("Floor name", "楼层名称"))
+				a.sceneFieldFocus(ui.TextInput(c, &f.Name).FillWidth().Label(a.tr("Floor name", "楼层名称")), "floor-name")
 				ui.Text(c, a.tr("Floor elevation · m", "楼层标高 · 米"))
-				ui.NumberInput(c, &f.Height, -100, 100, .1).FillWidth().Label(a.tr("Floor elevation", "楼层标高"))
+				a.sceneFieldFocus(ui.NumberInput(c, &f.Height, -100, 100, .1).FillWidth().Label(a.tr("Floor elevation", "楼层标高")), "floor-height")
 			}
 		}
 		ui.Text(c, a.tr("Select an object to edit its transform and size.", "选择物体后可编辑位姿和尺寸。"))
 		return
 	}
-	ui.TextInput(c, &o.Name).FillWidth().Label(a.tr("Object name", "物体名称"))
+	a.sceneFieldFocus(ui.TextInput(c, &o.Name).FillWidth().Label(a.tr("Object name", "物体名称")), "object-name")
 	ui.Text(c, a.sceneKindLabel(o.Kind)).TextColor(c.Theme().TextMuted)
 	if o.Connection != nil {
 		a.connectionInspector(c, o)
@@ -195,6 +196,8 @@ func (a *app) sceneInspector(c *ui.Context) {
 		a.sceneDraft.Objects = append(a.sceneDraft.Objects, copy)
 		a.sceneObject = copy.ID
 	})
+	a.openingInspector(c, o)
+	a.alignmentInspector(c, o)
 }
 func (a *app) editVector(c *ui.Context, label string, v *Vec3, lo, hi float64) bool {
 	changed := false
@@ -203,7 +206,9 @@ func (a *app) editVector(c *ui.Context, label string, v *Vec3, lo, hi float64) b
 		i, axis := i, axis
 		ui.Row(c).Gap(6).Children(func() {
 			ui.Text(c, axis).Width(18)
-			if ui.NumberInput(c.Key(label+axis), &v[i], lo, hi, .01).Width(205).Label(label + " " + axis).Changed() {
+			element := ui.NumberInput(c.Key(label+axis), &v[i], lo, hi, .01).Width(205).Label(label + " " + axis)
+			a.sceneFieldFocus(element, label+axis)
+			if element.Changed() {
 				changed = true
 			}
 		})

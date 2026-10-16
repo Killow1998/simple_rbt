@@ -20,6 +20,7 @@ type SceneObject struct {
 	Pose
 	Size       Vec3             `json:"size"`
 	Connection *FloorConnection `json:"connection,omitempty"`
+	Opening    *SlabOpening     `json:"opening,omitempty"`
 }
 type Spawn struct {
 	Floor    string  `json:"floor"`
@@ -83,7 +84,7 @@ func validateScene(s *Scene) error {
 		if o.Kind != "floor" && o.Kind != "wall" && o.Kind != "ramp" && o.Kind != "obstacle" && o.Kind != "stairs" {
 			return fail
 		}
-		if !s.connectionValid(o, floors) {
+		if !s.connectionValid(o, floors) || !o.openingValid() {
 			return fail
 		}
 		for i, x := range o.Position {

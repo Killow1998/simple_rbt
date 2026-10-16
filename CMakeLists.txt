@@ -57,7 +57,7 @@ add_library(simple_rbt_random src/random.cpp)
 target_include_directories(simple_rbt_random PUBLIC include)
 
 add_library(simple_rbt_core
-  src/core.cpp src/scene.cpp src/user_scene.cpp src/scene_connections.cpp src/sensor_devices.cpp src/tracking.cpp src/controller.cpp
+  src/core.cpp src/scene.cpp src/user_scene.cpp src/scene_connections.cpp src/scene_openings.cpp src/sensor_devices.cpp src/tracking.cpp src/controller.cpp
   src/controller_policy.cpp
   src/controllers/go2.cpp src/controllers/go2w.cpp
   src/controllers/diffdrive.cpp src/controllers/scout_mini.cpp

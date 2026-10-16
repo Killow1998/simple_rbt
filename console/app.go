@@ -40,6 +40,9 @@ type metadata struct {
 	} `json:"resources"`
 }
 type app struct {
+	sceneRevision           int
+	sceneHistory            sceneHistory
+	sceneField, alignTarget string
 	scenePreview            sceneRaster
 	viewError               string
 	page                    string

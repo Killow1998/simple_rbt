@@ -2,6 +2,7 @@
 #include "simple_rbt/core.hpp"
 #include <tinyxml2.h>
 namespace simple_rbt {
+Json opening_boxes(const Json &object);
 Json scene_boxes(const Json &scene);
 void validate_user_scene(const Json &scene);
 void append_user_scene(tinyxml2::XMLDocument &, const Json &scene);

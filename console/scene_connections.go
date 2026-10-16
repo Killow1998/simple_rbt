@@ -5,8 +5,10 @@ import "math"
 // Connected objects use a lower-floor anchor, yaw and horizontal run/width.
 // The upper floor sets the rise; it is never an independent editable value.
 type FloorConnection struct {
-	ToFloor string `json:"to_floor"`
-	Steps   int    `json:"steps,omitempty"`
+	ToFloor string  `json:"to_floor"`
+	Steps   int     `json:"steps,omitempty"`
+	Turn    int     `json:"turn_deg,omitempty"`
+	Landing float64 `json:"landing_m,omitempty"`
 }
 
 func (s *Scene) connectionRise(o SceneObject) float64 {
@@ -18,39 +20,15 @@ func (s *Scene) connectionRise(o SceneObject) float64 {
 func (s *Scene) boxes() []SceneObject {
 	boxes := make([]SceneObject, 0, len(s.Objects))
 	for _, o := range s.Objects {
+		if o.Opening != nil {
+			boxes = append(boxes, o.openingBoxes()...)
+			continue
+		}
 		if o.Connection == nil {
 			boxes = append(boxes, o)
 			continue
 		}
-		rise, run := s.connectionRise(o), o.Size[0]
-		if rise <= 0 || run <= 0 {
-			continue
-		}
-		makeBox := func(position, size Vec3, rotation Quat) {
-			box := o
-			box.Connection = nil
-			box.Position = add(o.Position, rotate(position, o.Quaternion))
-			box.Quaternion = qnormalize(qproduct(o.Quaternion, rotation))
-			box.Size = size
-			boxes = append(boxes, box)
-		}
-		if o.Kind == "stairs" {
-			steps := o.Connection.Steps
-			if steps < 1 || steps > 128 {
-				continue
-			}
-			tread, height := run/float64(steps), rise/float64(steps)
-			for i := 1; i <= steps; i++ {
-				h := float64(i) * height
-				makeBox(Vec3{(float64(i) - .5) * tread, 0, h * .5}, Vec3{tread, o.Size[1], h}, Quat{1, 0, 0, 0})
-			}
-		} else {
-			angle := math.Atan2(rise, run)
-			// Top surface meets both elevations exactly. Extra length covers the
-			// tilted slab's end caps without a vertical lip at the upper landing.
-			thickness := o.Size[2]
-			makeBox(Vec3{run * .5, 0, rise*.5 - thickness/(2*math.Cos(angle))}, Vec3{math.Hypot(run, rise) + thickness*math.Tan(angle), o.Size[1], thickness}, qaxis(Vec3{0, 1, 0}, -angle*180/math.Pi))
-		}
+		boxes = append(boxes, s.flightBoxes(o)...)
 	}
 	return boxes
 }
@@ -61,6 +39,14 @@ func (s *Scene) connectionValid(o SceneObject, floors map[string]bool) bool {
 	}
 	if (o.Kind != "ramp" && o.Kind != "stairs") || !floors[c.ToFloor] || s.connectionRise(o) < .02 || math.Abs(o.Position[2]) > 1e-8 || math.Abs(o.Quaternion[1])+math.Abs(o.Quaternion[2]) > 1e-8 {
 		return false
+	}
+	if c.Turn != 0 {
+		if c.Turn != 90 && c.Turn != -90 && c.Turn != 180 {
+			return false
+		}
+		if math.IsNaN(c.Landing) || math.IsInf(c.Landing, 0) || c.Landing < o.Size[1] || c.Landing > 200 || (o.Kind == "stairs" && c.Steps < 2) {
+			return false
+		}
 	}
 	if o.Kind == "stairs" {
 		return c.Steps >= 1 && c.Steps <= 128 && o.Size[0]/float64(c.Steps) >= .02 && s.connectionRise(o)/float64(c.Steps) >= .02

@@ -6,6 +6,9 @@ import (
 )
 
 func (a *app) viewportInput(event ui.InputEvent) bool {
+	if a.sceneShortcut(event) {
+		return true
+	}
 	v := &a.viewport
 	pointer := point{float64(event.X), float64(event.Y)}
 	switch event.Kind {
@@ -65,9 +68,19 @@ func (a *app) viewportInput(event ui.InputEvent) bool {
 					return true
 				}
 				angle := math.Atan2(dot(worldAxis, cross(v.StartVector, current)), dot(v.StartVector, current)) * 180 / math.Pi
+				if a.page == "scene" && a.workspace.Snap.Enabled {
+					angle = quantize(angle, a.workspace.Snap.Angle)
+				}
 				pose.Quaternion = qnormalize(qproduct(qaxis(v.Current.Direction, angle), v.Initial.Quaternion))
 			} else {
-				pose.Position = add(pose.Position, mul(v.Current.Direction, axisParameter(eye, ray, origin, worldAxis)-v.Parameter))
+				delta := axisParameter(eye, ray, origin, worldAxis) - v.Parameter
+				if a.page == "scene" && a.workspace.Snap.Enabled && a.space == "Local / 设备" {
+					delta = quantize(delta, a.workspace.Snap.Grid)
+				}
+				pose.Position = add(pose.Position, mul(v.Current.Direction, delta))
+				if a.page == "scene" && a.workspace.Snap.Enabled && a.space != "Local / 设备" {
+					pose.Position[v.Current.Axis] = quantize(pose.Position[v.Current.Axis], a.workspace.Snap.Grid)
+				}
 				for i := range pose.Position {
 					pose.Position[i] = clamp(pose.Position[i], -a.editBound(), a.editBound())
 				}

@@ -8,6 +8,10 @@ import (
 
 func (a *app) view(c *ui.Context) {
 	defer a.checkDriveFocus(c)
+	if a.page == "scene" && a.stage == "configure" {
+		a.beginSceneFrame()
+		defer a.endSceneFrame()
+	}
 	theme := themeFor(a.preferences.Theme)
 	c.SetTheme(theme)
 	ui.Column(c).Fill().Background(theme.Background).Children(func() {

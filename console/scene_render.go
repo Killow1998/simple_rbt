@@ -98,7 +98,7 @@ func (a *app) drawScene(p *ui.Painter, r ui.Rect) {
 	}
 	if o := a.sceneDraft.object(a.sceneObject); o != nil && o.Connection != nil && !a.hiddenFloors[o.Floor] {
 		base := a.sceneDraft.pose(*o).Position
-		top := add(base, rotate(Vec3{o.Size[0], 0, a.sceneDraft.connectionRise(*o)}, o.Quaternion))
+		top := a.sceneDraft.connectionEnd(*o)
 		for i, v := range []Vec3{base, top} {
 			q := a.project(v)
 			label := a.tr("Lower end", "下端")
