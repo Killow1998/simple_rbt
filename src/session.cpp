@@ -28,6 +28,7 @@ Json run_session(const Json &config, const std::filesystem::path &directory,
     throw std::invalid_argument("--session-dir is required");
   RunOptions args;
   args.simulation.project_root = project_root;
+  args.simulation.scene = config.value("scene", Json());
   args.simulation.robot = config.value("robot", std::string("ranger_mini"));
   args.simulation.controller = config.value("controller", std::string("auto"));
   args.simulation.control_mode =

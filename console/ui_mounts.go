@@ -19,7 +19,7 @@ func (a *app) mountInspector(c *ui.Context) {
 	if (a.selected == "mid360" && !a.cfg.Sensors.MID360) || (a.selected == "camera" && !a.cameraDeviceEnabled()) {
 		a.selected = choices[0]
 	}
-	section(c, a.tr("03 · Sensor mount", "03 · 安装外参"), func() {
+	section(c, a.tr("Sensor mount", "安装外参"), func() {
 		a.localizedSelect(c.Key("sensor-mount"), &a.selected, choices).FillWidth()
 		pose, available := a.cfg.Mounts[a.selected]
 		if !available {

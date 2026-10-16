@@ -33,6 +33,56 @@ A mount pose is relative to the robot base, with quaternion order `[w,x,y,z]`. N
 
 外参相对机器人 base，四元数顺序为 `[w,x,y,z]`。数值欧拉角与三维手柄修改同一 pose。MID360 内部 IMU 在雷达坐标中固定为 `[0.011,0.02329,-0.04412]` m，方向相同。调整设备时保持这一关系。控制器自身的机身 IMU 是另一感测点，不会被传感器配置移动。外参在首次开始之前编辑。
 
+### Workspace and user scenes / 工作区与用户场景
+
+SpRobo stores versioned robot presets, scenes, drafts and the current configuration
+in `$XDG_CONFIG_HOME/simple-rbt/workspace.json` (normally
+`~/.config/simple-rbt/workspace.json`). Checkpoints run once per second and at page
+changes, session changes and normal close, writing only changed data by atomic
+rename. Explicit `--config` preserves the existing library while starting a new
+robot preset. Unsupported workspace files are reported and preserved.
+
+SpRobo 在 `$XDG_CONFIG_HOME/simple-rbt/workspace.json`（通常为
+`~/.config/simple-rbt/workspace.json`）保存带版本号的机器人预设、场景、草稿及
+当前配置。每秒及切页、切会话、正常关闭时检查，数据变化才通过原子重命名写入。
+显式使用 `--config` 会新建机器人预设并保留已有资源库；无法识别的工作区文件
+会报错并保留原文件。
+
+A session JSON may contain `scene` with `version: 1`, `id`, `name`, `floors`,
+`objects` and `spawn`. Floors have `id`, `name`, `height`; objects have `id`, `name`,
+`floor`, `kind` (`floor`, `wall`, `ramp`, `stairs`, `obstacle`), `position`, WXYZ `quaternion`
+and full `size` in metres. Object Z is relative to its floor elevation. Spawn has
+`floor`, local ground-point `position` and `yaw_deg`; nominal robot clearance is
+added automatically. Limits are 32 floors, 512 authored objects, coordinates ±100 m and box
+dimensions 0.02–200 m. The C++ core independently validates the scene and replaces
+legacy terrain geometry. Omitting `scene` retains existing session compatibility.
+Use continuous routes for wheel chassis; the editor does not validate navigability.
+
+会话 JSON 可包含 `scene`：`version: 1`、`id`、`name`、`floors`、`objects` 和
+`spawn`。楼层包含 `id`、`name`、`height`；物体包含 `id`、`name`、`floor`、
+`kind`（`floor`／`wall`／`ramp`／`stairs`／`obstacle`）、`position`、WXYZ `quaternion`
+及米制完整尺寸 `size`。物体 Z 相对楼层标高；出生点包含 `floor`、楼层局部地面点
+`position` 和 `yaw_deg`，机器人标称离地高度自动添加。上限为 32 层、512 个物体，
+坐标 ±100 米，物体尺寸 0.02–200 米。C++ 核心独立校验并替换内置地形；省略
+`scene` 时兼容原会话。轮式底盘应布置连续路线，编辑器暂不检查路线可通行性。
+
+A connected ramp or staircase also has `connection: {"to_floor": "upper-id"}`;
+stairs add integer `steps` (1–128). Its pose is the lower-end ground anchor and
+yaw only. `size` means horizontal run, clear width and slab thickness. Rise comes
+from the two floors; stairs divide run and rise equally among the steps. The UI
+couples ramp incline/run and stair target height/count, and displays the actual
+step height after integer rounding. Generated geometry is limited to 2048 boxes.
+Changing either floor elevation regenerates the connection. Height alignment is
+automatic; users still place both ends against floor slabs in XY. No automatic
+landings, slab openings or route validation are provided.
+
+连接式坡道／楼梯还包含 `connection: {"to_floor": "上层 ID"}`，楼梯增加整数
+`steps`（1–128）。位姿为下端地面锚点及偏航角，`size` 表示水平长度、净宽和
+坡板厚度。高差由两层标高决定；楼梯等分长度和高差。界面联动坡度／水平长度、
+期望单级高度／级数，并显示整数级数对应的实际单级高度。展开后最多 2048 个
+物理盒体；修改层高会重新生成连接件。标高自动对齐，平面位置仍由用户拖动两端
+对准楼板；暂不自动生成休息平台、楼板开洞或校验可通行路线。
+
 ### Keyboard driving / 键盘驾驶
 
 In Manual mode, click the joystick or either driving view to give it keyboard focus.
@@ -132,7 +182,7 @@ source; asset preparation verifies their pinned inputs. Python tools have these 
 | `bootstrap_rl_sar_assets.py`, `bootstrap_turtlebot3_assets.py`, `turtlebot3_model.py` | Verify pinned sources and convert Waffle Pi URDF / 核验固定来源、转换 Waffle Pi URDF |
 | `prepare_visual_assets.py`, `export_go2w_policy.py` | Offline mesh/policy preparation / 离线网格与策略准备 |
 | `setup-gui.py`, `package_deb.py` | Locked GUI dependencies and packaging / 固定 GUI 依赖与打包 |
-| `test_console_native.py`, `tests/console/` | Actual window input, readability and motion E2E / 真实窗口输入、可读性与运动验收 |
+| `test_console_native.py`, `test_console_workspace.py`, `tests/console/` | Window input, motion, named resources and reopen E2E / 窗口输入、运动、命名资源及重开验收 |
 | `test_ros_session.py`, `tests/ipc/ros_probe.py` | One ROS 1/ROS 2 runner observing the C++ core / 双 ROS 共用入口，观测 C++ 核心 |
 | `profile_console.py` | CPU/RAM measurements using the same passive session helpers / 复用被动会话工具测量 CPU／RAM |
 

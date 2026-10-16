@@ -11,6 +11,7 @@
 namespace simple_rbt {
 using Json = nlohmann::json;
 struct SimulationOptions {
+  Json scene;
   std::filesystem::path project_root;
   std::string robot = "go2", controller = "auto", terrain = "flat",
               terrain_level = "standard";

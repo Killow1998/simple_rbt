@@ -48,7 +48,7 @@ jobs:
         env:
           SPROBO_VERSION: ${{ steps.version.outputs.version }}
         run: bash tools/ci_verify_package.sh "$SPROBO_VERSION"
-      - name: Verify installed native input and analytic camera geometry
+      - name: Verify installed input, workspace and analytic camera geometry
         env:
           SPROBO_VERSION: ${{ steps.version.outputs.version }}
         run: bash tools/ci_native_checks.sh "$SPROBO_VERSION"

@@ -44,6 +44,7 @@ func (a *app) consume() {
 				}
 				a.observerSize = [2]int{frame.Width, frame.Height}
 				a.viewStamp = packet.StampNS
+				a.viewLoading = false
 			} else {
 				if a.camera == nil {
 					a.camera = ui.NewBitmap(pixels)

@@ -52,22 +52,27 @@ func (v *viewport) imageRect(size [2]int) ui.Rect {
 	return ui.Rect{X: float32((w - iw) * .5), Y: float32((h - ih) * .5), W: float32(iw), H: float32(ih)}
 }
 func (a *app) basis() (Vec3, Vec3, Vec3) {
-	o := a.meta.Observer
+	o := a.viewInfo()
 	forward := normalized(sub(o.Lookat, o.Position))
 	right := normalized(cross(forward, o.Up))
 	up := cross(right, forward)
 	return forward, right, up
 }
-func (a *app) world(p Vec3) Vec3 { return add(a.meta.Base.Position, rotate(p, a.meta.Base.Quaternion)) }
+func (a *app) world(p Vec3) Vec3 {
+	if a.page == "scene" {
+		return p
+	}
+	return add(a.meta.Base.Position, rotate(p, a.meta.Base.Quaternion))
+}
 func (a *app) project(p Vec3) point {
 	f, right, up := a.basis()
-	rel := sub(a.world(p), a.meta.Observer.Position)
+	rel := sub(a.world(p), a.viewInfo().Position)
 	depth := dot(rel, f)
 	if depth <= 1e-6 {
 		return point{math.NaN(), math.NaN()}
 	}
-	r := a.viewport.imageRect(a.observerSize)
-	fov := a.meta.Observer.Fov
+	r := a.viewport.imageRect(a.viewSize())
+	fov := a.viewInfo().Fov
 	if fov < 1 {
 		fov = 45
 	}
@@ -76,15 +81,15 @@ func (a *app) project(p Vec3) point {
 }
 func (a *app) ray(p point) (Vec3, Vec3) {
 	f, right, up := a.basis()
-	r := a.viewport.imageRect(a.observerSize)
-	fov := a.meta.Observer.Fov
+	r := a.viewport.imageRect(a.viewSize())
+	fov := a.viewInfo().Fov
 	if fov < 1 {
 		fov = 45
 	}
 	focal := float64(r.H) * .5 / math.Tan(fov*math.Pi/360)
 	x := (p.X - float64(r.X+r.W*.5)) / focal
 	y := (float64(r.Y+r.H*.5) - p.Y) / focal
-	return a.meta.Observer.Position, normalized(add(f, add(mul(right, x), mul(up, y))))
+	return a.viewInfo().Position, normalized(add(f, add(mul(right, x), mul(up, y))))
 }
 func axisParameter(eye, ray, origin, direction Vec3) float64 {
 	delta := sub(eye, origin)

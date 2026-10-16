@@ -220,6 +220,8 @@ func (a *app) startOperating() {
 		}
 	}
 	a.stopManual()
+	a.checkpoint()
+	a.page = "operate"
 	a.stage = "operate"
 	a.sourceLabel = manualLabel
 	_ = a.manager.Client.SendRequest(map[string]any{"op": "source", "source": "gui"})

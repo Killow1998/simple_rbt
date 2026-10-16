@@ -104,6 +104,8 @@ func (t *e2e) step() {
 		t.body = a.meta.BodyImu.Position
 		t.tester = ui.NewTester(a.view, 1320, 900)
 		t.check(true, "MyGo widget flow receives real MuJoCo preview")
+		t.check(t.tester.Click(a.tr("Robot presets", "机器人预设")) == nil, "open preset editor")
+		t.tester.Frame()
 		t.field(a.tr("X translation", "X 轴平移"), a.cfg.Mounts["mid360"].Position[0]+.03)
 		t.target = a.cfg.Mounts["mid360"]
 		t.next()
@@ -115,7 +117,7 @@ func (t *e2e) step() {
 		t.tester.Frame()
 		pose := a.cfg.Mounts["mid360"]
 		origin := a.project(pose.Position)
-		tip := a.project(add(pose.Position, mul(axis(0), .22)))
+		tip := a.project(add(pose.Position, mul(axis(0), a.gizmoLength(pose.Position))))
 		target := point{tip.X + (tip.X-origin.X)*.15, tip.Y + (tip.Y-origin.Y)*.15}
 		t.drag(tip, target)
 		t.check(norm(sub(a.cfg.Mounts["mid360"].Position, pose.Position)) > .005, "native translation handle changes pose")
@@ -129,8 +131,9 @@ func (t *e2e) step() {
 		t.check(t.tester.Click(a.optionLabel("Move / 平移")) == nil, "open native gizmo tool select")
 		t.check(t.tester.Click(a.optionLabel("Rotate / 旋转")) == nil, "select native rotation tool")
 		pose := a.cfg.Mounts["mid360"]
-		from := a.project(add(pose.Position, Vec3{.16 * math.Cos(.73), .16 * math.Sin(.73), 0}))
-		to := a.project(add(pose.Position, Vec3{.16 * math.Cos(1.13), .16 * math.Sin(1.13), 0}))
+		radius := a.gizmoLength(pose.Position) * .8
+		from := a.project(add(pose.Position, Vec3{radius * math.Cos(.73), radius * math.Sin(.73), 0}))
+		to := a.project(add(pose.Position, Vec3{radius * math.Cos(1.13), radius * math.Sin(1.13), 0}))
 		t.drag(from, to)
 		q := a.cfg.Mounts["mid360"].Quaternion
 		product := 0.
@@ -148,6 +151,8 @@ func (t *e2e) step() {
 		t.check(norm(sub(a.meta.MidImu.Position, internalImu(a.meta.Mounts["mid360"]))) < 1e-6, "MID360 internal IMU remains rigidly coupled")
 		t.check(norm(sub(a.meta.BodyImu.Position, t.body)) < 1e-9, "body controller IMU stays independent")
 		t.capture(".configuration.png")
+		t.check(t.tester.Click(a.tr("Launch", "启动")) == nil, "return to launch")
+		t.tester.Frame()
 		t.check(t.tester.Click(a.tr("Start session", "进入操控")) == nil, "activate native Start button")
 		t.next()
 	case 4:
@@ -159,7 +164,7 @@ func (t *e2e) step() {
 		t.tester.Frame()
 		r, ok := t.tester.Find(a.tr("Hold joystick to move; release to stop", "按住摇杆运动，松开停车"))
 		t.check(ok, "native joystick available")
-		t.tester.Press(r.X+r.W*.5, r.Y+r.H*.36)
+		t.tester.Press(r.X+r.W*.5, r.Y+r.H*.28)
 		a.commandMu.Lock()
 		moving := a.command[0]
 		a.commandMu.Unlock()

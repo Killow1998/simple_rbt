@@ -73,13 +73,15 @@ func (a *app) visibleMount(name string) bool {
 }
 func (a *app) drawGizmo(p *ui.Painter, r ui.Rect) {
 	a.viewport.Handles = nil
-	bounds := a.viewport.imageRect(a.observerSize)
+	bounds := a.viewport.imageRect(a.viewSize())
 	// Clip all overlays, including labels and the camera frustum, to the actual
 	// image, not the surrounding letterbox or the rest of the console.
 	p.Clip(ui.Rect{X: r.X + bounds.X, Y: r.Y + bounds.Y, W: bounds.W, H: bounds.H}, 0, func() {
-		a.drawMounts(p, r)
-		pose, ok := a.cfg.Mounts[a.selected]
-		if !ok || !a.visibleMount(a.selected) {
+		if a.page != "scene" {
+			a.drawMounts(p, r)
+		}
+		pose, ok := a.editPose()
+		if !ok {
 			return
 		}
 		a.viewport.Handles = a.gizmoHandles(pose)

@@ -114,6 +114,22 @@ class Inputs:
             self.x.XFree(children)
         return result
 
+    def close_window(self, window):
+        """Send the standard native window-manager close request without a WM."""
+        class Data(C.Union):
+            _fields_=[("bytes",C.c_char*20),("longs",C.c_long*5)]
+        class Client(C.Structure):
+            _fields_=[("type",C.c_int),("serial",C.c_ulong),("send_event",C.c_int),
+                      ("display",C.c_void_p),("window",C.c_ulong),("message_type",C.c_ulong),
+                      ("format",C.c_int),("data",Data)]
+        class Event(C.Union):
+            _fields_=[("client",Client),("pad",C.c_long*24)]
+        event=Event();event.client.type=33;event.client.display=self.d;event.client.window=window
+        event.client.message_type=self.x.XInternAtom(self.d,b"WM_PROTOCOLS",0)
+        event.client.format=32;event.client.data.longs[0]=self.x.XInternAtom(self.d,b"WM_DELETE_WINDOW",0)
+        self.x.XSendEvent.argtypes=[C.c_void_p,C.c_ulong,C.c_int,C.c_long,C.c_void_p]
+        self.x.XSendEvent(self.d,window,False,0,C.byref(event));self.x.XFlush(self.d)
+
     def focus(self, window):
         self.x.XSetInputFocus(self.d, window, 2, 0)
         self.x.XFlush(self.d)

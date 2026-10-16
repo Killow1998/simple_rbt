@@ -7,12 +7,12 @@ import "math"
 // https://github.com/godotengine/godot/blob/4.5/editor/scene/3d/node_3d_editor_plugin.cpp
 func (a *app) gizmoLength(origin Vec3) float64 {
 	f, _, _ := a.basis()
-	depth := dot(sub(a.world(origin), a.meta.Observer.Position), f)
-	r := a.viewport.imageRect(a.observerSize)
+	depth := dot(sub(a.world(origin), a.viewInfo().Position), f)
+	r := a.viewport.imageRect(a.viewSize())
 	if depth <= 1e-6 || r.H <= 0 {
 		return 0
 	}
-	fov := a.meta.Observer.Fov
+	fov := a.viewInfo().Fov
 	if fov < 1 {
 		fov = 45
 	}
@@ -27,6 +27,12 @@ func (a *app) gizmoHandles(pose Pose) []handle {
 	}
 	handles := make([]handle, 0, 3)
 	for i := 0; i < 3; i++ {
+		if a.page == "scene" {
+			o := a.sceneDraft.object(a.sceneObject)
+			if o != nil && o.Connection != nil && ((a.tool == "Rotate / 旋转" && i != 2) || (a.tool != "Rotate / 旋转" && i == 2)) {
+				continue
+			}
+		}
 		direction := axis(i)
 		if a.space == "Local / 设备" {
 			direction = rotate(direction, pose.Quaternion)
@@ -54,7 +60,7 @@ func (a *app) gizmoHandles(pose Pose) []handle {
 	return handles
 }
 func (a *app) insideView(p point) bool {
-	r := a.viewport.imageRect(a.observerSize)
+	r := a.viewport.imageRect(a.viewSize())
 	return validPoint(p) && p.X >= float64(r.X) && p.Y >= float64(r.Y) && p.X < float64(r.X+r.W) && p.Y < float64(r.Y+r.H)
 }
 func (a *app) pickHandle(p point) (handle, bool) {

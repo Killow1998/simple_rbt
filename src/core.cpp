@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iomanip>
 #include "scene.hpp"
+#include "user_scene.hpp"
 #include "tracking.hpp"
 #include <algorithm>
 #include <cmath>
@@ -69,8 +70,8 @@ struct Simulation::Impl {
       controller = spec.default_controller;
     if (!catalog["models"].contains(o.robot + "-" + controller))
       throw std::invalid_argument("Unsupported robot/controller combination");
-    if (spec.continuous_terrain && o.terrain != "flat" && o.terrain != "ramp" &&
-        o.terrain != "hills")
+    if (o.scene.is_null() && spec.continuous_terrain && o.terrain != "flat" &&
+        o.terrain != "ramp" && o.terrain != "hills")
       throw std::invalid_argument("Pure wheel robots require flat/ramp/hills");
     if (!catalog["terrain_presets"].contains(o.terrain + "-" + o.terrain_level))
       throw std::invalid_argument("Unknown terrain/level");
@@ -116,6 +117,8 @@ struct Simulation::Impl {
                                                                  mj_deleteData);
     if (m->nkey)
       mj_resetDataKeyframe(m, d, 0);
+    if (!o.scene.is_null())
+      apply_scene_spawn(m, d, o.scene);
     mj_forward(m, d);
     const Json config = catalog["controllers"].value(o.robot + "-" + controller,
                                                      Json::object());

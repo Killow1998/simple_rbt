@@ -10,6 +10,9 @@ import (
 // The core remains authoritative for physics; reject editable errors before
 // replacing a working session or launching a worker.
 func validateConfig(cfg Config, catalog Catalog) error {
+	if err := validateScene(cfg.Scene); err != nil {
+		return err
+	}
 	spec, ok := catalog.Robots[cfg.Robot]
 	if !ok {
 		return fmt.Errorf("Choose a registered robot / 请选择已注册的机器人: %s", cfg.Robot)
@@ -24,7 +27,7 @@ func validateConfig(cfg Config, catalog Catalog) error {
 	if _, ok := catalog.Terrains[cfg.Terrain+"-"+cfg.TerrainLevel]; !ok {
 		return fmt.Errorf("Choose an available terrain and level / 请选择可用的地形与强度")
 	}
-	if spec.Continuous && cfg.Terrain != "flat" && cfg.Terrain != "ramp" && cfg.Terrain != "hills" {
+	if cfg.Scene == nil && spec.Continuous && cfg.Terrain != "flat" && cfg.Terrain != "ramp" && cfg.Terrain != "hills" {
 		return fmt.Errorf("This chassis requires flat, ramp or hills / 此底盘请选择平地、坡道或连续起伏")
 	}
 	if cfg.ControlMode != "native" && cfg.ControlMode != "tracked" {

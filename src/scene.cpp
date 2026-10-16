@@ -1,4 +1,5 @@
 #include "scene.hpp"
+#include "user_scene.hpp"
 #include "sensor_devices.hpp"
 #include "simple_rbt/random.hpp"
 #include <algorithm>
@@ -59,26 +60,30 @@ std::string build_scene(const SimulationOptions &o, const Json &catalog,
       };
   add(world, "light",
       {{"pos", "0 0 6"}, {"dir", "0 0 -1"}, {"directional", "true"}});
-  add(world, "geom",
-      {{"name", "floor"},
-       {"type", "plane"},
-       {"size", "12 12 .1"},
-       {"rgba", ".35 .4 .45 1"},
-       {"friction", "1 .01 .001"},
-       {"group", "1"}});
-  const char *names[] = {"north", "south", "east", "west"};
-  const char *positions[] = {"0 6 1.5", "0 -6 1.5", "12 0 1.5", "-12 0 1.5"};
-  const char *sizes[] = {"12 .1 1.5", "12 .1 1.5", ".1 6 1.5", ".1 6 1.5"};
-  const char *colors[] = {".7 .4 .3 1", ".3 .6 .7 1", ".7 .7 .4 1",
-                          ".4 .7 .4 1"};
-  for (int i = 0; i < 4; i++)
+  if (o.scene.is_null()) {
     add(world, "geom",
-        {{"name", names[i]},
-         {"type", "box"},
-         {"pos", positions[i]},
-         {"size", sizes[i]},
-         {"rgba", colors[i]},
+        {{"name", "floor"},
+         {"type", "plane"},
+         {"size", "12 12 .1"},
+         {"rgba", ".35 .4 .45 1"},
+         {"friction", "1 .01 .001"},
          {"group", "1"}});
+    const char *names[] = {"north", "south", "east", "west"};
+    const char *positions[] = {"0 6 1.5", "0 -6 1.5", "12 0 1.5", "-12 0 1.5"};
+    const char *sizes[] = {"12 .1 1.5", "12 .1 1.5", ".1 6 1.5", ".1 6 1.5"};
+    const char *colors[] = {".7 .4 .3 1", ".3 .6 .7 1", ".7 .7 .4 1",
+                            ".4 .7 .4 1"};
+    for (int i = 0; i < 4; i++)
+      add(world, "geom",
+          {{"name", names[i]},
+           {"type", "box"},
+           {"pos", positions[i]},
+           {"size", sizes[i]},
+           {"rgba", colors[i]},
+           {"group", "1"}});
+  } else {
+    append_user_scene(doc, o.scene);
+  }
   add_sensor_devices(doc,o);
   auto *visual = root->FirstChildElement("visual");
   if (!visual)
@@ -108,7 +113,11 @@ std::string build_scene(const SimulationOptions &o, const Json &catalog,
          {"conaffinity", "1"},
          {"condim", "3"}});
   };
-  if (o.difficulty == 1. && (o.terrain != "rough" || o.seed == 0)) {
+  if (!o.scene.is_null()) {
+    profile = {{"type", "user_scene"},
+               {"scene_id", o.scene.at("id")},
+               {"name", o.scene.at("name")}};
+  } else if (o.difficulty == 1. && (o.terrain != "rough" || o.seed == 0)) {
     for (const auto &b : terrain["boxes"]) {
       auto c = b["centre"].get<Vec3>(), h = b["half_size"].get<Vec3>();
       box(b["name"], c[0], c[1], c[2], h[0], h[1], h[2], b["slope"]);

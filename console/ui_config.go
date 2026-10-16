@@ -33,33 +33,16 @@ func (a *app) terrains() []string {
 	return values
 }
 func (a *app) configuration(c *ui.Context) {
-	section(c, a.tr("01 · Robot & scene", "01 · 机器人与场景"), func() {
+	section(c, a.tr("Robot", "机器人"), func() {
 		field(c, a.tr("Robot", "机器人"), func() {
 			if a.localizedSelect(c.Key("robot"), &a.cfg.Robot, sortedKeys(a.catalog.Robots)).FillWidth().Changed() {
-				a.cfg.Controller = a.catalog.Robots[a.cfg.Robot].DefaultController
-				a.cfg.Mounts = map[string]Pose{}
-				if a.catalog.Robots[a.cfg.Robot].Continuous && (a.cfg.Terrain == "stairs" || a.cfg.Terrain == "rough") {
-					a.cfg.Terrain = "flat"
-				}
-				a.startConfig()
+				a.changeRobotModel(a.cfg.Robot)
 			}
 		})
 		field(c, a.tr("Controller", "控制器"), func() {
 			if a.localizedSelect(c.Key("controller"), &a.cfg.Controller, a.controllers()).FillWidth().Changed() {
 				a.startConfig()
 			}
-		})
-		ui.Row(c).Gap(10).Children(func() {
-			field(c, a.tr("Terrain", "地形"), func() {
-				if a.localizedSelect(c.Key("terrain"), &a.cfg.Terrain, a.terrains()).Width(166).Changed() {
-					a.startConfig()
-				}
-			})
-			field(c, a.tr("Level", "强度"), func() {
-				if a.localizedSelect(c.Key("level"), &a.cfg.TerrainLevel, []string{"standard", "moderate", "hard", "extreme"}).Width(166).Changed() {
-					a.startConfig()
-				}
-			})
 		})
 		ui.Row(c).Gap(10).Children(func() {
 			field(c, a.tr("Motion", "运动"), func() {
@@ -85,7 +68,7 @@ func (a *app) configuration(c *ui.Context) {
 			ui.Text(c, a.tr("Continuous terrain only", "仅支持连续地形")).TextColor(c.Theme().TextMuted).FontSize(12)
 		}
 	})
-	section(c, a.tr("02 · Sensors", "02 · 传感器"), func() {
+	section(c, a.tr("Sensors", "传感器"), func() {
 		changed := false
 		ui.Row(c).Gap(14).Children(func() {
 			if ui.Checkbox(c.Key("mid360"), &a.cfg.Sensors.MID360, a.tr("MID360 · LiDAR + IMU", "MID360 · 雷达与 IMU")).Changed() {
@@ -118,7 +101,9 @@ func (a *app) configuration(c *ui.Context) {
 	if a.cfg.Sensors.MID360 || a.cameraDeviceEnabled() {
 		a.mountInspector(c)
 	}
-	section(c, a.tr("04 · Optional ROS", "04 · 可选 ROS"), func() {
+}
+func (a *app) rosConfiguration(c *ui.Context) {
+	section(c, a.tr("Optional ROS", "可选 ROS"), func() {
 		for _, version := range []string{"ros1", "ros2"} {
 			selected := a.cfg.Adapters[version]
 			label := "ROS 1 · Noetic"
@@ -145,8 +130,8 @@ func (a *app) configuration(c *ui.Context) {
 		ui.Button(c, a.tr("Prepare adapters", "准备适配器")).FillWidth().Disabled(a.preparing || a.manager.Busy()).OnClick(func() { a.prepareAdapters(false) })
 	})
 	ui.Row(c).Gap(10).Children(func() {
-		ui.Button(c, a.tr("Save", "保存")).Grow(1).OnClick(a.saveProfile)
-		ui.Button(c, a.tr("Load", "加载")).Grow(1).OnClick(a.loadProfile)
+		ui.Button(c, a.tr("Export session", "导出会话")).Grow(1).OnClick(a.saveProfile)
+		ui.Button(c, a.tr("Import session", "导入会话")).Grow(1).OnClick(a.loadProfile)
 	})
 }
 func (a *app) cameraDeviceEnabled() bool { return a.cameraEnabled() || a.cfg.CameraModel == "d435i" }
@@ -193,6 +178,13 @@ func (a *app) loadProfile() {
 	if cfg.Controller == "auto" {
 		cfg.Controller = a.catalog.Robots[cfg.Robot].DefaultController
 	}
+	a.checkpoint()
 	a.cfg = cfg
+	a.robotPreset = RobotPreset{ID: newID(), Name: filepath.Base(paths[0]), RobotConfig: robotConfig(cfg)}
+	if cfg.Scene != nil {
+		a.sceneDraft = clone(*cfg.Scene)
+		a.sceneFloor = a.sceneDraft.Floors[0].ID
+		a.sceneObject = ""
+	}
 	a.startConfig()
 }

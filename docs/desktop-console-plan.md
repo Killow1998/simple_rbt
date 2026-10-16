@@ -45,9 +45,17 @@ Starting enters the SpRobo operator screen with first/third views, held joystick
 
 开始后进入 SpRobo 操作台，提供第一／第三视角、按住运动的摇杆、指令来源、停车／暂停和实测核心 CPU／RAM／RTF。松开摇杆与失焦仅清零手动指令；程序 IPC／ROS 不受窗口焦点影响，仍保留 0.5 秒超时和控制端断开停车。返回配置时关闭旧 worker／适配器，建立新的私有会话。预设与结果保留既有 XDG 路径，卸载保留用户数据。
 
-Only existing physical terrain presets are selectable. Arbitrary scene import and live mount changes during motion are outside this implementation. `tracked` velocity feedback and all robot dynamics remain the existing documented simulator approximations.
+The launch page combines built-in terrains and user scenes in one selector; terrain
+levels are part of the scene name. A separate scene editor supports floor slabs,
+walls, ramps, stairs, obstacles, floor elevations and the robot spawn. These objects become
+C++ physics and sensor geometry when applied. Arbitrary mesh import and live mount
+changes during motion remain outside this implementation. `tracked` feedback and
+robot dynamics retain the documented simulator approximations.
 
-当前选择已有物理地形预设，不提供任意场景导入或运动中的外参热修改。`tracked` 速度反馈和各机器人动力学保留原有、已说明的仿真近似。
+启动页使用同一个入口选择内置场景和用户场景，难度包含在名称中。独立的场景编辑页
+支持楼板、墙体、坡道、楼梯、障碍物、楼层标高和机器人出生点；应用后成为 C++ 物理及
+传感器几何。暂不提供任意网格导入或运动中的外参热修改。`tracked` 反馈和机器人
+动力学保留原有、已说明的仿真近似。
 
 ## Process boundary / 进程边界
 
@@ -319,3 +327,64 @@ CI 已加入 D435i 外部里程计及软件渲染检查。本阶段为本机已�
 运行新一轮 GitHub CI／发布，系统安装的 SpRobo 0.2.1 未替换；可用
 `./run.sh --console` 测试源码版。新发布仍须通过既有 CI 验收；后续建图导航目标
 保持 Go2W＋Noetic。
+
+
+## Named presets and scene workspace — 2026-10-16 / 命名预设与场景工作区
+
+Source implementation; the installed 0.2.1 package remains unchanged. Run
+`./run.sh --console` to try this stage. One window now separates Launch, Robot
+presets, Scene editor and Runtime. Robot presets keep a stable ID when renamed,
+can be saved as another preset, and contain robot/controller/sensor mounts rather
+than a map. Workspace checkpoints retain drafts and selected resources on reopen.
+The launch page has one robot-preset selector without a redundant model caption,
+and one scene selector, e.g. `Ramp · Hard`, alongside user-named scenes.
+
+本阶段为源码实现，系统安装的 0.2.1 未替换；使用 `./run.sh --console` 测试。
+同一窗口分为启动、机器人预设、场景编辑和运行操作台。预设允许用户命名、改名和
+另存为；改名不改变身份，机器人／控制器／传感器外参与地图分开保存。工作区检查点
+保留草稿和当前选择，重新打开即可恢复。启动页不再重复显示预设对应的型号；
+内置与自定义场景共用一个选择入口，例如“坡道 · 高难”。
+
+Scene editing has a floor/object tree, numerical properties and a clipped 3D view
+with translation axes and rotation rings. Right-drag orbits, Shift + right-drag
+pans, and the wheel zooms. Objects can be copied; floor hiding changes the editor
+only. The two-floor template has a 3 m elevation difference and a continuous ramp.
+Preview uses a cached CPU raster capped at 900 pixels on its longest side;
+geometry/camera changes invalidate it. Applying a scene restarts the single owned
+worker while the native window retains the previous view, explicitly marked as
+loading, until the first new frame arrives.
+
+场景页提供楼层／物体树、数值属性和有边界裁剪的三维视图，支持平移轴、旋转环和
+物体复制。右键环绕，Shift＋右键平移观察位置，滚轮缩放；隐藏楼层仅影响编辑视图。
+双层模板标高差为 3 米，使用连续坡道连接。编辑预览复用 CPU 栅格图，最长边限制为
+900 像素，仅在几何或视角改变时重绘。应用场景会重启唯一的自有仿真进程；原生窗口
+保留上一幅画面并标明加载状态，直到新进程输出首帧。
+
+Local acceptance: CTest 9/9, Go tests and vet, native input 40/40, workspace
+save/reopen/window continuity 14/14. Scene widget tests cover real rendered geometry,
+translation, rotation and visual-only floor hiding. C++ acceptance moves Go2W and
+TurtleBot3 on the upper floor and verifies MID360 floor/ceiling returns. This does
+not establish that every chassis can climb every user-authored slope. The workspace
+E2E is also wired into installed-package CI; a new GitHub run/release is pending.
+Evidence: `output/pages-scenes-20261016/`.
+
+本地验收：CTest 9/9、Go 测试与 vet、真实窗口输入 40/40、工作区保存／重开／窗口
+连续性 14/14。场景控件测试覆盖真实渲染几何、平移、旋转及仅影响显示的楼层隐藏。
+C++ 验收覆盖 Go2W 和 TurtleBot3 的二层运动，以及 MID360 对地板和天花板的扫描。
+这些结果不代表每台底盘都能爬过任意用户坡道。工作区 E2E 已接入安装包 CI，尚未
+运行新一轮 GitHub CI 或发布。证据目录：`output/pages-scenes-20261016/`。
+
+
+Floor-connection properties / 楼层连接参数：ramps expose lower/upper floors,
+clear width, horizontal run, incline and slab thickness; stairs expose floors,
+width, tread depth, step count and target step height. A 3 m rise with a 0.18 m
+target becomes 17 steps of approximately 0.1765 m. Actual geometry follows the
+floor elevations, including after floor edits. C++ ray tests check every tread,
+width boundaries and ramp heights along the slope. UI tests edit the requested
+step height and slope angle through the property widgets. XY end placement
+remains manual; see [scene schema and limits](runtime.md#workspace-and-user-scenes--工作区与用户场景).
+
+连接坡道可设置上下层、净宽、水平长度、坡度及坡板厚度；楼梯可设置上下层、净宽、
+踏步深度、级数和期望单级高度。例如 3 米高差、期望 0.18 米，得到 17 级、每级约
+0.1765 米。几何始终依据楼层标高生成，修改层高后会更新。C++ 射线验证逐级踏面、
+净宽边界及坡面高度；控件测试实际输入单级高度与坡度。两端平面位置仍需手动摆放。

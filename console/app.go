@@ -40,6 +40,20 @@ type metadata struct {
 	} `json:"resources"`
 }
 type app struct {
+	scenePreview            sceneRaster
+	viewError               string
+	page                    string
+	workspace               Workspace
+	robotPreset             RobotPreset
+	sceneDraft              Scene
+	sceneFloor, sceneObject string
+	hiddenFloors            map[string]bool
+	sceneLookat             Vec3
+	savedWorkspace          string
+	workspaceBlocked        bool
+	viewLoading             bool
+	pageViews               map[string]viewport
+
 	cfg                                          Config
 	preferences                                  Preferences
 	catalog                                      Catalog
@@ -104,6 +118,7 @@ func newApp(options session.Options, cfg Config) *app {
 	return a
 }
 func (a *app) startConfig() {
+	a.checkpoint()
 	if err := validateConfig(a.cfg, a.catalog); err != nil {
 		a.status = err.Error()
 		a.showLog = true
@@ -119,7 +134,8 @@ func (a *app) startConfig() {
 	a.managerStatus = ""
 	a.meta = metadata{}
 	a.pending = map[string]Pose{}
-	a.observer = nil
+	a.viewLoading = true
+	a.viewError = ""
 	a.camera = nil
 	a.viewStamp = 0
 	a.cameraStamp = 0
@@ -156,6 +172,7 @@ func (a *app) startConfig() {
 					a.restartPending = false
 					if err != nil {
 						a.loading = false
+						a.viewError = err.Error()
 						a.status = err.Error()
 						a.showLog = true
 					}
@@ -165,6 +182,9 @@ func (a *app) startConfig() {
 	}()
 }
 func (a *app) requestView() {
+	if a.page == "scene" {
+		return
+	}
 	if a.restartPending || !a.manager.Client.Connected() {
 		return
 	}
@@ -200,6 +220,7 @@ func (a *app) pump() {
 		}
 	}()
 	go func() {
+		count := 0
 		tick := time.NewTicker(100 * time.Millisecond)
 		defer tick.Stop()
 		for {
@@ -208,6 +229,14 @@ func (a *app) pump() {
 				return
 			case <-tick.C:
 				a.sendManualHeartbeat()
+				count++
+				if count%10 == 0 {
+					a.win.Update(func() {
+						if !a.closed.Load() {
+							a.checkpoint()
+						}
+					})
+				}
 			}
 		}
 	}()
@@ -267,6 +296,7 @@ func (a *app) close() {
 	if a.closed.Swap(true) {
 		return
 	}
+	a.checkpoint()
 	a.restartLatest.Add(1)
 	if a.checkCancel != nil {
 		a.checkCancel()

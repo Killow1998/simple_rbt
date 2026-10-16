@@ -57,7 +57,7 @@ add_library(simple_rbt_random src/random.cpp)
 target_include_directories(simple_rbt_random PUBLIC include)
 
 add_library(simple_rbt_core
-  src/core.cpp src/scene.cpp src/sensor_devices.cpp src/tracking.cpp src/controller.cpp
+  src/core.cpp src/scene.cpp src/user_scene.cpp src/scene_connections.cpp src/sensor_devices.cpp src/tracking.cpp src/controller.cpp
   src/controller_policy.cpp
   src/controllers/go2.cpp src/controllers/go2w.cpp
   src/controllers/diffdrive.cpp src/controllers/scout_mini.cpp
@@ -162,3 +162,9 @@ target_compile_definitions(sensor_devices PRIVATE SIMPLE_RBT_PROJECT_ROOT="${PRO
 target_link_libraries(sensor_devices PRIVATE simple_rbt_core simple_rbt_cameras)
 add_test(NAME sensor_devices COMMAND sensor_devices)
 set_tests_properties(sensor_devices PROPERTIES LABELS "core;sensors;e2e" TIMEOUT 30)
+
+add_executable(user_scene_test tests/user_scene.cpp)
+target_compile_definitions(user_scene_test PRIVATE SIMPLE_RBT_PROJECT_ROOT="${PROJECT_WORKSPACE}")
+target_link_libraries(user_scene_test PRIVATE simple_rbt_core simple_rbt_lidar)
+add_test(NAME user_scene COMMAND user_scene_test)
+set_tests_properties(user_scene PROPERTIES LABELS "scene;core;e2e" TIMEOUT 30)

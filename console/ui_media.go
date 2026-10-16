@@ -3,7 +3,7 @@ package main
 import "github.com/egoist/mygo/ui"
 
 func (a *app) media(c *ui.Context) {
-	if a.stage == "configure" {
+	if a.stage == "configure" && a.page != "home" {
 		ui.Row(c).Gap(8).Children(func() {
 			ui.Text(c, a.tr("Sensor mounting", "安装外参")).Bold().Grow(1)
 			a.localizedSelect(c.Key("tool"), &a.tool, []string{"Move / 平移", "Rotate / 旋转"}).Width(150)
@@ -46,8 +46,16 @@ func (a *app) media(c *ui.Context) {
 						return
 					}
 					p.Image(a.observer, r, ui.Contain)
-					if a.stage == "configure" && !a.loading {
+					if a.stage == "configure" && a.page != "home" && !a.loading && !a.viewLoading {
 						a.drawGizmo(p, r)
+					}
+					if a.viewLoading {
+						p.Fill(ui.Rect{X: r.X, Y: r.Y, W: r.W, H: 44}, viewportBackground, 0)
+						label := a.tr("Loading scene · previous view", "正在加载场景 · 保留上一帧")
+						if a.viewError != "" {
+							label = a.tr("Load failed · previous view · see Details", "加载失败 · 保留上一帧 · 请查看详情")
+						}
+						p.Text(r.X+16, r.Y+13, label, 14, viewportText)
 					}
 				})
 			})

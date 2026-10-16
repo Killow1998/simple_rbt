@@ -15,6 +15,11 @@ xvfb-run -a -s '-screen 0 1600x1100x24' /bin/bash -c '
     --console /usr/bin/sprobo --core /usr/bin/simple-rbt-sim \
     --assets /usr/share/simple-rbt/assets --backend cpu --output output/ci/native-input
 '
+xvfb-run -a -s '-screen 0 1600x1100x24' /bin/bash -c '
+  exec python3 tools/test_console_workspace.py --display "$DISPLAY" \
+    --console /usr/bin/sprobo --core /usr/bin/simple-rbt-sim \
+    --assets /usr/share/simple-rbt/assets --output output/ci/workspace
+'
 python3 - <<'PY'
 from pathlib import Path
 import subprocess

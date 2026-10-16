@@ -65,6 +65,8 @@ func main() {
 		os.Exit(report.ExitCode())
 	}
 	a := newApp(options, cfg)
+	a.initWorkspace(*configPath == "" && !*smoke && *e2e == "" && !*dependencies)
+	cfg = a.cfg
 	if *smoke {
 		if !a.configureRuntime(session.CheckDependencies(context.Background(), options, cfg.Adapters)) {
 			_ = json.NewEncoder(os.Stderr).Encode(a.preflight)

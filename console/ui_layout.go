@@ -17,6 +17,7 @@ func (a *app) view(c *ui.Context) {
 			a.appearanceControls(c)
 			ui.Badge(c, a.stateLabel())
 		})
+		a.navigation(c)
 		if !a.initialized {
 			ui.Scroll(c).Grow(1).MinHeight(0).Children(func() { a.dependencyPanel(c) })
 			return
@@ -25,27 +26,33 @@ func (a *app) view(c *ui.Context) {
 			ui.Scroll(c).Height(245).Children(func() { a.dependencyPanel(c) })
 		}
 		ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-			ui.Column(c).Width(380).Shrink(0).Background(panelBackground(c)).BorderWidth(0, 1, 0, 0).BorderColor(panelDivider(c)).Children(func() {
+			ui.Column(c).Width(a.sidebarWidth()).Shrink(0).Background(panelBackground(c)).BorderWidth(0, 1, 0, 0).BorderColor(panelDivider(c)).Children(func() {
 				ui.Scroll(c).Grow(1).MinHeight(0).Padding(18).Children(func() {
 					if a.stage == "configure" {
-						a.configuration(c)
+						a.pageSidebar(c)
 					} else {
 						a.controls(c)
 					}
 				})
 				ui.Column(c).Padding(14, 18).BorderWidth(1, 0, 0, 0).BorderColor(panelDivider(c)).Gap(10).Children(func() {
 					if a.stage == "configure" {
-						ui.PrimaryButton(c, a.tr("Start session", "进入操控")).FillWidth().Disabled(a.loading || a.preparing || a.checking || !a.preflight.Ready || a.manager.Busy() || a.meta.State != "config").OnClick(a.startOperating)
+						a.pageAction(c)
 					} else {
 						a.motionButtons(c)
-						ui.Button(c, a.tr("New configuration", "返回配置")).FillWidth().OnClick(func() { a.stage = "configure"; a.startConfig() })
+						ui.Button(c, a.tr("New configuration", "返回配置")).FillWidth().OnClick(func() { a.stage = "configure"; a.page = "home"; a.startConfig() })
 					}
 				})
 			})
-			ui.Column(c).Grow(1).MinWidth(0).Padding(18).Gap(12).Children(func() { a.media(c) })
+			ui.Column(c).Grow(1).MinWidth(0).Padding(18).Gap(12).Children(func() {
+				if a.page == "scene" && a.stage == "configure" {
+					a.sceneEditor(c)
+				} else {
+					a.media(c)
+				}
+			})
 		})
 		ui.Row(c).Padding(7, 18).Gap(10).Background(panelBackground(c)).BorderWidth(1, 0, 0, 0).BorderColor(panelDivider(c)).Children(func() {
-			ui.Text(c, a.optionLabel(a.cfg.Robot)+" · "+a.optionLabel(a.cfg.Terrain)+" / "+a.optionLabel(a.cfg.TerrainLevel)).TextColor(theme.TextMuted).Grow(1)
+			ui.Text(c, a.sessionLabel()).TextColor(theme.TextMuted).Grow(1)
 			if a.meta.State != "" {
 				ui.Text(c, fmt.Sprintf(a.tr("Core · CPU %.1f%% · RAM %.1f MiB · RTF %.3f", "仿真 · CPU %.1f%% · 内存 %.1f MiB · 实时倍率 %.3f"), a.meta.Resources.CPU, a.meta.Resources.RAM, a.meta.Resources.RTF)).FontSize(12)
 			} else {
@@ -83,4 +90,12 @@ func section(c *ui.Context, title string, body func()) {
 }
 func field(c *ui.Context, label string, body func()) {
 	ui.Column(c).Gap(5).Children(func() { ui.Text(c, label).FontSize(13).TextColor(c.Theme().TextMuted); body() })
+}
+
+func (a *app) sessionLabel() string {
+	scene := a.optionLabel(a.cfg.Terrain) + " / " + a.optionLabel(a.cfg.TerrainLevel)
+	if a.cfg.Scene != nil {
+		scene = a.cfg.Scene.Name
+	}
+	return a.optionLabel(a.cfg.Robot) + " · " + scene
 }

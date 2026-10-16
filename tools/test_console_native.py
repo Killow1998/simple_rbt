@@ -87,15 +87,20 @@ def main():
         core_sha = hashlib.sha256(args.core.read_bytes()).hexdigest()
         process = subprocess.Popen([str(args.console.resolve()), "--worker", str(args.core.resolve()),
             "--assets", str(args.assets.resolve()), "--config", str(output / "config.json"),
-            "--capture", str(output / "live-scene.png"), "--capture-after-ms", "60000"], env=env, stdout=log, stderr=subprocess.STDOUT)
+            "--capture", str(output / "live-scene.png"), "--capture-after-ms", "80000"], env=env, stdout=log, stderr=subprocess.STDOUT)
         try:
             directory = child_session(process.pid); observer = Observer(directory)
             metadata, _ = observer.wait(lambda m, v: m.get("session_state") == "config")
             time.sleep(1)
             inputs = Inputs(args.display); window = inputs.window(); inputs.focus(window)
+            inputs.click(175,90); time.sleep(.4)
             old_workers = owned_workers(process.pid)
             def choose_robot(last=False, index=0):
-                inputs.click(180, 154)
+                inputs.move(180,300)
+                for _ in range(30):
+                    inputs.t.XTestFakeButtonEvent(inputs.d,4,True,0);inputs.t.XTestFakeButtonEvent(inputs.d,4,False,0)
+                inputs.x.XFlush(inputs.d);time.sleep(.12)
+                inputs.click(180, 346)
                 name = "End" if last else "Home"
                 inputs.key(name, True); inputs.key(name, False)
                 for _ in range(index):
@@ -136,27 +141,20 @@ def main():
                     and any(expected_title in title for title in inputs.titles),
                     {"text": colors, "preferences": preferences, "window_titles": inputs.titles})
             appearance("dark", "en", saved=False)
-            # From the Robot selector, walk back to the two header selectors.
-            # Real keyboard focus avoids guessing positions that change with
-            # the translated state badge's width.
-            inputs.tab(reverse=True); inputs.tab(reverse=True)
-            inputs.select_edge(last=True)
-            appearance("light", "en")
-            inputs.tab(); inputs.select_edge(last=True)
-            appearance("light", "zh-CN")
-            changed_text = sum(a != b for a, b in zip(translated_labels["en"], translated_labels["zh-CN"]))
-            check("language selection changes visible configuration labels", changed_text > 100,
-                  {"changed_label_color_channels": changed_text})
-            inputs.tab(reverse=True); inputs.select_edge()
-            appearance("dark", "zh-CN")
-            inputs.tab(); inputs.select_edge()
-            appearance("dark", "en")
-            check("changing appearance keeps the same C++ worker", owned_workers(process.pid) == appearance_worker)
-            inputs.tab()
+            def appearance_select(x,last):
+                inputs.click(x,32);inputs.press("End" if last else "Home");inputs.press("Return")
+            appearance_select(1030,True);appearance("light","en")
+            appearance_select(1160,True);appearance("light","zh-CN")
+            changed_text=sum(a!=b for a,b in zip(translated_labels["en"],translated_labels["zh-CN"]))
+            check("language selection changes visible configuration labels",changed_text>100)
+            appearance_select(1030,False);appearance("dark","zh-CN")
+            appearance_select(1160,False);appearance("dark","en")
+            check("changing appearance keeps the same C++ worker",owned_workers(process.pid)==appearance_worker)
+            inputs.click(180,346);inputs.press("Escape")
             # The Robot selector retains focus after Enter. Walk the real
-            # keyboard order: five other selectors, four sensor checkboxes,
+            # keyboard order: three other selectors, four sensor checkboxes,
             # camera model, the sensor selector, then X. Font metrics cannot change this order.
-            for _ in range(12):
+            for _ in range(10):
                 inputs.press("Tab")
             inputs.type_number("0.03000")
             metadata, _ = observer.wait(lambda m, v: abs(m.get("mounts", {}).get("mid360", {}).get("position", [99])[0]-.03)<1e-6)
@@ -182,7 +180,7 @@ def main():
             inputs.move(*tip); inputs.button(True); inputs.move(tip[0]+22, tip[1]-8); inputs.button(False)
             metadata, _ = observer.wait(lambda m, v: abs(m["mounts"]["mid360"]["position"][0]-.03)>.005)
             check("native XTEST translation drag changes core mount", True, metadata["mounts"]["mid360"])
-            inputs.click(1050, 102)
+            inputs.click(1050, 146)
             inputs.key("End", True); inputs.key("End", False)
             inputs.key("Return", True); inputs.key("Return", False)
             time.sleep(.2)
@@ -215,11 +213,12 @@ def main():
             metadata,_=observer.wait(lambda m,v:m.get("session_state")=="config" and m.get("robot")=="go2w")
             check("Go2W retains selected D435i device",metadata.get("camera_model")=="d435i" and metadata.get("camera_imu_locked"))
             time.sleep(.5)
+            inputs.click(60,90);time.sleep(.4)
             inputs.click(*inputs.primary_button(window))
             observer.wait(lambda m, v: m.get("session_state") == "running")
             time.sleep(2)
             initial, _ = observer.snapshot(); initial = initial["base_pose"]["position"]
-            inputs.move(180, 248); inputs.button(True)
+            inputs.move(180, 296); inputs.button(True)
             metadata, _ = observer.wait(lambda m, v: m.get("applied_command", [0])[0]>.15)
             time.sleep(1.6)
             metadata, _ = observer.snapshot()
@@ -229,7 +228,7 @@ def main():
             observer.wait(lambda m, v: m.get("applied_command") == [0,0,0] and math.hypot(v[0],v[1])<.1)
             check("native pointer release stops physical robot", True)
             # Actual X11 key events must reach the same core command path.
-            inputs.click(180,300)
+            inputs.click(180,348)
             for key,axis,sign in [('w',0,1),('s',0,-1),('a',1,1),('d',1,-1),('q',2,1),('e',2,-1)]:
                 inputs.key(key,True)
                 metadata,_=observer.wait(lambda m,v:sign*m.get("applied_command",[0,0,0])[axis]>.05)
@@ -257,20 +256,20 @@ def main():
             observer.wait(lambda m,v:m.get("applied_command")==[0,0,0])
             check("keyboard focus leaving the drive control stops motion",True)
             inputs.key('w',False)
-            inputs.click(180,300);inputs.key('w',True)
+            inputs.click(180,348);inputs.key('w',True)
             observer.wait(lambda m,v:m.get("applied_command",[0])[0]>.1)
             inputs.blur()
             observer.wait(lambda m,v:m.get("applied_command")==[0,0,0])
             check("window focus loss clears held keyboard keys",True)
             inputs.key('w',False);inputs.focus(window)
-            inputs.move(180, 248); inputs.button(True)
+            inputs.move(180, 296); inputs.button(True)
             observer.wait(lambda m, v: m.get("applied_command", [0])[0]>.15)
             inputs.blur()
             observer.wait(lambda m, v: m.get("applied_command") == [0,0,0] and math.hypot(v[0],v[1])<.1)
             check("actual native window focus loss stops robot", True)
             inputs.button(False); inputs.focus(window)
             # Pick the non-ROS program owner through the real native selector.
-            inputs.click(180,154)
+            inputs.click(180,202)
             inputs.key("End",True); inputs.key("End",False)
             inputs.key("Return",True); inputs.key("Return",False)
             observer.wait(lambda m,v:m.get("source")=="program")
@@ -299,13 +298,9 @@ def main():
             inputs.focus(window)
             time.sleep(.5)
             inputs.capture(window, output / "native-window.png")
-            # Source is the first content selector, immediately after the
-            # header selectors. Save two non-default preferences using XTEST.
-            inputs.tab(reverse=True); inputs.tab(reverse=True)
-            inputs.select_edge(last=True)
-            inputs.tab(); inputs.select_edge(last=True)
-            appearance("light", "zh-CN", phase="before-reopen")
-            process.wait(timeout=70)
+            appearance_select(1030,True);appearance_select(1160,True)
+            appearance("light","zh-CN",phase="before-reopen")
+            process.wait(timeout=90)
             check("native console closes owned core gracefully", process.returncode == 0)
             check("actual X11 window screenshot exists", (output / "native-window.png").is_file())
             observer.close(); observer = None; window = None
