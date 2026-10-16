@@ -64,6 +64,7 @@ func (a *app) consume() {
 		case session.KindOdometry:
 			if value, err := session.DecodeOdometry(packet); err == nil {
 				a.velocity = Vec3(value.Linear)
+				a.angular = Vec3(value.Angular)
 				a.odomStamp = packet.StampNS
 			}
 		}

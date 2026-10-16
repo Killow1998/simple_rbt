@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"path/filepath"
@@ -72,7 +73,15 @@ func (a *app) configuration(c *ui.Context) {
 				}
 			})
 		})
-		if a.catalog.Robots[a.cfg.Robot].Continuous {
+		spec := a.catalog.Robots[a.cfg.Robot]
+		ui.Text(c, fmt.Sprintf(a.tr("Limits · vx ±%.2f m/s · wz ±%.2f rad/s", "限幅 · vx ±%.2f 米/秒 · wz ±%.2f 弧度/秒"), spec.Limits[0], spec.Limits[2])).FontSize(12).TextColor(c.Theme().TextMuted)
+		if !spec.AllowsLateral {
+			ui.Text(c, a.tr("No lateral motion", "不支持横向平移")).FontSize(12).TextColor(c.Theme().TextMuted)
+		}
+		if !spec.AllowsTurn {
+			ui.Text(c, fmt.Sprintf(a.tr("No in-place turn · minimum radius %.2f m", "不支持原地转向 · 最小转弯半径 %.2f 米"), spec.MinRadius)).FontSize(12).TextColor(c.Theme().TextMuted)
+		}
+		if spec.Continuous {
 			ui.Text(c, a.tr("Continuous terrain only", "仅支持连续地形")).TextColor(c.Theme().TextMuted).FontSize(12)
 		}
 	})
@@ -113,6 +122,18 @@ func (a *app) configuration(c *ui.Context) {
 				a.beginPreflight()
 			}
 		}
+		ui.Text(c, a.tr("Odometry is simulation ground truth", "里程计来自仿真真值")).FontSize(12).TextColor(c.Theme().TextMuted)
+		if ui.Checkbox(c.Key("odom-tf"), &a.cfg.ROS.PublishOdomTF, a.tr("Publish odom → base_link TF", "发布 odom → base_link TF")).Changed() {
+			a.startConfig()
+		}
+		topicMode := a.cfg.ROS.OdomTopic
+		field(c, a.tr("Ground-truth odometry topic", "真值里程计话题"), func() {
+			if ui.Select(c.Key("odom-topic"), &topicMode, odomTopicChoices(topicMode)).FillWidth().Changed() {
+				a.cfg.ROS.OdomTopic = topicMode
+				a.startConfig()
+			}
+		})
+		ui.Text(c, a.tr("External localization: disable this TF and use /ground_truth/odom for comparison only.", "外部定位：关闭此 TF，选择 /ground_truth/odom 仅作对照。")).FontSize(12).TextColor(c.Theme().TextMuted)
 		ui.Button(c, a.tr("Prepare adapters", "准备适配器")).FillWidth().Disabled(a.preparing || a.manager.Busy()).OnClick(func() { a.prepareAdapters(false) })
 	})
 	ui.Row(c).Gap(10).Children(func() {
@@ -149,8 +170,8 @@ func (a *app) loadProfile() {
 		a.showLog = true
 		return
 	}
-	if _, ok := a.catalog.Robots[cfg.Robot]; !ok {
-		a.status = "Unknown robot / 未注册的机器人"
+	if err = validateConfig(cfg, a.catalog); err != nil {
+		a.status = err.Error()
 		a.showLog = true
 		return
 	}

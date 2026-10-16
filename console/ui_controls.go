@@ -90,7 +90,11 @@ func (a *app) controls(c *ui.Context) {
 			}
 			p.Fill(ui.Rect{X: cx + float32(a.pad.Position.X)*radius - 19, Y: cy + float32(a.pad.Position.Y)*radius - 19, W: 38, H: 38}, knob, 19)
 		})
-		ui.Text(c, a.tr("Hold to drive · release to stop", "按住运动，松开停车")).FontSize(12).TextColor(c.Theme().TextMuted)
+		hint := a.tr("Select Manual to use the joystick", "选择手动控制后可使用摇杆")
+		if a.manualMode() {
+			hint = a.tr("Hold to drive · release to stop", "按住运动，松开停车")
+		}
+		ui.Text(c, hint).FontSize(12).TextColor(c.Theme().TextMuted)
 		if a.catalog.Robots[a.cfg.Robot].AllowsLateral {
 			ui.Text(c, a.tr("Lateral speed · hold slider", "侧向速度，按住滑块")).FontSize(12)
 			slider := ui.Slider(c.Key("lateral"), &a.pad.Lateral, -1, 1).FillWidth().Disabled(!a.manualMode())
@@ -113,8 +117,18 @@ func (a *app) controls(c *ui.Context) {
 		if !a.manualMode() {
 			command = a.meta.Applied
 		}
-		ui.Text(c, fmt.Sprintf("vx %.2f · vy %.2f · wz %.2f", command[0], command[1], command[2])).FontSize(12)
-		ui.Button(c, a.tr("STOP", "停车")).FillWidth().Background(stopBackground(c)).TextColor(c.Theme().Text).OnClick(func() {
+		ui.Text(c, fmt.Sprintf(a.tr("Command vx %.2f · vy %.2f · wz %.2f", "指令 vx %.2f · vy %.2f · wz %.2f"), command[0], command[1], command[2])).FontSize(12)
+		if a.odomStamp != 0 {
+			ui.Text(c, fmt.Sprintf(a.tr("Actual vx %.2f · vy %.2f · wz %.2f", "实际 vx %.2f · vy %.2f · wz %.2f"), a.velocity[0], a.velocity[1], a.angular[2])).FontSize(12)
+		}
+		ui.Text(c, a.tr("vx / vy: m/s · wz: rad/s", "vx／vy：米/秒 · wz：弧度/秒")).FontSize(12).TextColor(c.Theme().TextMuted)
+
+	})
+	a.connectionPanel(c)
+}
+func (a *app) motionButtons(c *ui.Context) {
+	ui.Row(c).Gap(10).Children(func() {
+		ui.Button(c, a.tr("STOP", "停车")).Grow(1).Background(stopBackground(c)).TextColor(c.Theme().Text).OnClick(func() {
 			a.stopManual()
 			a.sourceLabel = manualLabel
 			_ = a.manager.Client.SendRequest(map[string]any{"op": "stop"})
@@ -125,9 +139,10 @@ func (a *app) controls(c *ui.Context) {
 			label = a.tr("Resume", "继续")
 			op = "start"
 		}
-		ui.Button(c, label).FillWidth().OnClick(func() { a.stopManual(); _ = a.manager.Client.SendRequest(map[string]any{"op": op}) })
+		ui.Button(c, label).Grow(1).OnClick(func() { a.stopManual(); _ = a.manager.Client.SendRequest(map[string]any{"op": op}) })
 	})
 }
+
 func (a *app) prepareAdapters(startAfter bool) {
 	if a.preparing {
 		return

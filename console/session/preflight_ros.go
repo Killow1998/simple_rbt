@@ -2,6 +2,7 @@ package session
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -33,9 +34,16 @@ func (c checker) inspectROS(ctx context.Context, version string) DependencyCheck
 		script += "test \"$ROS_DISTRO\" = humble; actual=$ROS_DISTRO; prefix=$(ros2 pkg prefix rclcpp); test \"$prefix\" = /opt/ros/humble; "
 	}
 	script += "printf 'SPROBO_ROS_DISTRO=%s\\n' \"$actual\""
+	script += "; /opt/simple-rbt/bin/simple-rbt-ros-session --runtime-info"
 	data, err = c.run(deadline, "docker", "run", "--rm", "--pull", "never", "--network", "none", "--entrypoint", "/bin/sh", image, "-c", script)
 	observed := ""
+	var adapter struct {
+		ConfigurableOdometry bool `json:"configurable_odometry"`
+	}
 	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "{") {
+			_ = json.Unmarshal([]byte(line), &adapter)
+		}
 		if value, ok := strings.CutPrefix(line, "SPROBO_ROS_DISTRO="); ok {
 			observed = value
 		}
@@ -44,6 +52,10 @@ func (c checker) inspectROS(ctx context.Context, version string) DependencyCheck
 	if err != nil || observed != distro {
 		return DependencyCheck{version, false, "fail", fmt.Sprintf("ROS installation must be %s / 容器 ROS 版本必须为 %s: %s", distro, distro, strings.TrimSpace(string(data))), details}
 	}
+	if !adapter.ConfigurableOdometry {
+		return DependencyCheck{version, false, "fail", "ROS adapter is outdated; select Prepare adapters / ROS 适配器需要更新，请选择准备适配器", details}
+	}
+	details["configurable_odometry"] = true
 	return DependencyCheck{version, false, "pass", "Container ROS installation verified / 容器内 ROS 安装已验证: " + distro, details}
 }
 

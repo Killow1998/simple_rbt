@@ -202,6 +202,7 @@ def main():
             program_thread = threading.Thread(target=command_program,daemon=True)
             program_thread.start()
             metadata,_ = observer.wait(lambda m,v:m.get("applied_command",[0])[0]>.2)
+            check("program receipt is visible in core status", metadata.get("command_status", {}).get("state") == "receiving")
             initial = metadata["base_pose"]["position"]
             inputs.blur(); time.sleep(1.2)
             metadata,_ = observer.wait(lambda m,v:m.get("source")=="program" and m.get("applied_command",[0])[0]>.2)
@@ -209,7 +210,9 @@ def main():
             check("program control continues after actual native focus loss",distance>.1,{"displacement_m":distance})
             program_stop.set(); program_thread.join(timeout=2)
             observer.wait(lambda m,v:m.get("applied_command")==[0,0,0] and math.hypot(v[0],v[1])<.1)
+            metadata,_ = observer.wait(lambda m,v:m.get("command_status",{}).get("state")=="timed_out")
             check("program silence still triggers command deadman",True)
+            check("timeout remains distinct from a connected program", metadata["connections"]["program"] > 0)
             program.close(); program=None
             inputs.focus(window)
             time.sleep(.5)

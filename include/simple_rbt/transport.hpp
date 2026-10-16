@@ -9,6 +9,8 @@ struct TransportOptions {
   std::string robot_name;
   double command_timeout_s = .5;
   bool publish_pointcloud2 = true;
+  bool publish_odom_tf = true;
+  std::string odom_topic = "/odom";
   std::string node_name = "simple_rbt_mujoco";
   std::string odom_frame = "odom", base_frame = "base_link";
   std::string lidar_frame = "livox_frame", imu_frame = "imu_frame";

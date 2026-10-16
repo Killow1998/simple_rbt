@@ -66,6 +66,7 @@ public:
   void update_metadata(Json);
   bool subscribed(const std::string &) const;
   std::size_t peer_count(const std::string &role) const;
+  Json command_status() const; // Core receipt, not ROS publisher connectivity.
   Vec3 command() const override;
   void spin_once(double timeout_s = 0.) override;
   void publish_clock(std::uint64_t) override;

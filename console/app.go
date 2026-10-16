@@ -18,17 +18,22 @@ type observerInfo struct {
 	Width, Height int
 }
 type metadata struct {
-	State       string          `json:"session_state"`
-	Source      string          `json:"source"`
-	Base        Pose            `json:"base_pose"`
-	Mounts      map[string]Pose `json:"mounts"`
-	BodyImu     Pose            `json:"body_imu_mount"`
-	MidImu      Pose            `json:"mid360_internal_imu"`
-	Observer    observerInfo    `json:"observer"`
-	Connections map[string]int  `json:"connections"`
-	Stamp       uint64          `json:"stamp_ns"`
-	Applied     Vec3            `json:"applied_command"`
-	Resources   struct {
+	State         string          `json:"session_state"`
+	Source        string          `json:"source"`
+	Base          Pose            `json:"base_pose"`
+	Mounts        map[string]Pose `json:"mounts"`
+	BodyImu       Pose            `json:"body_imu_mount"`
+	MidImu        Pose            `json:"mid360_internal_imu"`
+	Observer      observerInfo    `json:"observer"`
+	Connections   map[string]int  `json:"connections"`
+	CommandStatus struct {
+		State   string   `json:"state"`
+		Age     *float64 `json:"age_s"`
+		Timeout float64  `json:"timeout_s"`
+	} `json:"command_status"`
+	Stamp     uint64 `json:"stamp_ns"`
+	Applied   Vec3   `json:"applied_command"`
+	Resources struct {
 		CPU float64 `json:"cpu_percent_one_core"`
 		RAM float64 `json:"rss_mib"`
 		RTF float64 `json:"real_time_factor"`
@@ -67,6 +72,7 @@ type app struct {
 	preparing                                    bool
 	adapterStarted                               map[string]bool
 	options                                      session.Options
+	angular                                      Vec3
 	velocity                                     Vec3
 	odomStamp                                    uint64
 	preflight                                    session.DependencyReport
@@ -95,6 +101,11 @@ func newApp(options session.Options, cfg Config) *app {
 	return a
 }
 func (a *app) startConfig() {
+	if err := validateConfig(a.cfg, a.catalog); err != nil {
+		a.status = err.Error()
+		a.showLog = true
+		return
+	}
 	a.preparing = false
 	a.generation++
 	generation := a.generation
@@ -111,6 +122,7 @@ func (a *app) startConfig() {
 	a.cameraStamp = 0
 	a.odomStamp = 0
 	a.velocity = Vec3{}
+	a.angular = Vec3{}
 	a.adapterStarted = map[string]bool{}
 	a.stopManual()
 	configuration := asMap(a.cfg)

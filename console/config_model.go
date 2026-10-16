@@ -14,7 +14,12 @@ type Sensors struct {
 	Depth    bool `json:"depth"`
 	Panorama bool `json:"panorama"`
 }
+type ROSConfig struct {
+	PublishOdomTF bool   `json:"publish_odom_tf"`
+	OdomTopic     string `json:"odom_topic"`
+}
 type Config struct {
+	ROS          ROSConfig       `json:"ros"`
 	Robot        string          `json:"robot"`
 	Controller   string          `json:"controller"`
 	ControlMode  string          `json:"control_mode"`
@@ -42,7 +47,7 @@ type Catalog struct {
 }
 
 func defaultConfig() Config {
-	return Config{Robot: "go2", Controller: "auto", ControlMode: "tracked", Terrain: "flat", TerrainLevel: "standard", Backend: "auto", Sensors: Sensors{true, true, true, false}, Mounts: map[string]Pose{}, CameraHz: 10, Adapters: map[string]bool{}}
+	return Config{ROS: ROSConfig{true, "/odom"}, Robot: "go2", Controller: "auto", ControlMode: "tracked", Terrain: "flat", TerrainLevel: "standard", Backend: "auto", Sensors: Sensors{true, true, true, false}, Mounts: map[string]Pose{}, CameraHz: 10, Adapters: map[string]bool{}}
 }
 func loadJSON(path string, out any) error {
 	data, err := os.ReadFile(path)

@@ -52,8 +52,9 @@ func (m *Manager) message(value string) {
 	m.mu.Unlock()
 	m.notify()
 }
-func (m *Manager) Status() string { m.mu.Lock(); defer m.mu.Unlock(); return m.status }
-func (m *Manager) Busy() bool     { m.mu.Lock(); defer m.mu.Unlock(); return m.busy }
+func (m *Manager) Directory() string { m.mu.Lock(); defer m.mu.Unlock(); return m.SessionDir }
+func (m *Manager) Status() string    { m.mu.Lock(); defer m.mu.Unlock(); return m.status }
+func (m *Manager) Busy() bool        { m.mu.Lock(); defer m.mu.Unlock(); return m.busy }
 func (m *Manager) Logs() []string {
 	m.mu.Lock()
 	defer m.mu.Unlock()

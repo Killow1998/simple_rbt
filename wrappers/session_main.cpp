@@ -27,6 +27,8 @@ RosOptions options(const ipc::Json &j) {
   o.robot_name = j.at("robot_name").get<std::string>();
   o.command_timeout_s = j.value("command_timeout_s", .5);
   o.publish_pointcloud2 = j.value("publish_pointcloud2", true);
+  o.publish_odom_tf = j.value("publish_odom_tf", true);
+  o.odom_topic = j.value("odom_topic", "/odom");
   o.perspective_fov_y_deg = j.value("perspective_fov_y_deg", 60.);
   o.odom_frame = j.value("odom_frame", "odom");
   o.base_frame = j.value("base_frame", "base_link");
@@ -64,6 +66,7 @@ int main(int argc, char **argv) {
                             {"ros_version", SIMPLE_RBT_ROS_VERSION},
                             {"ros_client_version", SIMPLE_RBT_ROS_CLIENT_VERSION},
                             {"transport", "unix_ipc"},
+                            {"configurable_odometry", true},
                             {"runtime_language", "C++17"}}
                        .dump() << '\n';
       return 0;

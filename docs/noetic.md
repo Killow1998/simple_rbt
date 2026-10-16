@@ -75,3 +75,57 @@ Omit `--robots` to test all registered robots. The runner launches the real host
 
 Current results and binary identities are linked in [console validation](desktop-console-plan.md). Earlier same-process ROS acceptance belongs to its dated development stage and does not describe this launch path.
 当前结果与二进制身份见[操作台验收](desktop-console-plan.md)。此前同进程 ROS 验收属于当时的开发阶段，不描述当前启动路径。
+
+## Odometry ownership / 里程计归属
+
+The session JSON accepts these optional ROS settings. Defaults retain `/odom` and
+simulator publication of `odom → base_link`. To give an external estimator ownership:
+
+会话 JSON 支持以下可选配置，默认保留 `/odom` 和仿真侧 `odom → base_link`。
+让外部定位器负责这段 TF 时使用：
+
+```json
+{"ros": {"publish_odom_tf": false, "odom_topic": "/ground_truth/odom"}}
+```
+
+Both adapters read these settings from the core handshake. Static sensor TF and
+`/clock` remain available. The separate truth topic remains world-frame reference data;
+it does not become the estimator's drifting odometry frame. Keep it out of estimator
+inputs when evaluating localization accuracy. Existing images lacking configurable
+odometry are detected by SpRobo and require **Prepare adapters** before use.
+
+两种适配器从核心握手读取配置；传感器静态 TF 和 `/clock` 继续发布。独立真值话题仍是世界坐标
+中的参考数据，不会变成定位器可能漂移的里程计坐标。验证定位精度时不要将真值当作估计器输入。
+SpRobo 会识别不支持该配置的旧适配器，提示“准备适配器”更新。
+
+## Next integration target: Go2W + Noetic / 下一阶段：Go2W＋Noetic
+
+[examples/go2w-noetic.json](../examples/go2w-noetic.json) selects the agreed platform,
+MID360 and camera, keeps ground truth separate, and leaves dynamic odometry TF to an
+external algorithm. In SpRobo, load this profile, Start, then select **Program · ROS 1**.
+The console always starts in manual mode. For headless use:
+
+该配置选择 Go2W、Noetic、MID360 与相机，分离真值并将动态里程计 TF 留给外部算法。
+操作台加载后进入操控，再选择“程序 · ROS 1”；操作台始终以手动模式开始。
+无界面运行则使用：
+
+```sh
+simple-rbt-sim --session-config examples/go2w-noetic.json --session-dir /tmp/go2w-session
+# In another terminal, start the independent adapter using the Direct launch example.
+# 另一终端按上面的“直接启动”运行独立适配器，挂载 /tmp/go2w-session。
+# In the Noetic environment / 在 Noetic 环境：
+rosparam set /use_sim_time true
+rostopic pub -r 20 /go2w/cmd_vel geometry_msgs/Twist \
+  '{linear: {x: 0.2, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 0.0}}'
+```
+
+Use an unused session directory. The headless core runs until interrupted; stop the
+publisher to trigger its command timeout. This is a transport/control example, not a
+SLAM or navigation implementation. Next acceptance should cover actual map creation,
+localization and goal completion on Go2W/Noetic, with no simulator truth fed into the
+estimator. Check the chosen stack's Livox package name, units and per-point timestamps
+before connecting it.
+
+使用未占用的会话目录；无界面核心持续运行到中断，停止发布者会触发指令超时。此处完成的是
+通信和控制接口，尚未实现建图导航。下一阶段验证实际建图、定位和目标到达，不把仿真真值输入
+估计器；接入前须核对目标栈使用的 Livox 消息包名、单位和逐点时间。

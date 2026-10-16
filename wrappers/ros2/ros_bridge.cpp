@@ -99,7 +99,7 @@ struct RosBridge::Impl {
       if (options.publish_pointcloud2) points = node->create_publisher<sensor_msgs::msg::PointCloud2>("/livox/points", 10);
       imu = node->create_publisher<sensor_msgs::msg::Imu>("/livox/imu", 10);
       imu_si = node->create_publisher<sensor_msgs::msg::Imu>("/livox/imu_si", 10);
-      odom = node->create_publisher<nav_msgs::msg::Odometry>("/odom", 10);
+      odom = node->create_publisher<nav_msgs::msg::Odometry>(options.odom_topic, 10);
       if (has_camera) {
         for (int index = 0; index < 2; ++index) {
           const std::string prefix = index == 0 ? "/camera" : "/camera/panorama";

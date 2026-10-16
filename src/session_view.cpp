@@ -49,6 +49,8 @@ Json SessionObserver::metadata() {
           {"base_pose", pose_json(sim_->pose())},
           {"command_limits", sim_->command_limits()},
           {"applied_command", sim_->command()},
+          {"command_status", server_->command_status()},
+          {"odometry_source", "simulation_ground_truth"},
           {"observer",
            {{"position", eye.position},
             {"lookat", view_.lookat},

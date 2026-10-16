@@ -112,7 +112,7 @@ func TestROSDistroIsCheckedInsideIsolatedContainer(t *testing.T) {
 					if !correct {
 						return []byte("SPROBO_ROS_DISTRO=unsupported\n"), nil
 					}
-					return []byte("SPROBO_ROS_DISTRO=" + distro + "\n"), nil
+					return []byte("SPROBO_ROS_DISTRO=" + distro + "\n{\"configurable_odometry\":true}\n"), nil
 				})
 				report := c.check(context.Background(), options, map[string]bool{version: true})
 				if calls != 2 || report.ROSReady(version) != correct || !report.Ready || report.ExitCode() != 0 {
@@ -127,5 +127,18 @@ func TestUnavailableDockerIsOptional(t *testing.T) {
 	report := c.check(context.Background(), options, map[string]bool{"ros1": true})
 	if !report.Ready || report.ROSReady("ros1") {
 		t.Fatal("optional Docker failure blocked the CPU framework")
+	}
+}
+
+func TestOldAdapterRequiresRebuild(t *testing.T) {
+	c, options := fixtureChecker(t, validRuntime(), func(args []string) ([]byte, error) {
+		if args[0] == "image" {
+			return []byte("sha256:old"), nil
+		}
+		return []byte("SPROBO_ROS_DISTRO=noetic\n{\"transport\":\"unix_ipc\"}\n"), nil
+	})
+	report := c.check(context.Background(), options, map[string]bool{"ros1": true})
+	if report.ROSReady("ros1") || !report.Ready {
+		t.Fatal("old adapter must require rebuilding without disabling the ROS-free core")
 	}
 }

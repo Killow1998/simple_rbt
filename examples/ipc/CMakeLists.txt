@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.16)
+project(simple_rbt_ipc_example LANGUAGES CXX)
+get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+add_library(simple_rbt_robots "${ROOT}/src/robots.cpp")
+target_include_directories(simple_rbt_robots PUBLIC "${ROOT}/include")
+add_subdirectory("${ROOT}/ipc" "${CMAKE_CURRENT_BINARY_DIR}/ipc")
+add_executable(simple-rbt-client main.cpp)
+target_link_libraries(simple-rbt-client PRIVATE simple_rbt_ipc)

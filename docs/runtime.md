@@ -126,3 +126,46 @@ User settings use `$XDG_CONFIG_HOME/simple-rbt`; state/results use `$XDG_STATE_H
 
 Current acceptance is recorded in [console design and validation](desktop-console-plan.md). Earlier dated reports preserve their own source identity and conditions.
 当前验收见[操作台设计与验证](desktop-console-plan.md)；此前带日期的记录保留当时的代码身份和测试条件。
+
+## External program contract / 外部程序接入约定
+
+A complete, ROS-free C++ client is provided in [examples/ipc](../examples/ipc/main.cpp).
+It builds with CMake and a C++17 compiler; it does not link MuJoCo, ONNX or ROS.
+Copy the **current** IPC session path from SpRobo's Program connection panel.
+The path changes when the configuration is restarted.
+
+[examples/ipc](../examples/ipc/main.cpp) 提供完整的独立 C++ 客户端，只需 CMake 与 C++17
+编译器，不链接 MuJoCo、ONNX 或 ROS。在操作台“程序接入”面板复制当前 IPC 会话路径；
+返回配置或重建会话后须重新复制。
+
+```sh
+cmake -S examples/ipc -B build/ipc-example
+cmake --build build/ipc-example
+# Observe for 10 seconds without commanding motion / 仅观测 10 秒
+build/ipc-example/simple-rbt-client /absolute/session/path
+# Select Program · IPC first; request 0.2 m/s for up to 10 seconds
+# 先选择“程序 · IPC”；最多请求运动 10 秒
+build/ipc-example/simple-rbt-client /absolute/session/path 0.2
+```
+
+| Contract / 约定 | Meaning / 含义 |
+| --- | --- |
+| Commands / 指令 | `[vx, vy, wz]`, base coordinates, m/s and rad/s; renew at 20 Hz. The core clips supported commands to the robot's limits. / 机身坐标，建议 20 Hz 更新；核心按车型限幅。 |
+| Clock / 时钟 | Sensor packet timestamps are integer simulation nanoseconds. ROS peers must use `/clock` and simulation time. Wall-clock command timeout continues while paused. / 传感器时间戳为仿真纳秒；ROS 使用仿真时钟；指令超时按墙钟判断。 |
+| Odometry / 里程计 | Simulation ground-truth pose in the world/`odom` frame; linear and angular velocity in the base frame. It is not a noisy wheel encoder or an estimator result. / 位姿为世界／odom 坐标中的仿真真值，速度为机身坐标；不是轮速计或定位估计。 |
+| IMU / 惯导 | IPC uses MID360 IMU coordinates, rad/s and m/s² specific force, including stationary gravity response. `/livox/imu_si` preserves SI units; `/livox/imu` is the driver-compatible g-unit stream using the LiDAR frame label. / IPC 与 SI 话题使用国际单位；兼容话题加速度使用 g，坐标标签为雷达。 |
+| LiDAR / 雷达 | Points are in the LiDAR frame; `stamp_ns + offsets_ns[i]` gives point time. Scans are rolling and not deskewed. / 雷达坐标，逐点时间为帧起点加偏移，不预先去畸变。 |
+| Extrinsics / 外参 | Hello includes base-relative transforms. Quaternions are WXYZ. Camera TF uses optical X-right, Y-down, Z-forward. MID360 IMU is rigidly coupled. / 握手给出机身相对外参，四元数 WXYZ；相机使用光学坐标，MID360 内部刚性耦合。 |
+| Ownership / 控制权 | Sending commands does not acquire ownership. Only the selected source can drive. Stop returns control to manual; Pause freezes simulation time. / 发指令不等于取得控制权；停车交回手动，暂停冻结仿真时间。 |
+| Delivery / 传输 | Local Unix sockets, protocol 1; no remote TCP endpoint. Drain `poll()` regularly. Queues are bounded: a slow consumer can lose unsent samples or disconnect. / 仅本机 socket，须及时消费；慢接收者可能丢样或断连。 |
+
+Metadata `command_status` distinguishes `waiting`, `receiving`, `timed_out`, `paused`
+and `unowned`; `age_s` is nullable and measures time since the core received a valid
+command. Connection counts and this heartbeat describe IPC peers. A ROS adapter can
+remain connected and send zeros after its upstream publisher stops; neither value
+proves a navigation node is publishing. The UI labels commanded and measured velocity
+separately, and reports the selected owner above the live views.
+
+`command_status` 区分等待、接收、超时、暂停和无控制来源；可空的 `age_s` 表示核心最近收到
+合法指令后的秒数。连接数与心跳只描述 IPC 对端：ROS 上游停止发布后，适配器仍可保持连接并
+发送零指令，不能据此认定导航节点仍在发布。界面分别显示指令速度、实际速度与当前控制来源。

@@ -1,6 +1,7 @@
 #include "simple_rbt/session.hpp"
 #include "session_observer.hpp"
 #include <csignal>
+#include <regex>
 namespace simple_rbt::session_detail {
 Pose parse_pose(const Json &json) {
   Pose p;
@@ -78,6 +79,13 @@ Json run_session(const Json &config, const std::filesystem::path &directory,
     args.output = config.at("output").get<std::string>();
   TransportOptions options;
   options.robot_name = args.simulation.robot;
+  const auto ros = config.value("ros", Json::object());
+  options.publish_odom_tf = ros.value("publish_odom_tf", true);
+  options.odom_topic = ros.value("odom_topic", std::string("/odom"));
+  // Keep portable absolute topic names accepted by both supported adapters.
+  if (!std::regex_match(options.odom_topic,
+                       std::regex("/([A-Za-z_][A-Za-z0-9_]*)(/[A-Za-z_][A-Za-z0-9_]*)*")))
+    throw std::invalid_argument("ros.odom_topic must be an absolute topic, e.g. /ground_truth/odom");
   session_detail::SessionObserver observer(config, interrupted);
   auto old_int = std::signal(SIGINT, interrupt),
        old_term = std::signal(SIGTERM, interrupt);

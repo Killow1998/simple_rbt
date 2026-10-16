@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"simple-rbt/console/session"
 )
@@ -13,20 +12,17 @@ func (a *app) configureRuntime(report session.DependencyReport) bool {
 		return false
 	}
 	catalog, err := loadCatalog(a.options.DataRoot, report.Core.Robots)
-	if err == nil {
-		if _, ok := catalog.Robots[a.cfg.Robot]; !ok {
-			err = fmt.Errorf("Robot is not registered / 机器人未注册: %s", a.cfg.Robot)
-		}
-	}
 	if err != nil {
 		a.preflight.Ready = false
 		a.preflight.Checks = append(a.preflight.Checks, session.DependencyCheck{ID: "configuration", Required: true, Status: "fail", Message: err.Error()})
 		return false
 	}
 	a.catalog = catalog
-	if a.cfg.Controller == "auto" {
-		a.cfg.Controller = catalog.Robots[a.cfg.Robot].DefaultController
+	if spec, ok := catalog.Robots[a.cfg.Robot]; ok && a.cfg.Controller == "auto" {
+		a.cfg.Controller = spec.DefaultController
 	}
+	// Keep configuration and Load available even when the supplied profile is
+	// invalid; startConfig validates before launching or replacing a worker.
 	a.initialized = true
 	return true
 }

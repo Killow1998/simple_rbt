@@ -76,7 +76,8 @@ void RosBridge::publish_odometry(std::uint64_t ns, const Pose& pose,
   xyz(message.pose.pose.position, pose.position); quaternion(message.pose.pose.orientation, pose.quaternion);
   xyz(message.twist.twist.linear, linear_velocity); xyz(message.twist.twist.angular, angular_velocity);
   send(impl_->odom, message);
-  impl_->publish_transform(transform(ns, impl_->options.odom_frame, impl_->options.base_frame, pose));
+  if (impl_->options.publish_odom_tf)
+    impl_->publish_transform(transform(ns, impl_->options.odom_frame, impl_->options.base_frame, pose));
 }
 void RosBridge::publish_camera(std::uint64_t ns, const CameraFrame& frame, bool panorama) {
   if (frame.width <= 0 || frame.height <= 0 || frame.width > std::numeric_limits<int>::max() / 4)

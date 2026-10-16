@@ -53,7 +53,7 @@ struct RosBridge::Impl {
     if (options.publish_pointcloud2) points = advertise<messages::PointCloud>("/livox/points", 10);
     imu = advertise<messages::Imu>("/livox/imu", 64);
     imu_si = advertise<messages::Imu>("/livox/imu_si", 64);
-    odom = advertise<messages::Odometry>("/odom", 10);
+    odom = advertise<messages::Odometry>(options.odom_topic, 10);
     if (has_camera) {
       for (int index = 0; index < 2; ++index) {
         const std::string prefix = index == 0 ? "/camera" : "/camera/panorama";

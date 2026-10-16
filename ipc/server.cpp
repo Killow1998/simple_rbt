@@ -64,6 +64,9 @@ struct SessionServer::Impl {
              {{"robot_name", options.robot_name},
               {"command_timeout_s", options.command_timeout_s},
               {"publish_pointcloud2", options.publish_pointcloud2},
+              {"publish_odom_tf", options.publish_odom_tf},
+              {"odom_topic", options.odom_topic},
+              {"odometry_source", "simulation_ground_truth"},
               {"perspective_fov_y_deg", options.perspective_fov_y_deg},
               {"odom_frame", options.odom_frame},
               {"base_frame", options.base_frame},
@@ -333,6 +336,15 @@ std::size_t SessionServer::peer_count(const std::string &role) const {
       }
   }
   return count;
+}
+Json SessionServer::command_status() const {
+  std::lock_guard<std::mutex> lock(impl_->mutex);
+  const bool received = impl_->received != Clock::time_point{};
+  const double age = received ? std::chrono::duration<double>(Clock::now() - impl_->received).count() : 0.;
+  const char *state = !impl_->running ? "paused" : impl_->source == "none" ? "unowned" :
+                      !received ? "waiting" : age >= impl_->options.command_timeout_s ? "timed_out" : "receiving";
+  return {{"state", state}, {"age_s", received ? Json(age) : Json(nullptr)},
+          {"timeout_s", impl_->options.command_timeout_s}};
 }
 Vec3 SessionServer::command() const {
   std::lock_guard<std::mutex> lock(impl_->mutex);

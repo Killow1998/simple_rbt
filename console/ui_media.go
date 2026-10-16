@@ -13,7 +13,7 @@ func (a *app) media(c *ui.Context) {
 	}
 	if a.stage != "configure" {
 		ui.Row(c).Gap(8).Children(func() {
-			ui.Text(c, a.tr("Live views", "实时视角")).Bold().Grow(1)
+			ui.Text(c, a.optionLabel(sourceLabel(a.meta.Source))+" · "+a.commandStateLabel()).FontSize(13).Grow(1)
 			if a.localizedSelect(c.Key("view-mode"), &a.viewMode, []string{"Both / 双视角", "First / 第一视角", "Third / 第三视角"}).Width(200).Changed() {
 				a.requestView()
 			}

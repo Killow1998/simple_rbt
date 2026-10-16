@@ -34,8 +34,9 @@ func (a *app) view(c *ui.Context) {
 				})
 				ui.Column(c).Padding(14, 18).BorderWidth(1, 0, 0, 0).BorderColor(panelDivider(c)).Gap(10).Children(func() {
 					if a.stage == "configure" {
-						ui.PrimaryButton(c, a.tr("Start session", "进入操控")).FillWidth().Disabled(a.loading || a.preparing || a.manager.Busy() || a.meta.State != "config").OnClick(a.startOperating)
+						ui.PrimaryButton(c, a.tr("Start session", "进入操控")).FillWidth().Disabled(a.loading || a.preparing || a.checking || !a.preflight.Ready || a.manager.Busy() || a.meta.State != "config").OnClick(a.startOperating)
 					} else {
+						a.motionButtons(c)
 						ui.Button(c, a.tr("New configuration", "返回配置")).FillWidth().OnClick(func() { a.stage = "configure"; a.startConfig() })
 					}
 				})

@@ -30,9 +30,11 @@ int main() {
   ros.poll();
   server.set_running(true);
   server.set_source("gui");
+  require(server.command_status()["state"] == "waiting", "waiting before first command");
   gui.send_command({.4, .1, .2});
   wait();
   require(server.command()[0] == .4, "GUI command");
+  require(server.command_status()["state"] == "receiving", "received command status");
   ros.send_command({.7, 0., 0.});
   wait();
   require(server.command()[0] == .4, "owner isolation");
@@ -137,10 +139,12 @@ int main() {
   require(server.command()[0] == .2, "ROS command owner");
   std::this_thread::sleep_for(std::chrono::milliseconds(520));
   require(server.command() == Vec3{}, "deadman timeout");
+  require(server.command_status()["state"] == "timed_out", "timeout remains distinguishable from zero command");
   ros.send_command({.2, 0., 0.});
   wait();
   server.set_running(false);
   require(server.command() == Vec3{}, "pause clears command");
+  require(server.command_status()["state"] == "paused", "pause status");
   // A slow GUI must not block controls or grow memory without bound.
   for (int i = 0; i < 80; ++i)
     server.publish_camera(i, image);

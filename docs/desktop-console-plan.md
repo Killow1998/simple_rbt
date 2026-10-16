@@ -158,3 +158,55 @@ The `.deb` is 22.6 MiB and installs 106.3 MiB. The optional ROS images occupy ab
 Ubuntu 24.04 has not been validated. Both prepared official ROS images and the installed image-build context passed acceptance; first-use preparation through the GUI from an empty Docker daemon was not verified in this managed proxy environment.
 
 Ubuntu 24.04 尚未验收。已准备的官方 ROS 镜像和安装后的镜像构建资料均通过测试；在当前代理环境中，尚未验证空 Docker daemon 下由 GUI 首次准备镜像的全过程。
+
+## Interface usability stage — 2026-10-15 / 接口易用性阶段
+
+The next integration target is **Go2W + ROS 1 Noetic**. This stage prepares that
+boundary; no SLAM or navigation stack is included. See [ROS ownership and launch](noetic.md)
+and the [external program contract](runtime.md#external-program-contract--外部程序接入约定).
+
+下一阶段固定为 **Go2W＋ROS 1 Noetic**。本阶段补齐接口与操作体验，尚未接入建图导航栈。
+接入约定、真值隔离和运行示例见上述文档。
+
+- Both ROS adapters can suppress dynamic odometry TF and publish truth on a separate
+  topic; static sensor TF remains available. Old adapter images are detected through
+  runtime capability inspection and require rebuilding.
+- Profiles are validated before replacing a running configuration: robot/controller,
+  terrain, motion/backend, camera rate, mounts and odometry topic. Original profiles
+  without the new ROS settings retain their defaults.
+- The console distinguishes command receipt from IPC connectivity and displays command
+  versus actual velocity. Command topic and session path can be copied. Robot limits
+  are explained. Stop/Pause remain fixed at the bottom of the sidebar while scrolling.
+- A standalone C++ example subscribes to real samples and optionally commands motion;
+  it builds without the simulation or ROS SDK.
+
+两种适配器支持关闭动态 TF、独立发布真值，并识别旧镜像能力；配置在替换当前会话前校验。
+操作台区分指令与实际速度、连接与接收状态，可复制接入路径／话题，显示底盘限制，固定停车／暂停
+按钮。独立 C++ 示例无需仿真或 ROS SDK，直接消费实际数据并可选发送指令。
+
+Local evidence is retained in `output/interface-ux-20261015/`: CTest 7/7; Go tests and
+vet; 26 native-window checks; Go2W CPU Noetic checks 21/21 with default TF and 22/22
+with external odometry; Humble compatibility checks 22/22 and 23/23 respectively.
+ROS checks exclude cameras and measured real-time factor 1.000 in these cases. Native
+window checks include rendering, sensors, all four theme/language combinations and
+actual focus/command behavior. A separate 1024×768 Chinese light-theme run checks the
+fixed Pause/Resume/Stop controls and captures actual windows. An invalid startup profile
+was corrected through the UI without launching a worker first. The C++ example received
+odometry, IMU and scans and observed approximately 0.20 m/s under a 0.2 m/s command.
+
+本机证据保存在上述目录：CTest 7/7、Go 测试与 vet、26 项真实窗口检查；Go2W CPU 模式下，
+Noetic 默认／外部里程计分别通过 21／22 项，Humble 对应 22／23 项。ROS 用例关闭相机，实测
+实时倍率均为 1.000；窗口检查覆盖渲染、传感器、四组配色语言和真实输入行为。另以 1024×768
+浅色中文界面检查固定暂停／继续／停车控件，并验证无效启动配置不会启动核心且可在界面中修正。
+C++ 示例接收到真实里程计、IMU 和扫描，0.2 m/s
+指令下观测速度约 0.20 m/s。
+
+The local Docker Hub manifest request timed out. Adapter evidence uses freshly compiled
+source inside existing official-image-based runtime containers; the Noetic message
+header was generated from its installed TF definition. Production Dockerfiles are
+unchanged. CI now includes the Go2W external-odometry case for both ROS versions, but
+this stage's CI/release has not run. Installed SpRobo 0.2.1 remains unchanged.
+
+本机 Docker Hub manifest 请求超时；适配器使用既有官方镜像基础容器重新编译当前源码，Noetic
+缺少的消息头由容器内 TF 定义生成，正式 Dockerfile 未改动。CI 已加入双 ROS 的 Go2W 外部
+里程计用例，本阶段尚未运行远端 CI／发布，已安装的 SpRobo 0.2.1 未替换。

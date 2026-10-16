@@ -5,10 +5,12 @@ parser.add_argument("version", choices=["ros1","ros2"])
 parser.add_argument("output")
 parser.add_argument("--physical", action="store_true")
 parser.add_argument("--robot", default="go2w")
+parser.add_argument("--external-odometry", action="store_true")
 parser.add_argument("--no-camera", action="store_true")
 parser.add_argument("--motion-only", action="store_true", help=argparse.SUPPRESS)
 args=parser.parse_args();version,output=args.version,args.output
 seen = {}
+odom_topic = "/ground_truth/odom" if args.external_odometry else "/odom"
 odometry_samples=[]
 lidar_stamps=[]
 custom_frames={}
@@ -72,12 +74,15 @@ else:
     tick = lambda: time.sleep(.02)
 subscriptions = [subscribe(Clock,'/clock','clock',clock_qos), subscribe(Imu,'/livox/imu_si','imu'),
     subscribe(CustomMsg,'/livox/lidar','lidar'),subscribe(PointCloud2,'/livox/points','points'),
-    subscribe(Odometry,'/odom','odom'),subscribe(TFMessage,'/tf_static','tf',static_qos)]
+    subscribe(Odometry,odom_topic,'odom'),subscribe(TFMessage,'/tf_static','tf',static_qos)]
 expected=['clock','imu','lidar','points','odom','tf']
+subscriptions += [subscribe(TFMessage,'/tf','dynamic_tf')]
+if args.external_odometry:
+    subscriptions += [subscribe(Odometry,'/odom','reserved_odom')]
 if args.motion_only:
     for subscription in subscriptions:
         node.destroy_subscription(subscription)
-    subscriptions=[subscribe(Clock,'/clock','clock',clock_qos),subscribe(Odometry,'/odom','odom')]
+    subscriptions=[subscribe(Clock,'/clock','clock',clock_qos),subscribe(Odometry,odom_topic,'odom')]
     expected=['clock','odom']
 elif not args.no_camera:
     subscriptions += [subscribe(CameraInfo,'/camera/camera_info','info'),
@@ -103,7 +108,7 @@ if version=='ros2' and args.physical and not args.motion_only:
     # an independent ROS process owns command pacing and motion observation.
     # No production publication rate, payload, or acceptance threshold changes.
     motion_path=output+'.motion.json'
-    child=subprocess.Popen([sys.executable,__file__,version,motion_path,'--physical','--motion-only','--robot',args.robot])
+    child=subprocess.Popen([sys.executable,__file__,version,motion_path,'--physical','--motion-only','--robot',args.robot]+(['--external-odometry'] if args.external_odometry else []))
     try:
         child.wait(timeout=25.)
     finally:
@@ -122,6 +127,9 @@ if version == 'ros2':
     if reader.is_alive() or reader_errors:raise RuntimeError('ROS subscriber executor: '+str(reader_errors))
 
 checks={k:k in seen for k in expected}
+if not args.motion_only:
+    checks['dynamic_tf_owner'] = ('dynamic_tf' not in seen) if args.external_odometry else any(t.header.frame_id=='odom' and t.child_frame_id=='base_link' for t in seen.get('dynamic_tf', TFMessage()).transforms)
+    if args.external_odometry: checks['estimated_odom_topic_reserved'] = 'reserved_odom' not in seen
 if checks.get('imu'):checks['imu_si']=math.isclose(seen['imu'].linear_acceleration.z,9.80665)
 if checks.get('lidar'):checks['lidar_columns']=seen['lidar'].point_num==2 and seen['lidar'].points[1].line==3 and seen['lidar'].points[1].offset_time==10000
 if checks.get('rgb'):checks['image_complete']=len(seen['rgb'].data)==32*24*3 and all(x==91 for x in seen['rgb'].data)

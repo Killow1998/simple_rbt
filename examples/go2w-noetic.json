@@ -1,0 +1,14 @@
+{
+  "robot": "go2w",
+  "controller": "auto",
+  "control_mode": "tracked",
+  "terrain": "flat",
+  "terrain_level": "standard",
+  "backend": "auto",
+  "camera_hz": 10,
+  "sensors": {"mid360": true, "camera": true, "depth": true, "panorama": false},
+  "adapters": {"ros1": true, "ros2": false},
+  "ros": {"publish_odom_tf": false, "odom_topic": "/ground_truth/odom"},
+  "source": "ros1",
+  "start_immediately": true
+}
