@@ -79,6 +79,39 @@ There is one editable MID360 assembly. Its internal IMU follows every translatio
 
 MID360 只有一个可编辑总成。内部 IMU 随整体平移／旋转，没有独立编辑入口。模型感测点、采样原点和适配器 TF 使用同一组合；原生控制器的机身 IMU 独立。相机安装方向与固定的 ROS 光学坐标约定分开。
 
+## Sensor gizmos / 传感器操作轴
+
+Translation arrows share the device origin, use X/Y/Z colours with dark outlines,
+and highlight the hovered or dragged axis. Base/Local transforms retain their
+existing meaning. Following [Godot 4.5's manipulator sizing](https://github.com/godotengine/godot/blob/4.5/editor/scene/3d/node_3d_editor_plugin.cpp#L4241),
+world scale follows camera depth to keep a roughly 96-DIP handle; short views
+reduce it. All overlays are clipped to the displayed image, including labels,
+rotation rings and the camera frustum. Invisible handles cannot be picked.
+
+平移箭头共用设备原点，XYZ 分色并带深色描边，悬停／拖动时高亮；机身／设备坐标
+语义不变。参考 Godot 的尺寸处理，按观察距离换算操作轴大小，保持约 96 逻辑像素，
+小视口进一步缩小。标签、旋转环、相机视锥统一裁剪到实际图像，不进入画面留白或
+旁边控件；不可见部分不响应点击。
+
+The former diagonal distortion came from using MyGo's `Painter.Line`, which only
+supports horizontal/vertical lines. Projected geometry now uses vector paths;
+each ring is stroked as one curve to avoid seams. Native pixel checks verify
+connected diagonal shafts, hover and rings in addition to actual mount dragging.
+Software-rendered checks cover all image edges, letterboxing and 1×/2× scaling.
+
+此前误用只支持横竖线的 `Painter.Line`，导致斜轴断开、视锥变形；现改为矢量路径，
+旋转环整体描边以消除分段接缝。验收检查实际窗口的斜线像素、高亮、旋转环和真实
+拖拽；软件渲染另覆盖四边裁剪、画面留白及 1×／2× 显示缩放。
+
+2026-10-15 source validation: [40 native-window checks](../output/gizmo-20261015/final/report.json),
+Go tests and vet passed; [translation](../output/gizmo-20261015/final/gizmo-connected.png)
+and [rotation](../output/gizmo-20261015/final/gizmo-rotation.png) screenshots inspected.
+This is a local source fix; installed 0.2.1 is unchanged. Run `./run.sh --console`
+to test it; a release still follows the existing GitHub CI process.
+
+2026-10-15 源码验收：40 项真实窗口检查、Go 测试及 vet 通过，已复查平移／旋转截图。
+本机安装的 0.2.1 未替换；用 `./run.sh --console` 测试本次修复，发布沿用既有 GitHub CI。
+
 ## Official visuals / 官方外观
 
 Official visual CAD is attached to existing bodies/joints with zero mass and collision masks. Original collision geometry, inertia, wheel dimensions, actuator bounds and controller parameters remain authoritative. Source commits, file hashes, conversions and fitted visual transforms are recorded under `assets/visual/`. Differences between a drawing and the validated physical approximation are recorded rather than silently replacing dynamics.

@@ -25,12 +25,15 @@ func (a *app) media(c *ui.Context) {
 		if showObserver {
 			ui.Column(c).Grow(1).MinHeight(0).Gap(6).Children(func() {
 				ui.Text(c, a.tr("Third-person view", "第三视角")).FontSize(12).TextColor(c.Theme().TextMuted)
-				ui.Box(c.Key("observer-view")).Bind(&a.driveHandles[1]).Grow(1).MinHeight(210).Radius(10).Background(viewportBackground).Focusable().Label(a.tr("3D sensor mount viewport", "传感器外参三维视图")).HandleInput(func(ev ui.InputEvent) bool {
+				view := ui.Box(c.Key("observer-view")).Bind(&a.driveHandles[1]).Grow(1).MinHeight(210).Radius(10).Clip().Background(viewportBackground).Focusable().Label(a.tr("3D sensor mount viewport", "传感器外参三维视图")).HandleInput(func(ev ui.InputEvent) bool {
 					if a.keyboardInput(ev) {
 						return true
 					}
 					return a.viewportInput(ev)
-				}).Draw(func(p *ui.Painter, r ui.Rect) {
+				})
+				x, y, over := view.PointerPosition()
+				a.viewport.Pointer, a.viewport.Hovering = point{float64(x), float64(y)}, over
+				view.Draw(func(p *ui.Painter, r ui.Rect) {
 					width, height := float64(r.W), float64(r.H)
 					changed := a.viewport.Width != width || a.viewport.Height != height
 					a.viewport.Width = width

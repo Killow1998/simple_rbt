@@ -39,6 +39,25 @@ def project(metadata, point, viewport):
     return vx+vw*.5+focal*dot(relative, right)/depth, vy+vh*.5-focal*dot(relative, up)/depth
 
 
+def gizmo_length(metadata, mount, viewport):
+    observer = metadata["observer"]
+    forward = [b-a for a,b in zip(observer["position"],observer["lookat"])]
+    norm = math.sqrt(sum(x*x for x in forward))
+    relative = [mount[i]+metadata["base_pose"]["position"][i]-observer["position"][i] for i in range(3)]
+    depth = sum(x*y/norm for x,y in zip(relative,forward))
+    height = min(viewport[2]/observer["width"],viewport[3]/observer["height"])*observer["height"]
+    focal = height*.5/math.tan(math.radians(observer["vertical_fov_deg"])*.5)
+    return min(96*min(1,height/400)*depth/focal,depth*.4)
+
+
+def color_near(inputs, window, position, color, radius=3):
+    width,height,pixels = inputs.pixels(window)
+    x,y = map(round,position)
+    return any(max(abs(pixels[(v*width+u)*3+c]-color[c]) for c in range(3))<24
+               for v in range(max(0,y-radius),min(height,y+radius+1))
+               for u in range(max(0,x-radius),min(width,x+radius+1)))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--display", required=True, help="Isolated Xvfb display; not your desktop")
@@ -145,7 +164,21 @@ def main():
             original = metadata["mounts"]["mid360"]["position"][:]
             viewport = inputs.viewport(window, metadata["observer"]["width"], metadata["observer"]["height"])
             (output / "native-layout.json").write_text(json.dumps({"observer_rectangle": viewport}, indent=2)+"\n")
-            tip = project(metadata, [original[0]+.22, original[1], original[2]], viewport)
+            length = gizmo_length(metadata,original,viewport)
+            origin = project(metadata,original,viewport)
+            tips = [project(metadata,[original[j]+(length if i==j else 0) for j in range(3)],viewport) for i in range(3)]
+            colors = [(242,116,116),(79,217,157),(111,162,255)]
+            # Inspect actual native pixels on all three diagonals. The former
+            # horizontal/vertical-only Painter.Line cannot pass this check.
+            check("three visible axis shafts connect toward their common origin",
+                  all(color_near(inputs,window,[origin[j]+(tip[j]-origin[j])*t for j in range(2)],color)
+                      for tip,color in zip(tips,colors) for t in (.25,.45,.65)))
+            inputs.capture(window,output / "gizmo-connected.png")
+            tip = tips[0]
+            inputs.move(*tip); time.sleep(.15)
+            check("hover highlights the same diagonal that will be dragged",
+                  color_near(inputs,window,[(a+b)*.5 for a,b in zip(origin,tip)],(255,225,154)))
+            inputs.capture(window,output / "gizmo-hover.png")
             inputs.move(*tip); inputs.button(True); inputs.move(tip[0]+22, tip[1]-8); inputs.button(False)
             metadata, _ = observer.wait(lambda m, v: abs(m["mounts"]["mid360"]["position"][0]-.03)>.005)
             check("native XTEST translation drag changes core mount", True, metadata["mounts"]["mid360"])
@@ -154,7 +187,12 @@ def main():
             inputs.key("Return", True); inputs.key("Return", False)
             time.sleep(.2)
             mount = metadata["mounts"]["mid360"]["position"]
-            ring = lambda angle: project(metadata, [mount[0]+.16*math.cos(angle), mount[1]+.16*math.sin(angle), mount[2]], viewport)
+            radius = gizmo_length(metadata,mount,viewport)*.8
+            ring = lambda angle: project(metadata, [mount[0]+radius*math.cos(angle), mount[1]+radius*math.sin(angle), mount[2]], viewport)
+            inputs.move(700,140); time.sleep(.15)
+            check("rotation ring follows its projected curve",
+                  all(color_near(inputs,window,ring(angle),(111,162,255)) for angle in (.4,.8,1.2)))
+            inputs.capture(window,output / "gizmo-rotation.png")
             inputs.move(*ring(.73)); inputs.button(True); inputs.move(*ring(1.13)); inputs.button(False)
             metadata, _ = observer.wait(lambda m, v: abs(m["mounts"]["mid360"]["quaternion"][0])<.995)
             check("native XTEST rotation ring changes core quaternion", True, metadata["mounts"]["mid360"])

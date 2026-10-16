@@ -6,159 +6,144 @@ import (
 )
 
 var axisColors = []ui.Color{ui.Hex("#f27474"), ui.Hex("#4fd99d"), ui.Hex("#6fa2ff")}
+var gizmoOutline = ui.Hex("#18212d")
+var gizmoHighlight = ui.Hex("#ffe19a")
 
-func painterLine(p *ui.Painter, r ui.Rect, a, b point, width float32, color ui.Color) {
-	p.Line(r.X+float32(a.X), r.Y+float32(a.Y), r.X+float32(b.X), r.Y+float32(b.Y), width, color)
+func validPoint(q point) bool {
+	return !math.IsNaN(q.X) && !math.IsNaN(q.Y) && !math.IsInf(q.X, 0) && !math.IsInf(q.Y, 0)
 }
+func painterLine(p *ui.Painter, r ui.Rect, a, b point, width float32, color ui.Color) {
+	painterPolyline(p, r, []point{a, b}, width, color)
+}
+func painterPolyline(p *ui.Painter, r ui.Rect, points []point, width float32, color ui.Color) {
+	// Painter.Line only supports horizontal/vertical lines. A path preserves
+	// diagonals and draws each ring with continuous joins, not overlapping caps.
+	var path ui.Path
+	started := false
+	for _, q := range points {
+		if !validPoint(q) {
+			started = false
+			continue
+		}
+		x, y := r.X+float32(q.X), r.Y+float32(q.Y)
+		if started {
+			path.LineTo(x, y)
+		} else {
+			path.MoveTo(x, y)
+			started = true
+		}
+	}
+	p.StrokePath(&path, width, color)
+}
+
 func painterCircle(p *ui.Painter, r ui.Rect, q point, radius float32, color ui.Color) {
+	if !validPoint(q) {
+		return
+	}
 	p.Stroke(ui.Rect{X: r.X + float32(q.X) - radius, Y: r.Y + float32(q.Y) - radius, W: radius * 2, H: radius * 2}, color, radius, 2)
+}
+func painterArrow(p *ui.Painter, r ui.Rect, origin, tip point, color ui.Color) {
+	d := psub(tip, origin)
+	length := plen(d)
+	if length < 12 || !validPoint(tip) || !validPoint(origin) {
+		return
+	}
+	ux, uy := d.X/length, d.Y/length
+	head := math.Min(15, length*.3)
+	base := point{tip.X - ux*head, tip.Y - uy*head}
+	painterLine(p, r, origin, base, 6, gizmoOutline)
+	painterLine(p, r, origin, base, 3, color)
+	var path ui.Path
+	path.MoveTo(r.X+float32(tip.X), r.Y+float32(tip.Y)).
+		LineTo(r.X+float32(base.X-uy*5), r.Y+float32(base.Y+ux*5)).
+		LineTo(r.X+float32(base.X+uy*5), r.Y+float32(base.Y-ux*5)).Close()
+	p.StrokePath(&path, 2, gizmoOutline)
+	p.FillPath(&path, color)
+}
+func gizmoLabel(p *ui.Painter, r ui.Rect, q point, label string, color ui.Color) {
+	if !validPoint(q) {
+		return
+	}
+	x, y := r.X+float32(q.X), r.Y+float32(q.Y)
+	p.Fill(ui.Rect{X: x - 4, Y: y - 2, W: float32(len(label))*7 + 8, H: 18}, gizmoOutline, 4)
+	p.Text(x, y, label, 12, color)
 }
 func (a *app) visibleMount(name string) bool {
 	return name == "mid360" && a.cfg.Sensors.MID360 || name == "camera" && a.cameraDeviceEnabled()
 }
 func (a *app) drawGizmo(p *ui.Painter, r ui.Rect) {
 	a.viewport.Handles = nil
-	for name, pose := range a.cfg.Mounts {
-		if !a.visibleMount(name) {
+	bounds := a.viewport.imageRect(a.observerSize)
+	// Clip all overlays, including labels and the camera frustum, to the actual
+	// image, not the surrounding letterbox or the rest of the console.
+	p.Clip(ui.Rect{X: r.X + bounds.X, Y: r.Y + bounds.Y, W: bounds.W, H: bounds.H}, 0, func() {
+		a.drawMounts(p, r)
+		pose, ok := a.cfg.Mounts[a.selected]
+		if !ok || !a.visibleMount(a.selected) {
+			return
+		}
+		a.viewport.Handles = a.gizmoHandles(pose)
+		active := -1
+		if a.viewport.Dragging {
+			active = a.viewport.Current.Axis
+		} else if a.viewport.Hovering {
+			if h, ok := a.pickHandle(a.viewport.Pointer); ok {
+				active = h.Axis
+			}
+		}
+		for _, h := range a.viewport.Handles {
+			color := axisColors[h.Axis]
+			if h.Axis == active {
+				color = gizmoHighlight
+			}
+			if a.tool == "Rotate / 旋转" {
+				painterPolyline(p, r, h.Points, 5, gizmoOutline)
+				painterPolyline(p, r, h.Points, 2.5, color)
+			} else {
+				painterArrow(p, r, h.Points[0], h.Points[1], color)
+				tip, d := h.Points[1], psub(h.Points[1], h.Points[0])
+				length := plen(d)
+				gizmoLabel(p, r, point{tip.X + d.X/length*17 - 4, tip.Y + d.Y/length*17 - 7}, string("XYZ"[h.Axis]), color)
+			}
+		}
+		origin := a.project(pose.Position)
+		if validPoint(origin) {
+			p.Fill(ui.Rect{X: r.X + float32(origin.X) - 5, Y: r.Y + float32(origin.Y) - 5, W: 10, H: 10}, gizmoOutline, 5)
+			p.Fill(ui.Rect{X: r.X + float32(origin.X) - 3, Y: r.Y + float32(origin.Y) - 3, W: 6, H: 6}, gizmoHighlight, 3)
+		}
+	})
+}
+func (a *app) drawMounts(p *ui.Painter, r ui.Rect) {
+	for _, name := range []string{"mid360", "camera"} {
+		pose, ok := a.cfg.Mounts[name]
+		if !ok || !a.visibleMount(name) {
 			continue
 		}
-		q := a.project(pose.Position)
-		color := ui.Hex("#ffffff")
+		q, color := a.project(pose.Position), ui.Hex("#e3e7ed")
 		if name == a.selected {
-			color = ui.Hex("#ffd17a")
-		}
-		painterCircle(p, r, q, 8, color)
-		p.Text(r.X+float32(q.X)+12, r.Y+float32(q.Y)-14, name, 12, color)
-	}
-	pose, ok := a.cfg.Mounts[a.selected]
-	if !ok || !a.visibleMount(a.selected) {
-		return
-	}
-	if a.selected == "mid360" {
-		painterLine(p, r, a.project(pose.Position), a.project(internalImu(pose)), 2, ui.Hex("#79d4ef"))
-		painterCircle(p, r, a.project(internalImu(pose)), 3, ui.Hex("#79d4ef"))
-	} else {
-		corners := []point{}
-		for _, y := range []float64{-.23, .23} {
-			for _, z := range []float64{-.1732, .1732} {
-				q := a.project(add(pose.Position, rotate(Vec3{.3, y, z}, pose.Quaternion)))
-				corners = append(corners, q)
-				painterLine(p, r, a.project(pose.Position), q, 1, ui.Hex("#ddc99a"))
-			}
-		}
-		for _, pair := range [][2]int{{0, 1}, {1, 3}, {3, 2}, {2, 0}} {
-			painterLine(p, r, corners[pair[0]], corners[pair[1]], 1, ui.Hex("#ddc99a"))
-		}
-	}
-	for i := 0; i < 3; i++ {
-		direction := axis(i)
-		if a.space == "Local / 设备" {
-			direction = rotate(direction, pose.Quaternion)
-		}
-		h := handle{Axis: i, Direction: direction}
-		if a.tool == "Rotate / 旋转" {
-			u, v := axis((i+1)%3), axis((i+2)%3)
-			if a.space == "Local / 设备" {
-				u, v = rotate(u, pose.Quaternion), rotate(v, pose.Quaternion)
-			}
-			for j := 0; j <= 72; j++ {
-				angle := float64(j) * 2 * math.Pi / 72
-				h.Points = append(h.Points, a.project(add(pose.Position, mul(add(mul(u, math.Cos(angle)), mul(v, math.Sin(angle))), .16))))
-			}
-			for j := 1; j < len(h.Points); j++ {
-				painterLine(p, r, h.Points[j-1], h.Points[j], 2.5, axisColors[i])
-			}
+			color = gizmoHighlight
 		} else {
-			h.Points = []point{a.project(pose.Position), a.project(add(pose.Position, mul(direction, .22)))}
-			painterLine(p, r, h.Points[0], h.Points[1], 3, axisColors[i])
-			painterCircle(p, r, h.Points[1], 4, axisColors[i])
-			p.Text(r.X+float32(h.Points[1].X)+8, r.Y+float32(h.Points[1].Y)-7, string("XYZ"[i]), 12, axisColors[i])
+			painterCircle(p, r, q, 6, color)
 		}
-		a.viewport.Handles = append(a.viewport.Handles, h)
+		gizmoLabel(p, r, point{q.X + 14, q.Y + 14}, name, color)
+		if name != a.selected {
+			continue
+		}
+		if name == "mid360" {
+			painterLine(p, r, q, a.project(internalImu(pose)), 1, ui.Hex("#79d4ef"))
+			painterCircle(p, r, a.project(internalImu(pose)), 3, ui.Hex("#79d4ef"))
+		} else {
+			corners := []point{}
+			for _, y := range []float64{-.23, .23} {
+				for _, z := range []float64{-.1732, .1732} {
+					corner := a.project(add(pose.Position, rotate(Vec3{.3, y, z}, pose.Quaternion)))
+					corners = append(corners, corner)
+					painterLine(p, r, q, corner, 1, ui.Hex("#ddc99a"))
+				}
+			}
+			for _, pair := range [][2]int{{0, 1}, {1, 3}, {3, 2}, {2, 0}} {
+				painterLine(p, r, corners[pair[0]], corners[pair[1]], 1, ui.Hex("#ddc99a"))
+			}
+		}
 	}
-}
-func (a *app) viewportInput(event ui.InputEvent) bool {
-	v := &a.viewport
-	pointer := point{float64(event.X), float64(event.Y)}
-	switch event.Kind {
-	case ui.InputScroll:
-		v.Distance = clamp(v.Distance*math.Exp(float64(event.DY)*.004), .45, 20)
-		a.requestView()
-		return true
-	case ui.InputPointerDown:
-		if event.Button != 0 {
-			return false
-		}
-		v.Previous = pointer
-		v.Start = pointer
-		v.Dragging = false
-		v.Orbit = true
-		if a.stage != "configure" || a.loading {
-			return true
-		}
-		best := 10.
-		for _, h := range v.Handles {
-			for j := 1; j < len(h.Points); j++ {
-				if d := segmentDistance(pointer, h.Points[j-1], h.Points[j]); d < best {
-					best = d
-					v.Current = h
-					v.Dragging = true
-				}
-			}
-		}
-		if v.Dragging {
-			v.Orbit = false
-			v.Initial = a.cfg.Mounts[a.selected]
-			eye, ray := a.ray(pointer)
-			worldAxis := rotate(v.Current.Direction, a.meta.Base.Quaternion)
-			origin := a.world(v.Initial.Position)
-			v.Parameter = axisParameter(eye, ray, origin, worldAxis)
-			v.StartVector = ringPoint(eye, ray, origin, worldAxis)
-			return true
-		}
-		for name, pose := range a.cfg.Mounts {
-			if a.visibleMount(name) && plen(psub(pointer, a.project(pose.Position))) < 18 {
-				a.selected = name
-				v.Orbit = false
-				return true
-			}
-		}
-		return true
-	case ui.InputPointerMove:
-		if event.Button != 0 {
-			return false
-		}
-		if v.Dragging {
-			pose := v.Initial
-			eye, ray := a.ray(pointer)
-			origin := a.world(pose.Position)
-			worldAxis := rotate(v.Current.Direction, a.meta.Base.Quaternion)
-			if a.tool == "Rotate / 旋转" {
-				current := ringPoint(eye, ray, origin, worldAxis)
-				if norm(current) < .1 || norm(v.StartVector) < .1 {
-					return true
-				}
-				angle := math.Atan2(dot(worldAxis, cross(v.StartVector, current)), dot(v.StartVector, current)) * 180 / math.Pi
-				pose.Quaternion = qnormalize(qproduct(qaxis(v.Current.Direction, angle), v.Initial.Quaternion))
-			} else {
-				pose.Position = add(pose.Position, mul(v.Current.Direction, axisParameter(eye, ray, origin, worldAxis)-v.Parameter))
-				for i := range pose.Position {
-					pose.Position[i] = clamp(pose.Position[i], -5, 5)
-				}
-			}
-			a.editMount(a.selected, pose)
-		} else if v.Orbit {
-			delta := psub(pointer, v.Previous)
-			v.Azimuth -= delta.X * .4
-			v.Elevation = clamp(v.Elevation+delta.Y*.3, 3, 85)
-			a.requestView()
-		}
-		v.Previous = pointer
-		return true
-	case ui.InputPointerUp:
-		v.Dragging = false
-		v.Orbit = false
-		return true
-	}
-	return false
 }

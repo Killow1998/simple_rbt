@@ -23,6 +23,8 @@ type viewport struct {
 	Width, Height                float64
 	Azimuth, Elevation, Distance float64
 	Handles                      []handle
+	Pointer                      point
+	Hovering                     bool
 	Dragging                     bool
 	Orbit                        bool
 	Current                      handle
@@ -62,7 +64,7 @@ func (a *app) project(p Vec3) point {
 	rel := sub(a.world(p), a.meta.Observer.Position)
 	depth := dot(rel, f)
 	if depth <= 1e-6 {
-		return point{-1e4, -1e4}
+		return point{math.NaN(), math.NaN()}
 	}
 	r := a.viewport.imageRect(a.observerSize)
 	fov := a.meta.Observer.Fov
