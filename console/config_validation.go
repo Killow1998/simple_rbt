@@ -36,6 +36,26 @@ func validateConfig(cfg Config, catalog Catalog) error {
 	if math.IsNaN(cfg.CameraHz) || math.IsInf(cfg.CameraHz, 0) || cfg.CameraHz <= 0 || cfg.CameraHz > 30 {
 		return fmt.Errorf("Camera rate must be greater than 0 and at most 30 Hz / 相机频率必须大于 0 且不超过 30 Hz")
 	}
+	if cfg.CameraModel != "d435" && cfg.CameraModel != "d435i" {
+		return fmt.Errorf("Camera model must be d435 or d435i / 相机型号请选择 D435 或 D435i")
+	}
+	for name, pose := range cfg.CameraExtrinsics {
+		if name != "color" && name != "depth" && name != "imu" {
+			return fmt.Errorf("Unknown camera calibration frame: %s", name)
+		}
+		for _, v := range pose.Position {
+			if math.IsNaN(v) || math.IsInf(v, 0) || math.Abs(v) > 1 {
+				return fmt.Errorf("Invalid camera calibration translation: %s", name)
+			}
+		}
+		norm := 0.0
+		for _, v := range pose.Quaternion {
+			norm += v * v
+		}
+		if math.IsNaN(norm) || math.IsInf(norm, 0) || math.Abs(norm-1) > 1e-6 {
+			return fmt.Errorf("Camera calibration requires a unit quaternion: %s", name)
+		}
+	}
 	for name, pose := range cfg.Mounts {
 		if name != "mid360" && name != "camera" {
 			return fmt.Errorf("Unknown sensor mount / 未知传感器外参: %s", name)

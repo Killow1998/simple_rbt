@@ -18,6 +18,8 @@ struct OpticalPose {
 struct Extrinsics {
   Pose lidar, imu, camera;
   bool has_camera = true;
+  Pose camera_depth, camera_imu;
+  bool separate_camera_frames = false, has_camera_imu = false;
 };
 struct ImuSample {
   std::uint64_t stamp_ns = 0;

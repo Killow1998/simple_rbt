@@ -136,7 +136,7 @@ bool Socket::read(std::vector<Packet> &packets) {
       const auto length = get(input, offset + 16, 4);
       const auto kind = get(input, offset + 6, 2);
       if (length > max_payload_bytes || kind < 1 ||
-          kind > static_cast<std::uint16_t>(Kind::Error))
+          kind > static_cast<std::uint16_t>(Kind::CameraImu))
         return false;
       if (input.size() - offset < header_size + length)
         break;
@@ -185,6 +185,8 @@ std::string channel(const Kind &k) {
   switch (k) {
   case Kind::Clock:
     return "clock";
+  case Kind::CameraImu:
+    return "camera_imu";
   case Kind::Imu:
     return "imu";
   case Kind::Lidar:

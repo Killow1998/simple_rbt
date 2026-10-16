@@ -25,7 +25,12 @@ func (a *app) media(c *ui.Context) {
 		if showObserver {
 			ui.Column(c).Grow(1).MinHeight(0).Gap(6).Children(func() {
 				ui.Text(c, a.tr("Third-person view", "第三视角")).FontSize(12).TextColor(c.Theme().TextMuted)
-				ui.Box(c.Key("observer-view")).Grow(1).MinHeight(210).Radius(10).Background(viewportBackground).Focusable().Label(a.tr("3D sensor mount viewport", "传感器外参三维视图")).HandleInput(a.viewportInput).Draw(func(p *ui.Painter, r ui.Rect) {
+				ui.Box(c.Key("observer-view")).Bind(&a.driveHandles[1]).Grow(1).MinHeight(210).Radius(10).Background(viewportBackground).Focusable().Label(a.tr("3D sensor mount viewport", "传感器外参三维视图")).HandleInput(func(ev ui.InputEvent) bool {
+					if a.keyboardInput(ev) {
+						return true
+					}
+					return a.viewportInput(ev)
+				}).Draw(func(p *ui.Painter, r ui.Rect) {
 					width, height := float64(r.W), float64(r.H)
 					changed := a.viewport.Width != width || a.viewport.Height != height
 					a.viewport.Width = width
@@ -54,7 +59,7 @@ func (a *app) media(c *ui.Context) {
 					title = a.tr("Panorama", "全景视角")
 				}
 				ui.Text(c, title).FontSize(12).TextColor(c.Theme().TextMuted)
-				ui.Box(c.Key("camera-view")).Grow(1).MinHeight(180).Radius(10).Background(viewportBackground).Draw(func(p *ui.Painter, r ui.Rect) {
+				ui.Box(c.Key("camera-view")).Bind(&a.driveHandles[2]).Focusable().HandleInput(a.keyboardInput).Grow(1).MinHeight(180).Radius(10).Background(viewportBackground).Draw(func(p *ui.Painter, r ui.Rect) {
 					if a.camera != nil {
 						p.Image(a.camera, r, ui.Contain)
 					} else {

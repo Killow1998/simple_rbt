@@ -23,7 +23,8 @@ enum class Kind : std::uint16_t {
   Status,
   Metadata,
   View,
-  Error
+  Error,
+  CameraImu
 };
 struct Packet {
   Kind kind = Kind::Metadata;
@@ -71,6 +72,7 @@ public:
   void spin_once(double timeout_s = 0.) override;
   void publish_clock(std::uint64_t) override;
   void publish_imu(const ImuSample &) override;
+  void publish_camera_imu(const ImuSample &) override;
   void publish_scan(const LidarScan &) override;
   void publish_odometry(std::uint64_t, const Pose &, const Vec3 &,
                         const Vec3 &) override;

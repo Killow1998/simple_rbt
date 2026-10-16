@@ -8,6 +8,7 @@
 #include "tracking.hpp"
 #include <algorithm>
 #include <cmath>
+#include "sensor_devices.hpp"
 #include <stdexcept>
 namespace simple_rbt {
 namespace {
@@ -143,8 +144,8 @@ struct Simulation::Impl {
 };
 Simulation::Simulation(const SimulationOptions &o)
     : p_(std::make_unique<Impl>(o)) {
-  if (o.mid360_mount) set_mount("mid360", *o.mid360_mount);
-  if (o.camera_mount) set_mount("camera", *o.camera_mount);
+  set_mount("mid360", o.mid360_mount.value_or(extrinsics("lidar")));
+  set_mount("camera", o.camera_mount.value_or(extrinsics("camera_mount")));
 }
 Simulation::~Simulation() = default;
 mjModel *Simulation::model() const { return p_->m; }
@@ -160,9 +161,18 @@ void Simulation::set_mount(const std::string& module, const Pose& requested) {
   int target = module=="mid360" ? p_->lidar_site : module=="camera" ? p_->camera_site : -1;
   if (target<0) throw std::invalid_argument("Only MID360 assembly and camera mounts are editable");
   auto assign=[&](int site,const Pose& value){
+    p_->m->site_sameframe[site]=mjSAMEFRAME_NONE;
     std::copy(value.position.begin(),value.position.end(),p_->m->site_pos+site*3);
     std::copy(value.quaternion.begin(),value.quaternion.end(),p_->m->site_quat+site*4);
   };
+  if(module=="camera") {
+    // Imported device calibration is rigid and cannot introduce invalid poses.
+    for(const auto &p:{p_->o.camera_color_offset,p_->o.camera_depth_offset,p_->o.camera_imu_offset}) {
+      double n=0.;for(double v:p.quaternion) { if(!std::isfinite(v)) throw std::invalid_argument("Invalid camera calibration");n+=v*v; }
+      if(!std::isfinite(n) || std::abs(n-1.)>1e-6) throw std::invalid_argument("Camera calibration quaternion must be normalized");
+      for(double v:p.position) if(!std::isfinite(v) || std::abs(v)>1.) throw std::invalid_argument("Camera internal translation must be within 1 metre");
+    }
+  }
   assign(target,pose);
   if(module=="mid360") {
     Pose internal=pose;
@@ -171,6 +181,7 @@ void Simulation::set_mount(const std::string& module, const Pose& requested) {
     for(int i=0;i<3;++i) internal.position[i]+=transformed[i];
     assign(p_->mid360_site,internal);
   }
+  move_sensor_device(p_->m,module,pose,p_->o);
   mj_forward(p_->m,p_->d);
 }
 void Simulation::set_command(const Vec3 &v) {
@@ -233,8 +244,8 @@ Pose Simulation::extrinsics(const std::string &s) const {
   std::copy_n(p_->m->site_quat + i * 4, 4, p.quaternion.begin());
   return p;
 }
-OpticalPose Simulation::camera_pose() const {
-  int i = p_->camera_site;
+OpticalPose Simulation::camera_pose(const std::string &name) const {
+  int i = id(p_->m,mjOBJ_SITE,name);
   OpticalPose p;
   std::copy_n(p_->d->site_xpos + 3 * i, 3, p.position.begin());
   const double *r = p_->d->site_xmat + 9 * i;
@@ -250,6 +261,12 @@ Vec3 Simulation::linear_velocity() const {
 }
 Vec3 Simulation::angular_velocity() const {
   return sensor(p_->d, p_->angular_address);
+}
+bool Simulation::has_camera_imu() const { return p_->o.camera_model=="d435i"; }
+ImuSample Simulation::camera_imu() const {
+  if(!has_camera_imu()) throw std::runtime_error("D435 has no camera IMU");
+  return {stamp_ns(), sensor(p_->d,p_->m->sensor_adr[id(p_->m,mjOBJ_SENSOR,"camera_gyro")]),
+          sensor(p_->d,p_->m->sensor_adr[id(p_->m,mjOBJ_SENSOR,"camera_accelerometer")])};
 }
 ImuSample Simulation::imu() const {
   return {stamp_ns(), sensor(p_->d, p_->gyro_address),
@@ -304,8 +321,19 @@ std::string Simulation::xml() const {
   auto visit=[&](auto&& self,tinyxml2::XMLElement* e)->void {
     if(std::string(e->Name())=="site") {
       const char* name=e->Attribute("name");
-      if(name && (std::string(name)=="lidar" || std::string(name)=="mid360_imu" || std::string(name)=="camera_mount")) {
+      if(name && (std::string(name)=="lidar" || std::string(name)=="mid360_imu" || std::string(name).rfind("camera_",0)==0)) {
         int i=p_->site_id(name);e->SetAttribute("pos",numbers(p_->m->site_pos+3*i,3).c_str());e->SetAttribute("quat",numbers(p_->m->site_quat+4*i,4).c_str());
+      }
+    }
+    if(std::string(e->Name())=="geom") {
+      const char* name=e->Attribute("name");
+      if(name && std::string(name).rfind("visual_device_",0)==0) {
+        const auto mount=extrinsics(std::string(name).rfind("visual_device_d435",0)==0?"camera_mount":"lidar");
+        e->SetAttribute("pos",numbers(mount.position.data(),3).c_str());
+        e->SetAttribute("quat",numbers(mount.quaternion.data(),4).c_str());
+        const int id=mj_name2id(p_->m,mjOBJ_GEOM,name);
+        double rgba[4];for(int i=0;i<4;++i) rgba[i]=p_->m->geom_rgba[4*id+i];
+        e->SetAttribute("rgba",numbers(rgba,4).c_str());
       }
     }
     for(auto* child=e->FirstChildElement();child;child=child->NextSiblingElement())self(self,child);

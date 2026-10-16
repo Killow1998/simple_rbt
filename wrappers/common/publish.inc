@@ -23,6 +23,17 @@ void RosBridge::publish_imu(const ImuSample& sample) {
   si.orientation.w = 0.; si.orientation_covariance[0] = -1.;
   send(impl_->imu_si, si);
 }
+void RosBridge::publish_camera_imu(const ImuSample& sample) {
+  finite(sample.angular_velocity); finite(sample.specific_force);
+  std::lock_guard<std::mutex> lock(impl_->publication_mutex); impl_->require_open();
+  if (!impl_->has_camera_imu) throw std::invalid_argument("D435i IMU extrinsics are required");
+  messages::Imu message;
+  message.header=header(sample.stamp_ns,impl_->options.camera_imu_frame);
+  xyz(message.angular_velocity,sample.angular_velocity);
+  xyz(message.linear_acceleration,sample.specific_force);
+  message.orientation_covariance[0]=-1.;
+  send(impl_->camera_imu,message);
+}
 void RosBridge::publish_scan(const LidarScan& scan) {
   std::lock_guard<std::mutex> lock(impl_->publication_mutex); impl_->require_open();
   const auto count = scan.xyz.size();
@@ -96,7 +107,7 @@ void RosBridge::publish_camera(std::uint64_t ns, const CameraFrame& frame, bool 
   rgb.header = header(ns, impl_->options.camera_frame); rgb.height = frame.height; rgb.width = frame.width;
   rgb.encoding = "rgb8"; rgb.is_bigendian = false; rgb.step = frame.width * 3; rgb.data = frame.rgb;
   messages::Image depth;
-  depth.header = rgb.header; depth.height = frame.height; depth.width = frame.width;
+  depth.header = header(ns, !panorama && impl_->separate_camera_frames ? impl_->options.camera_depth_frame : impl_->options.camera_frame); depth.height = frame.height; depth.width = frame.width;
   depth.encoding = "32FC1"; depth.is_bigendian = false; depth.step = frame.width * 4;
   depth.data.resize(frame.depth.size() * sizeof(float));
   for (std::size_t index = 0; index < frame.depth.size(); ++index)
@@ -121,5 +132,6 @@ void RosBridge::publish_camera(std::uint64_t ns, const CameraFrame& frame, bool 
     info.p = {focal, 0., cx, 0., 0., focal, cy, 0., 0., 0., 1., 0.};
 #endif
     send(impl_->camera_info, info);
+    if (!frame.depth.empty()) { info.header=depth.header; send(impl_->depth_info,info); }
   }
 }

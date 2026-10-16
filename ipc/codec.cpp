@@ -193,10 +193,17 @@ Json extrinsics_json(const Extrinsics &e) {
   return {{"lidar", pose_json(e.lidar)},
           {"imu", pose_json(e.imu)},
           {"camera", pose_json(e.camera)},
-          {"has_camera", e.has_camera}};
+          {"has_camera", e.has_camera},
+          {"camera_depth", pose_json(e.camera_depth)}, {"camera_imu", pose_json(e.camera_imu)},
+          {"separate_camera_frames", e.separate_camera_frames}, {"has_camera_imu", e.has_camera_imu}};
 }
 Extrinsics decode_extrinsics(const Json &j) {
-  return {from_pose(j.at("lidar")), from_pose(j.at("imu")),
+  Extrinsics e{from_pose(j.at("lidar")), from_pose(j.at("imu")),
           from_pose(j.at("camera")), j.at("has_camera").get<bool>()};
+  e.separate_camera_frames=j.value("separate_camera_frames",false);
+  e.has_camera_imu=j.value("has_camera_imu",false);
+  if(e.separate_camera_frames) e.camera_depth=from_pose(j.at("camera_depth"));
+  if(e.has_camera_imu) e.camera_imu=from_pose(j.at("camera_imu"));
+  return e;
 }
 } // namespace simple_rbt::ipc

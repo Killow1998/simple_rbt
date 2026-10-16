@@ -1,11 +1,12 @@
 """Independent ROS observer: validate a separate C++ adapter via real middleware."""
-import argparse, json, math, os, struct, subprocess, sys, threading, time
+import argparse, json, math, os, statistics, struct, subprocess, sys, threading, time
 parser=argparse.ArgumentParser()
 parser.add_argument("version", choices=["ros1","ros2"])
 parser.add_argument("output")
 parser.add_argument("--physical", action="store_true")
 parser.add_argument("--robot", default="go2w")
 parser.add_argument("--external-odometry", action="store_true")
+parser.add_argument("--camera-imu", action="store_true")
 parser.add_argument("--no-camera", action="store_true")
 parser.add_argument("--motion-only", action="store_true", help=argparse.SUPPRESS)
 args=parser.parse_args();version,output=args.version,args.output
@@ -13,6 +14,7 @@ seen = {}
 odom_topic = "/ground_truth/odom" if args.external_odometry else "/odom"
 odometry_samples=[]
 lidar_stamps=[]
+camera_imu_stamps=[]
 custom_frames={}
 cloud_frames={}
 def stamp_ns(stamp):
@@ -20,6 +22,7 @@ def stamp_ns(stamp):
 def received(name):
     def callback(message):
         seen[name] = message
+        if name=="camera_imu":camera_imu_stamps.append(stamp_ns(message.header.stamp))
         if name=="odom":odometry_samples.append((time.monotonic(),message.twist.twist.linear.x))
         if name in ('lidar','points'):
             ns=stamp_ns(message.header.stamp)
@@ -89,6 +92,12 @@ elif not args.no_camera:
         subscribe(Image,'/camera/image_raw','rgb'),subscribe(Image,'/camera/depth/image_raw','depth'),
         subscribe(Image,'/camera/panorama/image_raw','panorama')]
     expected += ['info','rgb','depth','panorama']
+if args.camera_imu and not args.motion_only:
+    subscriptions += [subscribe(Imu,'/camera/imu','camera_imu')]
+    expected += ['camera_imu']
+if args.physical and not args.no_camera and not args.motion_only:
+    subscriptions += [subscribe(CameraInfo,'/camera/depth/camera_info','depth_info')]
+    expected += ['depth_info']
 if version == 'ros2':reader.start()
 velocities=[]
 if args.physical:
@@ -182,6 +191,23 @@ if args.physical:
     if 'lidar' in seen:checks['lidar_nonempty']=seen['lidar'].point_num==len(seen['lidar'].points)>0
     if 'rgb' in seen:checks['image_complete']=len(seen['rgb'].data)==seen['rgb'].width*seen['rgb'].height*3
     if 'depth' in seen:checks['depth_complete']=len(seen['depth'].data)==seen['depth'].width*seen['depth'].height*4
+    if args.camera_imu:
+        imu=seen.get('camera_imu')
+        checks['camera_imu_si_frame']=imu is not None and imu.header.frame_id=='camera_imu_optical_frame' and imu.orientation_covariance[0]==-1 and all(math.isfinite(getattr(imu.linear_acceleration,a)) for a in ['x','y','z'])
+        checks['camera_imu_200hz']=len(camera_imu_stamps)>100 and statistics.median(b-a for a,b in zip(camera_imu_stamps,camera_imu_stamps[1:]))==5000000 and all(ns%5000000==0 for ns in camera_imu_stamps) and all(a<b and (b-a)%5000000==0 for a,b in zip(camera_imu_stamps,camera_imu_stamps[1:]))
+        checks['camera_imu_optical_gravity']=imu is not None and -12<imu.linear_acceleration.y<-7 and abs(imu.linear_acceleration.z)<3
+    if not args.no_camera and not args.motion_only:
+        transforms={t.child_frame_id:t for t in seen.get('tf',TFMessage()).transforms}
+        frames=['camera_optical_frame','camera_depth_optical_frame']+(['camera_imu_optical_frame'] if args.camera_imu else [])
+        checks['camera_device_tf']=all(f in transforms for f in frames)
+        if checks['camera_device_tf']:
+            color=transforms['camera_optical_frame'].transform;depth=transforms['camera_depth_optical_frame'].transform
+            checks['color_depth_baseline']=all(math.isclose(getattr(color.translation,a)-getattr(depth.translation,a),b,abs_tol=1e-8) for a,b in zip(['x','y','z'],[0,.015,0]))
+            if args.camera_imu:
+                imu_tf=transforms['camera_imu_optical_frame'].transform
+                checks['d435i_rigid_offset']=all(math.isclose(getattr(imu_tf.translation,a)-getattr(depth.translation,a),b,abs_tol=1e-8) for a,b in zip(['x','y','z'],[-.01174,-.00552,.0051]))
+        checks['separate_optical_headers']=seen.get('rgb') is not None and seen['rgb'].header.frame_id=='camera_optical_frame' and seen.get('depth') is not None and seen['depth'].header.frame_id=='camera_depth_optical_frame'
+        checks['depth_camera_info']=seen.get('depth_info') is not None and seen['depth_info'].header.frame_id=='camera_depth_optical_frame' and seen['depth_info'].width==seen['depth'].width
     if motion_result is not None:
         phases=motion_result['phases']
         checks.update({name:motion_result['checks'][name] for name in ['forward','reverse','deadman']})

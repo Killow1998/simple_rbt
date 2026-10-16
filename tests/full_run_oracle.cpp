@@ -146,6 +146,7 @@ int main(int argc, char** argv) {
       const fs::path sphere_root = output / "nonwheel-sphere-model";
       const fs::path sphere_assets = sphere_root / "assets";
       fs::create_directories(sphere_assets / "models");
+      fs::create_directory_symlink(fs::path(SIMPLE_RBT_PROJECT_ROOT)/"assets/visual",sphere_assets/"visual");
       fs::copy_file(fs::path(SIMPLE_RBT_PROJECT_ROOT) / "assets/catalog.json", sphere_assets / "catalog.json");
       std::ifstream original(fs::path(SIMPLE_RBT_PROJECT_ROOT) / "assets/models/diffdrive-none.xml");
       std::string sphere_xml{std::istreambuf_iterator<char>(original), {}};
@@ -163,6 +164,7 @@ int main(int argc, char** argv) {
         const fs::path variant_root = output / ("invalid-support-" + change + "-model");
         const fs::path variant_assets = variant_root / "assets";
         fs::create_directories(variant_assets / "models");
+        fs::create_directory_symlink(fs::path(SIMPLE_RBT_PROJECT_ROOT)/"assets/visual",variant_assets/"visual");
         fs::copy_file(fs::path(SIMPLE_RBT_PROJECT_ROOT) / "assets/catalog.json", variant_assets / "catalog.json");
         std::ifstream source(fs::path(SIMPLE_RBT_PROJECT_ROOT) / "assets/models/diffdrive-none.xml");
         std::string xml{std::istreambuf_iterator<char>(source), {}};

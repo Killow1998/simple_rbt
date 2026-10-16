@@ -33,6 +33,60 @@ A mount pose is relative to the robot base, with quaternion order `[w,x,y,z]`. N
 
 外参相对机器人 base，四元数顺序为 `[w,x,y,z]`。数值欧拉角与三维手柄修改同一 pose。MID360 内部 IMU 在雷达坐标中固定为 `[0.011,0.02329,-0.04412]` m，方向相同。调整设备时保持这一关系。控制器自身的机身 IMU 是另一感测点，不会被传感器配置移动。外参在首次开始之前编辑。
 
+### Keyboard driving / 键盘驾驶
+
+In Manual mode, click the joystick or either driving view to give it keyboard focus.
+W/S drive forward/back, A/D move left/right, Q/E turn left/right; Space stops.
+Releasing a key stops its axis. Leaving the drive control or losing window focus
+clears held keys. The manual speed slider applies to both keyboard and joystick
+(default 50% of the selected robot's limits). Diagonal translation is normalized.
+Unsupported lateral motion and Ackermann in-place turns remain disabled.
+Keyboard commands do not take ownership from Program, ROS 1 or ROS 2.
+
+选择手动控制，点击摇杆或驾驶视图后使用键盘：W/S 前后、A/D 左右横移、
+Q/E 左右旋转，空格停车。松开按键停止对应方向；焦点离开驾驶控件或窗口失焦时
+清除按键状态。手动速度滑块同时作用于键盘和摇杆，默认使用该机器人上限的 50%。
+斜向平移会归一化；不支持横移的底盘及阿克曼原地转向仍受限制。
+键盘不会抢占程序、ROS 1 或 ROS 2 的控制权。
+
+### Sensor devices / 传感器设备
+
+MID360 uses the official Livox STEP geometry; D435 and D435i share the official
+RealSense mesh. The meshes add no mass or collision geometry. Default mounts on
+wheel chassis clear the device housings; saved custom mounts remain authoritative.
+Select `d435` (RGB/depth) or `d435i` (also an independent 200 Hz IMU) under Camera device.
+D435i's IMU remains active when image outputs are disabled. RGB/depth and the
+virtual panorama are separate output selections; panorama is a simulator view,
+not a physical D435 capability.
+
+MID360 使用 Livox 官方 STEP 外观；D435 与 D435i 共用 RealSense 官方模型。
+外观不增加质量或碰撞体，轮式底盘默认安装位置已为设备外壳留出空间，
+保存的自定义外参保持优先。在相机型号中选择 `d435` 或 `d435i`；后者增加独立
+200 Hz IMU，关闭图像后仍可输出。RGB、深度和虚拟全景分别开关；全景是仿真视图，
+不是 D435 的真实硬件能力。
+
+The editable camera mount is `camera_link`, the depth reference in the official
+URDF. Nominal local translations in metres are depth `[0,0,0]`, color `[0,0.015,0]`,
+and D435i IMU `[-0.01174,-0.00552,0.0051]`. Optical axes are X right, Y down,
+Z forward (mount-to-optical quaternion `[0.5,-0.5,0.5,-0.5]`, WXYZ).
+RGB and depth render from their own origins; depth is **not registered to RGB**.
+The ideal pinhole images use the configured simulator resolution/FOV, without
+hardware distortion/noise. These nominal offsets are not an individual camera's
+factory calibration. A session profile can supply `camera_extrinsics` with
+`color`, `depth`, `imu` poses (`position`, unit `quaternion` in WXYZ) relative to
+`camera_link`; the editor still moves only the entire device. See
+[model provenance](../assets/visual/sensors/provenance.json) and
+[ROS outputs](noetic.md#camera-publication--相机发布).
+
+相机可编辑外参采用官方 URDF 的 `camera_link`，即深度参考点。标称内部平移（米）：
+深度 `[0,0,0]`、彩色 `[0,0.015,0]`、D435i IMU `[-0.01174,-0.00552,0.0051]`。
+光学坐标为 X 向右、Y 向下、Z 向前；从安装坐标转到光学坐标的 WXYZ 四元数为
+`[0.5,-0.5,0.5,-0.5]`。RGB 与深度从各自原点采样，**深度尚未对齐到 RGB**。
+图像是使用仿真分辨率／视场角的理想针孔模型，不模拟硬件畸变和噪声。
+这些偏移是标称值，不是某台相机的出厂标定。配置文件可通过 `camera_extrinsics`
+的 `color`、`depth`、`imu` pose 提供标定，字段为米制 `position` 和 WXYZ 单位
+`quaternion`，均相对 `camera_link`；界面仍只允许整体移动设备。
+
 ## Core CLI / 核心命令
 
 ```sh

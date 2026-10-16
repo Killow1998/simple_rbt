@@ -7,6 +7,7 @@ import (
 )
 
 func (a *app) view(c *ui.Context) {
+	defer a.checkDriveFocus(c)
 	theme := themeFor(a.preferences.Theme)
 	c.SetTheme(theme)
 	ui.Column(c).Fill().Background(theme.Background).Children(func() {

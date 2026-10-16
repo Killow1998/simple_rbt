@@ -38,6 +38,7 @@ func (a *app) blurManual() {
 	}
 }
 func (a *app) relinquishManual() {
+	clear(a.driveKeys)
 	a.pad = joystick{}
 	a.commandMu.Lock()
 	a.manualHeartbeat = false

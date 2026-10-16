@@ -25,23 +25,23 @@
     },
     "scout_mini-skid_steer": {
       "file": "models/scout_mini-skid_steer.xml",
-      "sha256": "247d89f3c59191f52edb62572f2c2b5905ad145f4df4a2a17e02056dd8f3c392"
+      "sha256": "63f12070a8d8aff4874e9fc270b2d8b79bcf873edf344ab1e6d837c4b0f5e01a"
     },
     "fr_mini-ackermann": {
       "file": "models/fr_mini-ackermann.xml",
-      "sha256": "0d154a55d6f5d2b99c4511efc5ab63e0fed9225ae9cd796b3da44c6d2147b647"
+      "sha256": "a0ad681f9921278ea998a27976e912c2873819303b973873d478f4ad9718496c"
     },
     "ridgeback-mecanum": {
       "file": "models/ridgeback-mecanum.xml",
-      "sha256": "bdd1a4de4efc52743bf7ed90f63bee7b1be8ddfdd5763cda39078c1fab5d3e99"
+      "sha256": "8ddb9d10e32cba4c45b2f2e39d71ca4a40a21303ad442f859d4b2504ba7e3b13"
     },
     "ranger_mini-swerve": {
       "file": "models/ranger_mini-swerve.xml",
-      "sha256": "8657bb5cc3b71a644cb2abc7d74ad26fb862fbf11ebc8d07e6368603d2b6e934"
+      "sha256": "2bfd5a8b2f952de4a2b1480a4631d876a295ccc09c89cfce47268c40ab4ddad6"
     },
     "turtlebot3_waffle_pi-diff_drive": {
       "file": "models/turtlebot3_waffle_pi-diff_drive.xml",
-      "sha256": "8e85d2ad3920accd8dffd534f8e6fe368ec77ef4aed310d4242a48f7c59e844f"
+      "sha256": "8ba2a67c92823963bab95e33da6529837766b87ec497c73f3c8951a595a598d9"
     }
   },
   "controllers": {

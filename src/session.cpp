@@ -1,5 +1,6 @@
 #include "simple_rbt/session.hpp"
 #include "session_observer.hpp"
+#include "sensor_devices.hpp"
 #include <csignal>
 #include <regex>
 namespace simple_rbt::session_detail {
@@ -13,20 +14,7 @@ Json pose_json(const Pose &p) {
   return {{"position", p.position}, {"quaternion", p.quaternion}};
 }
 Extrinsics transport_extrinsics(Simulation &sim, bool camera) {
-  Extrinsics x;
-  x.lidar = sim.extrinsics("lidar");
-  x.imu = sim.extrinsics("mid360_imu");
-  x.camera = sim.extrinsics("camera_mount");
-  x.has_camera = camera;
-  double mount[9], optical[9];
-  mju_quat2Mat(mount, x.camera.quaternion.data());
-  for (int row = 0; row < 3; ++row) {
-    optical[row * 3] = -mount[row * 3 + 1];
-    optical[row * 3 + 1] = -mount[row * 3 + 2];
-    optical[row * 3 + 2] = mount[row * 3];
-  }
-  mju_mat2Quat(x.camera.quaternion.data(), optical);
-  return x;
+  return sensor_extrinsics(sim,camera);
 }
 } // namespace simple_rbt::session_detail
 namespace simple_rbt {
@@ -67,6 +55,17 @@ Json run_session(const Json &config, const std::filesystem::path &directory,
           ? "full"
       : args.mid360_enabled ? "lidar"
                             : "physics";
+  args.simulation.camera_model=config.value("camera_model",std::string("d435"));
+  if(config.contains("camera_extrinsics")) {
+    const auto &x=config.at("camera_extrinsics");
+    for(const auto &it:x.items()) {
+      auto p=session_detail::parse_pose(it.value());
+      if(it.key()=="color") args.simulation.camera_color_offset=p;
+      else if(it.key()=="depth") args.simulation.camera_depth_offset=p;
+      else if(it.key()=="imu") args.simulation.camera_imu_offset=p;
+      else throw std::invalid_argument("Unknown camera calibration frame");
+    }
+  }
   args.backend = config.value("backend", std::string("auto"));
   args.camera_hz = config.value("camera_hz", 10.);
   args.rays = config.value("rays", std::size_t(20000));

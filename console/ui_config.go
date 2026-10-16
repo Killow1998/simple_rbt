@@ -103,11 +103,19 @@ func (a *app) configuration(c *ui.Context) {
 				changed = true
 			}
 		})
+		field(c, a.tr("Camera device", "相机型号"), func() {
+			if ui.Select(c.Key("camera-model"), &a.cfg.CameraModel, []string{"d435", "d435i"}).FillWidth().Changed() {
+				changed = true
+			}
+		})
+		if a.cfg.CameraModel == "d435i" {
+			ui.Text(c, a.tr("Built-in IMU · 200 Hz · /camera/imu", "内置 IMU · 200 Hz · /camera/imu")).FontSize(12).TextColor(c.Theme().TextMuted)
+		}
 		if changed {
 			a.startConfig()
 		}
 	})
-	if a.cfg.Sensors.MID360 || a.cameraEnabled() {
+	if a.cfg.Sensors.MID360 || a.cameraDeviceEnabled() {
 		a.mountInspector(c)
 	}
 	section(c, a.tr("04 · Optional ROS", "04 · 可选 ROS"), func() {
@@ -141,6 +149,7 @@ func (a *app) configuration(c *ui.Context) {
 		ui.Button(c, a.tr("Load", "加载")).Grow(1).OnClick(a.loadProfile)
 	})
 }
+func (a *app) cameraDeviceEnabled() bool { return a.cameraEnabled() || a.cfg.CameraModel == "d435i" }
 func (a *app) cameraEnabled() bool {
 	return a.cfg.Sensors.Camera || a.cfg.Sensors.Depth || a.cfg.Sensors.Panorama
 }

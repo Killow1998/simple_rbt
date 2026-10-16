@@ -210,3 +210,79 @@ this stage's CI/release has not run. Installed SpRobo 0.2.1 remains unchanged.
 本机 Docker Hub manifest 请求超时；适配器使用既有官方镜像基础容器重新编译当前源码，Noetic
 缺少的消息头由容器内 TF 定义生成，正式 Dockerfile 未改动。CI 已加入双 ROS 的 Go2W 外部
 里程计用例，本阶段尚未运行远端 CI／发布，已安装的 SpRobo 0.2.1 未替换。
+
+
+## Keyboard and sensor devices — 2026-10-15 / 键盘与传感器阶段
+
+Completed locally: physical W/S/A/D/Q/E input, Space stop, shared manual speed
+limits, official MID360/D435 meshes, optional D435i 200 Hz IMU, rigid internal
+calibration, and separate RGB/depth optical sampling and ROS frames. Configuration,
+units and nominal calibration limits are maintained in [runtime usage](runtime.md)
+and [ROS camera outputs](noetic.md#camera-publication--相机发布).
+
+本机已完成键盘驾驶、空格停车、共用手动限速、官方 MID360／D435 外观、可选
+D435i 200 Hz IMU、刚性内部标定，以及独立 RGB／深度采样和 ROS 坐标。配置、单位、
+标称外参的适用范围统一维护在上述运行及 ROS 文档中。
+
+`src/sensor_devices.cpp` owns device geometry and rigid child frames; the core
+samples motion, the renderer accepts separate optical poses, and both ROS nodes
+convert IPC data. IPC protocol 1 adds `CameraImu=14` on `camera_imu`: the same
+six float64 values as IMU (gyro rad/s, acceleration m/s²), with simulation time in
+the header. Hello includes separate camera/depth/IMU extrinsics and presence flags.
+Clients should subscribe only to channels they understand. Updated ROS adapters
+advertise the camera-device capability before the console launches them.
+
+设备外观和内部坐标由 `src/sensor_devices.cpp` 管理，核心采样、渲染器使用不同
+光学原点、双 ROS 节点转换 IPC。协议 1 增加 `CameraImu=14`／`camera_imu`，数据
+格式与 IMU 相同：六个 float64（rad/s、m/s²），仿真时间在包头；Hello 增加内部
+外参和存在标记。客户端应只订阅自己支持的频道；启动前检查 ROS 节点的新能力。
+
+Two regression lessons are covered by observable checks. MuJoCo's compiled
+`site_sameframe` optimization must be invalidated when moving a site: changing
+its quaternion alone can leave the actual sensor direction unchanged. Official
+STEP files can contain open shells as well as solids; importing only solids
+silently omitted the MID360 side housing. Validation therefore compares compiled
+world vertices against source-device bounds, rotates sampling frames, reloads a
+saved scene, and inspects close-up renders. CAD colors and transparency are visual
+choices; sensor models do not add mass or collisions.
+
+此次发现并修复两类问题：修改外参时需要清除 MuJoCo 的 `site_sameframe` 缓存，
+否则数值变化而实际采样方向可能不变；STEP 同时含实体与开放壳面，只导入实体会
+漏掉 MID360 侧壳。验证覆盖编译后世界坐标顶点、旋转后采样方向、场景保存重载和
+放大渲染。CAD 材质是渲染选择；传感器外观不增加质量或碰撞。
+
+Evidence / 证据（`output/keyboard-sensors-20261015/`）：
+
+- [CTest](../output/keyboard-sensors-20261015/ctest-final.log): 8/8; Go tests/vet pass.
+  [Device rendering](../output/keyboard-sensors-20261015/devices-final.log) and
+  [Mesa software rendering](../output/keyboard-sensors-20261015/devices-software.log)
+  verify independent RGB/depth origins, independent IMU, rigid mounts and saved geometry.
+- [Native window](../output/keyboard-sensors-20261015/ui-acceptance/report.json):
+  Go2W keyboard/joystick motion, release/Space/focus stop, program ownership, all
+  four theme/language combinations, and the selected D435i device.
+- [Noetic](../output/keyboard-sensors-20261015/noetic-final/go2w/report.json): 37/37;
+  [Humble](../output/keyboard-sensors-20261015/humble-final/go2w/report.json): 38/38.
+  Both use Go2W, CPU policy/LiDAR, GPU image rendering, MID360, D435i IMU, RGB,
+  depth and panorama. Twenty-second runs measured RTF 0.999, core CPU 0.22 logical
+  cores and peak core RSS about 586 MiB. This excludes GUI/ROS processes and is
+  not a worst-case resource bound.
+- [CPU/IMU-only Noetic](../output/keyboard-sensors-20261015/noetic-imu-cpu/go2w/report.json):
+  26/26 with CUDA hidden and no image renderer, including external odometry and
+  camera IMU 5 ms sampling; RTF 1.000, 0.13 CPU cores and 485 MiB peak core RSS.
+- New device meshes total 1,933,783 bytes. The locally verified development `.deb`
+  is about 24.4 MiB, installed size 119.1 MiB, with no runtime Python.
+
+上述结果包含 8 项 CTest、Go 测试／vet、真实窗口操作、双 ROS 全传感器，以及禁用
+图像与隐藏 CUDA 后的 Noetic 独立 IMU 验收。资源数据只统计核心进程，不能替代整机
+最坏负载测量。新增设备网格约 1.84 MiB，本地开发安装包约 24.4 MiB／安装后 119.1 MiB。
+
+CI now includes the D435i external-odometry case and software-rendered device
+checks. This stage is a locally verified source change; no new GitHub CI/release
+has run, and installed SpRobo 0.2.1 remains unchanged. Try the source build with
+`./run.sh --console`. Next release must use the normal CI acceptance before
+installation; Go2W + Noetic remains the SLAM/navigation integration target.
+
+CI 已加入 D435i 外部里程计及软件渲染检查。本阶段为本机已验证的源码改动，尚未
+运行新一轮 GitHub CI／发布，系统安装的 SpRobo 0.2.1 未替换；可用
+`./run.sh --console` 测试源码版。新发布仍须通过既有 CI 验收；后续建图导航目标
+保持 Go2W＋Noetic。

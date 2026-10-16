@@ -34,6 +34,12 @@ Select **Manual**, **Program · IPC**, **Program · ROS 1** or **Program · ROS 
 
 Go2 and Go2W use CPU ONNX inference. Their motion controllers and MuJoCo physics do not require a GPU. CUDA optionally accelerates LiDAR; camera rendering can use software Mesa. Full sensor throughput depends on the machine.
 
+Manual driving supports W/S forward/back, A/D lateral, Q/E yaw and Space stop after
+clicking the joystick or a driving view. Keyboard and joystick share speed limits;
+releasing keys or losing focus stops manual input. Official MID360/D435 visuals
+include optional independent D435i IMU output, rigid internal mounts and separate
+RGB/depth optical origins. See [sensor and keyboard usage](docs/runtime.md).
+
 ## Development
 
 Run from the repository root:

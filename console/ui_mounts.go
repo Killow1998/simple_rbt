@@ -10,13 +10,13 @@ func (a *app) mountInspector(c *ui.Context) {
 	if a.cfg.Sensors.MID360 {
 		choices = append(choices, "mid360")
 	}
-	if a.cameraEnabled() {
+	if a.cameraDeviceEnabled() {
 		choices = append(choices, "camera")
 	}
 	if len(choices) == 0 {
 		return
 	}
-	if (a.selected == "mid360" && !a.cfg.Sensors.MID360) || (a.selected == "camera" && !a.cameraEnabled()) {
+	if (a.selected == "mid360" && !a.cfg.Sensors.MID360) || (a.selected == "camera" && !a.cameraDeviceEnabled()) {
 		a.selected = choices[0]
 	}
 	section(c, a.tr("03 · Sensor mount", "03 · 安装外参"), func() {
@@ -51,6 +51,12 @@ func (a *app) mountInspector(c *ui.Context) {
 					a.editMount(a.selected, pose)
 				}
 			})
+		}
+		if a.selected == "camera" {
+			ui.Text(c, a.tr("Whole-device mount · camera_link reference", "整机安装外参 · camera_link 基准")).FontSize(12).TextColor(c.Theme().TextMuted)
+			if a.cfg.CameraModel == "d435i" {
+				ui.Text(c, a.tr("Internal IMU fixed to camera · independent of MID360", "内置 IMU 与相机固定连接 · 独立于 MID360")).FontSize(12).TextColor(c.Theme().TextMuted)
+			}
 		}
 		if a.selected == "mid360" {
 			imu := internalImu(pose)

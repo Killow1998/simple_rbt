@@ -100,7 +100,7 @@ jobs:
             --ros "$ROS_VARIANT" --backend cpu --no-camera --output "output/ci/$ROS_VARIANT"
           python3 tools/test_ros_session.py --core /usr/bin/simple-rbt-sim \
             --ros "$ROS_VARIANT" --skip-build --robots go2w --backend cpu --no-camera \
-            --external-odometry --output "output/ci/$ROS_VARIANT-external-odometry"
+            --camera-model d435i --external-odometry --output "output/ci/$ROS_VARIANT-external-odometry"
       - name: Upload ROS evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

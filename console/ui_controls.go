@@ -15,6 +15,9 @@ type joystick struct {
 }
 
 func (a *app) controlInput(ev ui.InputEvent) bool {
+	if a.keyboardInput(ev) {
+		return true
+	}
 	if !a.manualMode() {
 		return false
 	}
@@ -45,14 +48,8 @@ func (a *app) controlInput(ev ui.InputEvent) bool {
 		value = point{}
 	}
 	pad.Position = value
-	spec := a.catalog.Robots[a.cfg.Robot]
-	command := Vec3{-value.Y * spec.Limits[0], pad.Lateral * spec.Limits[1], -value.X * spec.Limits[2]}
-	if !spec.AllowsLateral {
-		command[1] = 0
-	}
-	if !spec.AllowsTurn && spec.MinRadius > 0 {
-		command[2] = clamp(command[2], -math.Abs(command[0])/spec.MinRadius, math.Abs(command[0])/spec.MinRadius)
-	}
+	clear(a.driveKeys)
+	command := a.manualVelocity(Vec3{-value.Y, pad.Lateral, -value.X})
 	a.commandMu.Lock()
 	a.command = command
 	_ = a.manager.Client.SendCommand([3]float64(command))
@@ -74,7 +71,7 @@ func (a *app) controls(c *ui.Context) {
 				_ = a.manager.Client.SendRequest(map[string]any{"op": "source", "source": sourceName(a.sourceLabel)})
 			}
 		})
-		ui.Box(c.Key("drive-pad")).Height(224).Radius(12).Background(c.Theme().Background).Focusable().Disabled(!a.manualMode()).Label(a.tr("Hold joystick to move; release to stop", "按住摇杆运动，松开停车")).HandleInput(a.controlInput).Draw(func(p *ui.Painter, r ui.Rect) {
+		ui.Box(c.Key("drive-pad")).Bind(&a.driveHandles[0]).Height(224).Radius(12).Background(c.Theme().Background).Focusable().Disabled(!a.manualMode()).Label(a.tr("Hold joystick to move; release to stop", "按住摇杆运动，松开停车")).HandleInput(a.controlInput).Draw(func(p *ui.Painter, r ui.Rect) {
 			a.pad.Width = float64(r.W)
 			a.pad.Height = float64(r.H)
 			cx, cy := r.X+r.W*.5, r.Y+r.H*.5
@@ -100,7 +97,7 @@ func (a *app) controls(c *ui.Context) {
 			slider := ui.Slider(c.Key("lateral"), &a.pad.Lateral, -1, 1).FillWidth().Disabled(!a.manualMode())
 			if slider.Changed() {
 				a.commandMu.Lock()
-				a.command[1] = a.pad.Lateral * a.catalog.Robots[a.cfg.Robot].Limits[1]
+				a.command[1] = a.pad.Lateral * a.catalog.Robots[a.cfg.Robot].Limits[1] * a.manualScale
 				a.commandMu.Unlock()
 			}
 			if !slider.Pressed() && a.pad.Lateral != 0 {
@@ -123,6 +120,9 @@ func (a *app) controls(c *ui.Context) {
 		}
 		ui.Text(c, a.tr("vx / vy: m/s · wz: rad/s", "vx／vy：米/秒 · wz：弧度/秒")).FontSize(12).TextColor(c.Theme().TextMuted)
 
+		ui.Text(c, a.tr("Click a view or joystick for keyboard control: W/S forward/back · A/D lateral · Q/E turn · Space stop", "点击视图或摇杆启用键盘：W/S 前后 · A/D 横移 · Q/E 转向 · 空格停车")).FontSize(12).TextColor(c.Theme().TextMuted)
+		ui.Text(c, fmt.Sprintf(a.tr("Manual speed · %.0f%%", "手动速度 · %.0f%%"), a.manualScale*100)).FontSize(12)
+		ui.Slider(c.Key("manual-speed"), &a.manualScale, .1, 1).FillWidth().Disabled(!a.manualMode())
 	})
 	a.connectionPanel(c)
 }

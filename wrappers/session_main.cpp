@@ -35,6 +35,8 @@ RosOptions options(const ipc::Json &j) {
   o.lidar_frame = j.value("lidar_frame", "livox_frame");
   o.imu_frame = j.value("imu_frame", "imu_frame");
   o.camera_frame = j.value("camera_frame", "camera_optical_frame");
+  o.camera_depth_frame = j.value("camera_depth_frame", "camera_depth_optical_frame");
+  o.camera_imu_frame = j.value("camera_imu_frame", "camera_imu_optical_frame");
   o.status_topic = j.value("status_topic", "/full_run/status");
   o.node_name = "simple_rbt_session";
   return o;
@@ -67,6 +69,7 @@ int main(int argc, char **argv) {
                             {"ros_client_version", SIMPLE_RBT_ROS_CLIENT_VERSION},
                             {"transport", "unix_ipc"},
                             {"configurable_odometry", true},
+                            {"camera_devices", true},
                             {"runtime_language", "C++17"}}
                        .dump() << '\n';
       return 0;
@@ -83,7 +86,7 @@ int main(int argc, char **argv) {
     ipc::Client client;
     const auto startup = std::chrono::steady_clock::now();
     while (!stop && !client.connect(session, role,
-                                    {"clock", "imu", "lidar", "odom", "camera",
+                                    {"clock", "imu", "camera_imu", "lidar", "odom", "camera",
                                      "panorama", "status"})) {
       if (std::chrono::steady_clock::now() - startup > std::chrono::seconds(20))
         throw std::runtime_error("core IPC session unavailable");
@@ -118,6 +121,9 @@ int main(int argc, char **argv) {
           break;
         case ipc::Kind::Imu:
           bridge->publish_imu(ipc::decode_imu(packet));
+          break;
+        case ipc::Kind::CameraImu:
+          bridge->publish_camera_imu(ipc::decode_imu(packet));
           break;
         case ipc::Kind::Lidar:
           bridge->publish_scan(ipc::decode_scan(packet));

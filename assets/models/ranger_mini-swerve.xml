@@ -12,8 +12,8 @@
       <geom name="chassis_deck" type="box" pos="0 0 .0675" size="0.35 0.23 0.04" mass="15" rgba=".91 .66 .12 0" group="2" />
       <site name="base_origin" pos="0 0 0" size=".002" />
       <site name="imu" pos="0 0 .04" size=".002" />
-      <site name="lidar" pos="0 0 .1275" size=".002" />
-      <site name="camera_mount" pos=".36 0 .0675" size=".002" />
+      <site name="lidar" pos="0 0 0.16" size=".002" />
+      <site name="camera_mount" pos="0.36 0 0.135" size=".002" />
       <body name="front_left_steering" pos="0.247 0.185 -0.1025">
         <joint name="front_left_steering_joint" type="hinge" axis="0 0 1" limited="true" range="-3.141592653589793 3.141592653589793" />
         <inertial pos="0 0 .04" mass="1.0" diaginertia=".0015 .0015 .001" />
@@ -62,7 +62,7 @@
         </body>
         <geom name="official_ranger_mini_7_0" type="mesh" mesh="official_ranger_mini_1_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.17647059 0.17647059 0.17647059 1.0" pos="0 0 0.12" quat="1 0 0 0" />
       </body>
-      <site name="mid360_imu" size="0.002" class="main" pos="0.010999999999999999 0.023290000000000002 0.08338000000000001" quat="1 0 0 0" />
+      <site name="mid360_imu" size="0.002" class="main" pos="0.011 0.02329 0.11588" quat="1 0 0 0" />
       <geom name="official_ranger_mini_0_0" type="mesh" mesh="official_ranger_mini_0_0_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.0 0.0 0.0 1.0" pos="0 0 0.0915" quat="1 0 0 0" />
       <geom name="official_ranger_mini_0_1" type="mesh" mesh="official_ranger_mini_0_1_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.17647059 0.17647059 0.17647059 1.0" pos="0 0 0.0915" quat="1 0 0 0" />
       <geom name="official_ranger_mini_0_2" type="mesh" mesh="official_ranger_mini_0_2_mesh" mass="0" contype="0" conaffinity="0" group="2" rgba="0.78431373 0.78431373 0.78431373 1.0" pos="0 0 0.0915" quat="1 0 0 0" />

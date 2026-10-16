@@ -25,6 +25,7 @@ subprocess.run(['g++','-std=c++17','-O2','tests/ci_camera_fixture.cpp',
  '-o','output/ci/camera-fixture'],check=True)
 PY
 output/ci/camera-fixture output/ci/camera
+build/ci-release/sensor_devices --render > output/ci/camera/sensor-devices.txt
 build/ci-release/camera_oracle output/ci/camera/model.mjb output/ci/camera/state.bin \
   output/ci/camera/pose.bin output/ci/camera/render 80 60 160 80 64 90
 .venv/bin/python - <<'PY'

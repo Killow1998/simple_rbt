@@ -57,7 +57,7 @@ add_library(simple_rbt_random src/random.cpp)
 target_include_directories(simple_rbt_random PUBLIC include)
 
 add_library(simple_rbt_core
-  src/core.cpp src/scene.cpp src/tracking.cpp src/controller.cpp
+  src/core.cpp src/scene.cpp src/sensor_devices.cpp src/tracking.cpp src/controller.cpp
   src/controller_policy.cpp
   src/controllers/go2.cpp src/controllers/go2w.cpp
   src/controllers/diffdrive.cpp src/controllers/scout_mini.cpp
@@ -157,3 +157,8 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/turtlebot3_e2e.cpp")
   add_test(NAME turtlebot3_e2e COMMAND turtlebot3_e2e)
   set_tests_properties(turtlebot3_e2e PROPERTIES LABELS "core;robot_turtlebot3_waffle_pi;e2e" TIMEOUT 60)
 endif()
+add_executable(sensor_devices tests/sensor_devices.cpp)
+target_compile_definitions(sensor_devices PRIVATE SIMPLE_RBT_PROJECT_ROOT="${PROJECT_WORKSPACE}")
+target_link_libraries(sensor_devices PRIVATE simple_rbt_core simple_rbt_cameras)
+add_test(NAME sensor_devices COMMAND sensor_devices)
+set_tests_properties(sensor_devices PROPERTIES LABELS "core;sensors;e2e" TIMEOUT 30)

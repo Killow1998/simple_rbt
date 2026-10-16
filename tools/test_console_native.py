@@ -51,7 +51,7 @@ def main():
     robot_names = sorted(robot["name"] for robot in json.loads(subprocess.check_output(
         [str(args.core.resolve()), "--list-robots"], text=True)))
     config = {"robot": "ranger_mini", "controller": "auto", "control_mode": "tracked",
-              "terrain": "flat", "terrain_level": "standard", "backend": args.backend, "camera_hz": 10,
+              "terrain": "flat", "terrain_level": "standard", "backend": args.backend, "camera_hz": 10, "camera_model":"d435i",
               "sensors": {"mid360": True, "camera": True, "depth": True, "panorama": False}}
     (output / "config.json").write_text(json.dumps(config))
     env = dict(os.environ, DISPLAY=args.display, LC_ALL="C.UTF-8", XDG_CONFIG_HOME=str(output / "config"),
@@ -68,7 +68,7 @@ def main():
         core_sha = hashlib.sha256(args.core.read_bytes()).hexdigest()
         process = subprocess.Popen([str(args.console.resolve()), "--worker", str(args.core.resolve()),
             "--assets", str(args.assets.resolve()), "--config", str(output / "config.json"),
-            "--capture", str(output / "live-scene.png"), "--capture-after-ms", "42000"], env=env, stdout=log, stderr=subprocess.STDOUT)
+            "--capture", str(output / "live-scene.png"), "--capture-after-ms", "60000"], env=env, stdout=log, stderr=subprocess.STDOUT)
         try:
             directory = child_session(process.pid); observer = Observer(directory)
             metadata, _ = observer.wait(lambda m, v: m.get("session_state") == "config")
@@ -136,8 +136,8 @@ def main():
             inputs.tab()
             # The Robot selector retains focus after Enter. Walk the real
             # keyboard order: five other selectors, four sensor checkboxes,
-            # the sensor selector, then X. Font metrics cannot change this order.
-            for _ in range(11):
+            # camera model, the sensor selector, then X. Font metrics cannot change this order.
+            for _ in range(12):
                 inputs.press("Tab")
             inputs.type_number("0.03000")
             metadata, _ = observer.wait(lambda m, v: abs(m.get("mounts", {}).get("mid360", {}).get("position", [99])[0]-.03)<1e-6)
@@ -168,6 +168,15 @@ def main():
             rotated = [2*vector[i]*dot+(2*w*w-1)*offset[i]+2*w*cross[i] for i in range(3)]
             check("MID360 internal IMU remains rigid", all(abs(imu[i]-mount[i]-rotated[i])<1e-7 for i in range(3)))
             check("controller body IMU remains independent", metadata["body_imu_mount"]["position"] == [0,0,.04])
+            # Exercise Xian's intended Go2W driving workflow after the wheel
+            # chassis mount editor checks, using the real robot selector.
+            choose_robot(index=robot_names.index("go2w"))
+            observer.close()
+            directory=child_session(process.pid,exclude=directory,robot="go2w")
+            observer=Observer(directory)
+            metadata,_=observer.wait(lambda m,v:m.get("session_state")=="config" and m.get("robot")=="go2w")
+            check("Go2W retains selected D435i device",metadata.get("camera_model")=="d435i" and metadata.get("camera_imu_locked"))
+            time.sleep(.5)
             inputs.click(*inputs.primary_button(window))
             observer.wait(lambda m, v: m.get("session_state") == "running")
             time.sleep(2)
@@ -181,6 +190,41 @@ def main():
             inputs.button(False)
             observer.wait(lambda m, v: m.get("applied_command") == [0,0,0] and math.hypot(v[0],v[1])<.1)
             check("native pointer release stops physical robot", True)
+            # Actual X11 key events must reach the same core command path.
+            inputs.click(180,300)
+            for key,axis,sign in [('w',0,1),('s',0,-1),('a',1,1),('d',1,-1),('q',2,1),('e',2,-1)]:
+                inputs.key(key,True)
+                metadata,_=observer.wait(lambda m,v:sign*m.get("applied_command",[0,0,0])[axis]>.05)
+                command=metadata["applied_command"]
+                check("keyboard "+key.upper()+" maps to its signed axis",all(abs(command[i])<1e-9 for i in range(3) if i!=axis),command)
+                inputs.key(key,False)
+                observer.wait(lambda m,v:m.get("applied_command")==[0,0,0])
+            inputs.key('w',True)
+            started,_=observer.wait(lambda m,v:m.get("applied_command",[0])[0]>.1)
+            initial=started["base_pose"]["position"]
+            trace=[];deadline=time.monotonic()+12
+            while time.monotonic()<deadline:
+                time.sleep(.1);m,v=observer.snapshot();trace.append({'stamp':m['stamp_ns'],'command':m['applied_command'],'position':m['base_pose']['position'],'velocity':v})
+                if m['stamp_ns']>=started['stamp_ns']+2000000000:break
+            (output/'keyboard-hold-trace.json').write_text(json.dumps(trace,indent=2))
+            metadata,_=observer.wait(lambda m,v:m.get("applied_command",[0])[0]>.1)
+            check("held keyboard moves the physical robot",math.dist(initial,metadata["base_pose"]["position"])>.05,{"initial":initial,"metadata":metadata,"velocity":observer.snapshot()[1]})
+            inputs.press('space')
+            observer.wait(lambda m,v:m.get("applied_command")==[0,0,0]);time.sleep(.8)
+            check("Space stops without repeat restarting motion",observer.snapshot()[0]["applied_command"]==[0,0,0])
+            inputs.key('w',False)
+            inputs.key('w',True)
+            observer.wait(lambda m,v:m.get("applied_command",[0])[0]>.1)
+            inputs.tab()
+            observer.wait(lambda m,v:m.get("applied_command")==[0,0,0])
+            check("keyboard focus leaving the drive control stops motion",True)
+            inputs.key('w',False)
+            inputs.click(180,300);inputs.key('w',True)
+            observer.wait(lambda m,v:m.get("applied_command",[0])[0]>.1)
+            inputs.blur()
+            observer.wait(lambda m,v:m.get("applied_command")==[0,0,0])
+            check("window focus loss clears held keyboard keys",True)
+            inputs.key('w',False);inputs.focus(window)
             inputs.move(180, 248); inputs.button(True)
             observer.wait(lambda m, v: m.get("applied_command", [0])[0]>.15)
             inputs.blur()
@@ -223,7 +267,7 @@ def main():
             inputs.select_edge(last=True)
             inputs.tab(); inputs.select_edge(last=True)
             appearance("light", "zh-CN", phase="before-reopen")
-            process.wait(timeout=30)
+            process.wait(timeout=70)
             check("native console closes owned core gracefully", process.returncode == 0)
             check("actual X11 window screenshot exists", (output / "native-window.png").is_file())
             observer.close(); observer = None; window = None

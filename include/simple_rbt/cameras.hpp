@@ -32,6 +32,8 @@ class CameraRig {
   CameraRig& operator=(CameraRig&&) = delete;
 
   void render_into(mjData* data, const OpticalPose& pose, CameraPair& output);
+  // Perspective depth uses its own optical pose; it is not registered to RGB.
+  void render_into(mjData* data, const OpticalPose& color, const OpticalPose& depth, CameraPair& output);
   void render_observer(mjData*, const OpticalPose&, CameraFrame&,
                        int width = 640, int height = 480, double fov_y_deg = 45.);
   const std::string& renderer_name() const noexcept;

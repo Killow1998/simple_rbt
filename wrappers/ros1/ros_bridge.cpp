@@ -14,11 +14,11 @@ struct RosBridge::Impl {
   mutable std::mutex publication_mutex, command_mutex;
   Vec3 latest_command{};
   std::optional<SteadyClock::time_point> received_at;
-  bool closed = false, has_camera = false;
+  bool closed = false, has_camera = false, separate_camera_frames = false, has_camera_imu = false;
   ros::CallbackQueue callbacks;
   std::unique_ptr<ros::NodeHandle> node;
   ros::Subscriber commands;
-  ros::Publisher clock, lidar, points, imu, imu_si, odom, camera_info, status;
+  ros::Publisher clock, lidar, points, imu, imu_si, odom, camera_info, depth_info, camera_imu, status;
   ros::Publisher tf, static_tf;
   std::array<ros::Publisher, 2> rgb, depth;
   std::map<std::string, ros::Publisher> publishers;
@@ -29,7 +29,8 @@ struct RosBridge::Impl {
   }
   Impl(RosOptions given, const Extrinsics& extrinsics) : options(std::move(given)),
       command_topic(robot_command_topic(options.robot_name)),
-      node_namespace("/" + options.robot_name), has_camera(extrinsics.has_camera) {
+      node_namespace("/" + options.robot_name), has_camera(extrinsics.has_camera), separate_camera_frames(extrinsics.separate_camera_frames),
+      has_camera_imu(extrinsics.has_camera_imu) {
     if (options.domain_id) throw std::invalid_argument("ROS 1 uses ROS_MASTER_URI, not a DDS domain");
     if (!std::isfinite(options.command_timeout_s) || options.command_timeout_s <= 0.)
       throw std::invalid_argument("command timeout must be positive and finite");
@@ -38,8 +39,12 @@ struct RosBridge::Impl {
       throw std::invalid_argument("perspective field of view must lie between 0 and 180 degrees");
     valid_pose(extrinsics.lidar); valid_pose(extrinsics.imu);
     if (has_camera) valid_pose(extrinsics.camera);
+    if (has_camera && separate_camera_frames) valid_pose(extrinsics.camera_depth);
+    if (has_camera_imu) valid_pose(extrinsics.camera_imu);
     std::vector<std::string> frames{options.odom_frame, options.base_frame, options.lidar_frame, options.imu_frame};
     if (has_camera) frames.push_back(options.camera_frame);
+    if (has_camera && separate_camera_frames) frames.push_back(options.camera_depth_frame);
+    if (has_camera_imu) frames.push_back(options.camera_imu_frame);
     for (const auto& frame : frames)
       if (frame.empty() || frame.front() == '/') throw std::invalid_argument("TF frames must be nonempty without leading slash");
     if (std::set<std::string>(frames.begin(), frames.end()).size() != frames.size())
@@ -53,6 +58,7 @@ struct RosBridge::Impl {
     if (options.publish_pointcloud2) points = advertise<messages::PointCloud>("/livox/points", 10);
     imu = advertise<messages::Imu>("/livox/imu", 64);
     imu_si = advertise<messages::Imu>("/livox/imu_si", 64);
+    if (has_camera_imu) camera_imu = advertise<messages::Imu>("/camera/imu", 64);
     odom = advertise<messages::Odometry>(options.odom_topic, 10);
     if (has_camera) {
       for (int index = 0; index < 2; ++index) {
@@ -61,6 +67,7 @@ struct RosBridge::Impl {
         depth[index] = advertise<messages::Image>(prefix + "/depth/image_raw", 2);
       }
       camera_info = advertise<messages::CameraInfo>("/camera/camera_info", 2);
+      depth_info = advertise<messages::CameraInfo>("/camera/depth/camera_info", 2);
     }
     commands = node->subscribe<geometry_msgs::Twist>("cmd_vel", 10,
         [this](const geometry_msgs::Twist::ConstPtr& message) {
@@ -77,6 +84,8 @@ struct RosBridge::Impl {
     fixed.transforms = {transform(0, options.base_frame, options.lidar_frame, extrinsics.lidar),
                         transform(0, options.base_frame, options.imu_frame, extrinsics.imu)};
     if (has_camera) fixed.transforms.push_back(transform(0, options.base_frame, options.camera_frame, extrinsics.camera));
+    if (has_camera && separate_camera_frames) fixed.transforms.push_back(transform(0, options.base_frame, options.camera_depth_frame, extrinsics.camera_depth));
+    if (has_camera_imu) fixed.transforms.push_back(transform(0, options.base_frame, options.camera_imu_frame, extrinsics.camera_imu));
     static_tf.publish(fixed);
   }
   void require_open() const {

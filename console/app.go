@@ -60,6 +60,9 @@ type app struct {
 	observerSize, cameraSize                     [2]int
 	viewStamp, cameraStamp                       uint64
 	viewport                                     viewport
+	driveKeys                                    map[ui.Key]bool
+	driveHandles                                 [3]ui.Handle
+	manualScale                                  float64
 	pad                                          joystick
 	command                                      Vec3
 	manualHeartbeat                              bool
@@ -89,7 +92,7 @@ func newApp(options session.Options, cfg Config) *app {
 	if cfg.Adapters == nil {
 		cfg.Adapters = map[string]bool{}
 	}
-	a := &app{cfg: cfg, pending: map[string]Pose{}, selected: "mid360", tool: "Move / 平移", space: "Base / 机身", viewMode: "Both / 双视角", sourceLabel: "Manual / 手动", stage: "configure", updates: make(chan struct{}, 1), done: make(chan struct{}), adapterStarted: map[string]bool{}, adaptersVerified: map[string]bool{}, options: options}
+	a := &app{manualScale: .5, cfg: cfg, pending: map[string]Pose{}, selected: "mid360", tool: "Move / 平移", space: "Base / 机身", viewMode: "Both / 双视角", sourceLabel: "Manual / 手动", stage: "configure", updates: make(chan struct{}, 1), done: make(chan struct{}), adapterStarted: map[string]bool{}, adaptersVerified: map[string]bool{}, options: options}
 	a.preferences = loadPreferences()
 	a.viewport = viewport{Azimuth: -135, Elevation: 25, Distance: 1.8}
 	a.manager = session.NewManager(options, func() {
@@ -229,6 +232,7 @@ func (a *app) applyMetadata(value metadata) {
 	a.commandMu.Lock()
 	a.manualHeartbeat = a.manualMode()
 	if !a.manualHeartbeat {
+		clear(a.driveKeys)
 		a.command = Vec3{}
 		a.pad = joystick{}
 	}
@@ -250,6 +254,7 @@ func (a *app) editMount(name string, pose Pose) {
 	_ = a.manager.Client.SendRequest(request)
 }
 func (a *app) stopManual() {
+	clear(a.driveKeys)
 	a.pad.Held = false
 	a.pad.Position = point{}
 	a.pad.Lateral = 0

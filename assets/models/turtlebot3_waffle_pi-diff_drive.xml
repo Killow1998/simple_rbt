@@ -20,9 +20,9 @@
       <geom pos="-0.064 0 0.047" quat="1 0 0 0" name="base_link_collision" group="3" rgba=".3 .3 .3 0" type="box" size="0.13300000000000001 0.13300000000000001 0.047" />
       <site name="base_origin" pos="0 0 0" size=".002" quat="1 0 0 0" />
       <site name="imu" pos="0 0 .068" size=".002" quat="1 0 0 0" />
-      <site name="lidar" pos="-.064 0 .18" size=".002" quat="1 0 0 0" />
-      <site name="camera_mount" pos=".076 0 .093" size=".002" quat="1 0 0 0" />
-      <site name="mid360_imu" pos="-.053 .02329 .13588" size=".002" quat="1 0 0 0" />
+      <site name="lidar" pos="-0.064 0 0.18" size=".002" quat="1 0 0 0" />
+      <site name="camera_mount" pos="0.076 0 0.125" size=".002" quat="1 0 0 0" />
+      <site name="mid360_imu" pos="-0.053 0.02329 0.13588" size=".002" quat="1 0 0 0" />
       <body name="left_wheel" pos="0.0 0.144 0.023" quat="0.70738826916719977 -0.70682518110536596 0 0">
         <joint name="wheel_left_joint" type="hinge" axis="0 0 1" />
         <inertial pos="0 0 0" mass="2.8498940e-02" fullinertia="1.1175580e-05 1.1192413e-05 2.0712558e-05 -4.2369783e-11 -5.9381719e-09 -1.4400107e-11" />

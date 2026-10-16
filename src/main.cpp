@@ -38,7 +38,7 @@ Usage: simple-rbt-sim [options]
   --terrain-level standard|moderate|hard|extreme
   --difficulty NUMBER --seed UNSIGNED --friction NUMBER
   --cmd VX VY WZ --settle SECONDS --duration SECONDS
-  --sensors physics|lidar|full --cameras --camera-hz NUMBER
+  --sensors physics|lidar|full --cameras --camera-hz NUMBER --camera-model d435|d435i
   --backend auto|cpu|cuda|warp           warp is a compatibility alias for native CUDA
   --lidar-motion rolling|snapshot --rays NUMBER (1..20000, diagnostic subset)
   --session-config JSON --session-dir DIRECTORY   desktop/ROS process session
@@ -154,6 +154,8 @@ int main(int argc, char **argv) {
         args.duration = number(value(i));
       else if (option == "--settle")
         args.settle = number(value(i));
+      else if (option == "--camera-model")
+        args.simulation.camera_model = value(i);
       else if (option == "--camera-hz")
         args.camera_hz = number(value(i));
       else if (option == "--rays")

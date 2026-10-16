@@ -270,7 +270,7 @@ struct CameraRig::Impl {
   mjvCamera abstract_camera{};
   std::vector<std::uint8_t> no_surface, segmentation_rgb;
   std::vector<float> raw_depth;
-  CameraFrame face;
+  CameraFrame face, depth_frame;
 
   Impl(mjModel* input_model, CameraConfig input_config)
       : model(checked(input_model)), config(checked(input_config)), egl(), scene(model),
@@ -363,17 +363,25 @@ struct CameraRig::Impl {
     option.sitegroup[3]=1;update_scene(data);option.sitegroup[3]=0;
     render_view(pose,width,height,fov,*observer_context,output,false);
   }
-  void render_into(mjData* data, const OpticalPose& pose, CameraPair& output) {
+  void render_into(mjData* data, const OpticalPose& pose, const OpticalPose& depth_pose, CameraPair& output) {
     if (!data) throw std::invalid_argument("CameraRig requires data");
-    check_pose(pose);
+    check_pose(pose); check_pose(depth_pose);
     egl.make_current();
     struct ReleaseCurrent {
       EglContext& context;
       ~ReleaseCurrent() { context.release_current(); }
     } release{egl};
     update_scene(data);
-    if(config.render_perspective) render_view(pose, config.perspective_width, config.perspective_height,
-                config.perspective_fov_y_deg, perspective_context, output.perspective, config.render_depth, config.render_rgb);
+    if(config.render_perspective) {
+      const bool split=config.render_depth && (pose.position!=depth_pose.position || pose.rotation!=depth_pose.rotation);
+      render_view(pose, config.perspective_width, config.perspective_height,
+                  config.perspective_fov_y_deg, perspective_context, output.perspective, config.render_depth && !split, config.render_rgb);
+      if(split) {
+        render_view(depth_pose,config.perspective_width,config.perspective_height,
+                    config.perspective_fov_y_deg,perspective_context,depth_frame,true,false);
+        output.perspective.depth.swap(depth_frame.depth);
+      }
+    }
     if (!config.render_panorama) { output.panorama = {}; return; }
     // Use the same scene for all six cube faces of this physical snapshot.
     // Rebuild once to match the Python perspective/panorama scene boundary.
@@ -401,7 +409,10 @@ struct CameraRig::Impl {
 CameraRig::CameraRig(mjModel* model, CameraConfig config) : impl_(std::make_unique<Impl>(model, config)) {}
 CameraRig::~CameraRig() = default;
 void CameraRig::render_into(mjData* data, const OpticalPose& pose, CameraPair& output) {
-  impl_->render_into(data, pose, output);
+  impl_->render_into(data, pose, pose, output);
+}
+void CameraRig::render_into(mjData* data, const OpticalPose& color, const OpticalPose& depth, CameraPair& output) {
+  impl_->render_into(data,color,depth,output);
 }
 void CameraRig::render_observer(mjData* data,const OpticalPose& pose,CameraFrame& output,int width,int height,double fov) { impl_->render_observer(data,pose,output,width,height,fov); }
 const std::string& CameraRig::renderer_name() const noexcept { return impl_->egl.renderer; }

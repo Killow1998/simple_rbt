@@ -19,17 +19,19 @@ type ROSConfig struct {
 	OdomTopic     string `json:"odom_topic"`
 }
 type Config struct {
-	ROS          ROSConfig       `json:"ros"`
-	Robot        string          `json:"robot"`
-	Controller   string          `json:"controller"`
-	ControlMode  string          `json:"control_mode"`
-	Terrain      string          `json:"terrain"`
-	TerrainLevel string          `json:"terrain_level"`
-	Backend      string          `json:"backend"`
-	Sensors      Sensors         `json:"sensors"`
-	Mounts       map[string]Pose `json:"mounts"`
-	CameraHz     float64         `json:"camera_hz"`
-	Adapters     map[string]bool `json:"adapters"`
+	CameraModel      string          `json:"camera_model"`
+	CameraExtrinsics map[string]Pose `json:"camera_extrinsics,omitempty"`
+	ROS              ROSConfig       `json:"ros"`
+	Robot            string          `json:"robot"`
+	Controller       string          `json:"controller"`
+	ControlMode      string          `json:"control_mode"`
+	Terrain          string          `json:"terrain"`
+	TerrainLevel     string          `json:"terrain_level"`
+	Backend          string          `json:"backend"`
+	Sensors          Sensors         `json:"sensors"`
+	Mounts           map[string]Pose `json:"mounts"`
+	CameraHz         float64         `json:"camera_hz"`
+	Adapters         map[string]bool `json:"adapters"`
 }
 type RobotSpec struct {
 	Name              string  `json:"name"`
@@ -47,7 +49,7 @@ type Catalog struct {
 }
 
 func defaultConfig() Config {
-	return Config{ROS: ROSConfig{true, "/odom"}, Robot: "go2", Controller: "auto", ControlMode: "tracked", Terrain: "flat", TerrainLevel: "standard", Backend: "auto", Sensors: Sensors{true, true, true, false}, Mounts: map[string]Pose{}, CameraHz: 10, Adapters: map[string]bool{}}
+	return Config{CameraModel: "d435", ROS: ROSConfig{true, "/odom"}, Robot: "go2", Controller: "auto", ControlMode: "tracked", Terrain: "flat", TerrainLevel: "standard", Backend: "auto", Sensors: Sensors{true, true, true, false}, Mounts: map[string]Pose{}, CameraHz: 10, Adapters: map[string]bool{}}
 }
 func loadJSON(path string, out any) error {
 	data, err := os.ReadFile(path)

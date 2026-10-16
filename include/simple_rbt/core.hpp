@@ -19,6 +19,9 @@ struct SimulationOptions {
   double difficulty = 1., friction = -1.;
   std::uint64_t seed = 0;
   std::optional<Pose> mid360_mount, camera_mount;
+  std::string camera_model = "d435";
+  Pose camera_color_offset{{0.,.015,0.}}, camera_depth_offset{},
+       camera_imu_offset{{-.01174,-.00552,.0051}};
 };
 class Simulation {
 public:
@@ -35,7 +38,9 @@ public:
   std::uint64_t stamp_ns() const;
   Pose pose(const std::string &site = "base_origin") const;
   Pose extrinsics(const std::string &) const;
-  OpticalPose camera_pose() const;
+  OpticalPose camera_pose(const std::string &site = "camera_color") const;
+  bool has_camera_imu() const;
+  ImuSample camera_imu() const;
   Vec3 linear_velocity() const;
   Vec3 angular_velocity() const;
   ImuSample imu() const;

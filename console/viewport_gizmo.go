@@ -14,7 +14,7 @@ func painterCircle(p *ui.Painter, r ui.Rect, q point, radius float32, color ui.C
 	p.Stroke(ui.Rect{X: r.X + float32(q.X) - radius, Y: r.Y + float32(q.Y) - radius, W: radius * 2, H: radius * 2}, color, radius, 2)
 }
 func (a *app) visibleMount(name string) bool {
-	return name == "mid360" && a.cfg.Sensors.MID360 || name == "camera" && a.cameraEnabled()
+	return name == "mid360" && a.cfg.Sensors.MID360 || name == "camera" && a.cameraDeviceEnabled()
 }
 func (a *app) drawGizmo(p *ui.Painter, r ui.Rect) {
 	a.viewport.Handles = nil

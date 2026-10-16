@@ -46,7 +46,7 @@ def run_case(args, robot, output):
            "ROS_DOMAIN_ID": str(args.domain_id), "ROS_LOCALHOST_ONLY": "1"}
     config = {"robot": robot, "terrain": args.terrain, "backend": args.backend,
               "control_mode": args.control_mode, "source": args.ros, "start_immediately": True,
-              "duration_s": 20, "settle_s": 2, "camera_hz": 10,
+              "duration_s": 20, "settle_s": 2, "camera_hz": 10, "camera_model": args.camera_model,
               "sensors": {"mid360": True, "camera": not args.no_camera, "depth": not args.no_camera, "panorama": not args.no_camera},
               "output": str(case / "native"),
               "ros": {"publish_odom_tf": not args.external_odometry,
@@ -79,6 +79,7 @@ def run_case(args, robot, output):
             interface = "/opt/simple-rbt/interfaces/"+("setup.bash" if args.ros == "ros1" else "share/livox_ros_driver2/local_setup.bash")
             shell = f'source {setup}; source {interface}; exec python3 /tests/ros_probe.py "$1" /results/probe.json --physical --robot "$2"'
             if args.no_camera: shell += ' --no-camera'
+            if args.camera_model == 'd435i': shell += ' --camera-imu'
             if args.external_odometry: shell += ' --external-odometry'
             probe = subprocess.Popen(["docker", "exec", container, "bash", "-c", shell, "probe", args.ros, robot],
                                      stdout=adapter_log, stderr=subprocess.STDOUT)
@@ -123,6 +124,7 @@ def main():
                         help="Default: seven production robots; a legacy alias may be requested explicitly")
     parser.add_argument("--backend", choices=["auto", "cpu", "cuda"], default="auto")
     parser.add_argument("--external-odometry", action="store_true", help="Verify ground-truth topic isolation with dynamic odometry TF disabled")
+    parser.add_argument("--camera-model", choices=["d435", "d435i"], default="d435")
     parser.add_argument("--no-camera", action="store_true", help="Validate motion and MID360 without an image renderer")
     parser.add_argument("--hide-gpu", action="store_true", help="Hide CUDA devices for the focused CPU/no-camera acceptance")
     parser.add_argument("--control-mode", choices=["native", "tracked"], default="tracked")

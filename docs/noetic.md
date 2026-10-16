@@ -14,6 +14,30 @@ With MID360 and a ROS adapter enabled, the core sends its real scan through IPC 
 
 启用 MID360 与 ROS 适配器后，核心通过 IPC 将实际扫描交给独立 C++ 节点，节点在 `/livox/lidar` 发布 ROS 1 的 `livox_ros_driver2/CustomMsg` 或 ROS 2 的 `livox_ros_driver2/msg/CustomMsg`，并在 `/livox/points` 提供 PointCloud2。转换保留扫描 timebase、点数、逐点 offset_time、XYZ 与 line；tag 和 reflectivity 为模拟值。IMU、里程计、TF 与时钟也来自同一核心。
 
+## Camera publication / 相机发布
+
+The independent Noetic and Humble nodes consume the same core IPC samples:
+
+两种独立节点接收同一核心的 IPC 数据，话题及坐标如下：
+
+| Output / 输出 | Topic / 话题 | Frame / 坐标 |
+|---|---|---|
+| RGB | `/camera/image_raw`, `/camera/camera_info` | `camera_optical_frame` |
+| Z-depth / Z 深度 | `/camera/depth/image_raw`, `/camera/depth/camera_info` | `camera_depth_optical_frame` |
+| D435i IMU | `/camera/imu` | `camera_imu_optical_frame` |
+
+D435i IMU uses rad/s and m/s²; orientation is unavailable (covariance entry 0
+is -1). It is independent of `/livox/imu` and `/livox/imu_si`. Camera selection
+and internal nominal transforms are described in [runtime configuration](runtime.md).
+Depth is unregistered; consumers must use its own CameraInfo and TF.
+Updated nodes advertise `camera_devices: true` in `--runtime-info`; the console
+asks to rebuild older adapters before starting them.
+
+D435i IMU 单位为 rad/s 和 m/s²，不提供姿态估计（姿态协方差第 0 项为 -1），
+独立于 `/livox/imu` 和 `/livox/imu_si`。相机型号及内部标称外参见[运行说明](runtime.md)。
+深度未对齐到彩色图像，消费端应使用对应的 CameraInfo 和 TF。
+新节点在 `--runtime-info` 中声明 `camera_devices: true`；操作台会要求先重新构建旧适配器。
+
 ## Prepare / 准备
 
 From a source checkout / 在源码目录：
@@ -65,7 +89,7 @@ ROS 1 复用可达的 master；默认本地 master 未启动时，容器自行�
 ## E2E checks / 端到端检查
 
 ```sh
-python3 tools/test_ros_session.py --ros ros1 --skip-build --robots go2w
+python3 tools/test_ros_session.py --ros ros1 --skip-build --robots go2w --camera-model d435i
 python3 tools/test_ros_session.py --ros ros2 --skip-build --robots ranger_mini --terrain hills
 ```
 

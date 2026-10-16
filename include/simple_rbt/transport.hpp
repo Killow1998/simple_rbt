@@ -15,6 +15,7 @@ struct TransportOptions {
   std::string odom_frame = "odom", base_frame = "base_link";
   std::string lidar_frame = "livox_frame", imu_frame = "imu_frame";
   std::string camera_frame = "camera_optical_frame";
+  std::string camera_depth_frame = "camera_depth_optical_frame", camera_imu_frame = "camera_imu_optical_frame";
   std::string status_topic = "/full_run/status";
   double perspective_fov_y_deg = 60.;
 };
@@ -27,6 +28,7 @@ public:
   virtual void spin_once(double timeout_s = 0.) = 0;
   virtual void publish_clock(std::uint64_t) = 0;
   virtual void publish_imu(const ImuSample&) = 0;
+  virtual void publish_camera_imu(const ImuSample&) = 0;
   virtual void publish_scan(const LidarScan&) = 0;
   virtual void publish_odometry(std::uint64_t, const Pose&, const Vec3&, const Vec3&) = 0;
   virtual void publish_camera(std::uint64_t, const CameraFrame&, bool panorama = false) = 0;

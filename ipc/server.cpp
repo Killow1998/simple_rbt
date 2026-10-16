@@ -73,6 +73,8 @@ struct SessionServer::Impl {
               {"lidar_frame", options.lidar_frame},
               {"imu_frame", options.imu_frame},
               {"camera_frame", options.camera_frame},
+              {"camera_depth_frame", options.camera_depth_frame},
+              {"camera_imu_frame", options.camera_imu_frame},
               {"status_topic", options.status_topic}}},
             {"source", source},
             {"running", running}};
@@ -361,6 +363,12 @@ void SessionServer::publish_clock(std::uint64_t ns) {
 void SessionServer::publish_imu(const ImuSample &s) {
   if (subscribed("imu"))
     publish_packet(encode_imu(s));
+}
+void SessionServer::publish_camera_imu(const ImuSample &s) {
+  if (subscribed("camera_imu")) {
+    auto packet=encode_imu(s); packet.kind=Kind::CameraImu;
+    publish_packet(std::move(packet));
+  }
 }
 void SessionServer::publish_scan(const LidarScan &s) {
   if (subscribed("lidar"))

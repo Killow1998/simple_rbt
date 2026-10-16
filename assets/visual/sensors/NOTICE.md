@@ -1,0 +1,3 @@
+MID360 geometry: Livox official Mid-360 3D Model (STEP), source URL and SHA256 in provenance.json. Livox retains the source copyright. Mesh colors are rendering choices. The STEP import includes both solids and open shells. Alignment follows the official user manual, dimensions p.9 and coordinates p.12.
+
+D435/D435i geometry and nominal transforms: RealSense realsense-ros, pinned commit in provenance.json, Apache-2.0; original license attached. Housing/window/optics colors and window transparency are rendering choices, not source CAD materials. Optical and inertial defaults are nominal, not individual-device factory calibration.

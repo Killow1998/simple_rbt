@@ -1,0 +1,325 @@
+{
+  "schema_version": 1,
+  "identity": "Livox MID360 and RealSense D435/D435i",
+  "representation": "Official visual geometry only, no added mass or contact; nominal device extrinsics",
+  "source_files": [
+    {
+      "name": "mid360.stp",
+      "url": "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Mid360/mid-360-asm.stp",
+      "sha256": "b93e9b51282ed319b6aa755e76a132c0eb03306da5f3b9676bcabf2e2ae25f02",
+      "bytes": 8030891
+    },
+    {
+      "name": "d435.dae",
+      "url": "https://raw.githubusercontent.com/IntelRealSense/realsense-ros/7a87097c499e3b0b69518d54a8e7a9ac1924e87c/realsense2_description/meshes/d435.dae",
+      "sha256": "42f3b66f47a1f8f425a2e4dc07c1d9c283183167d8441f520a15623d98f9bf78",
+      "bytes": 15782439
+    },
+    {
+      "name": "d435.urdf.xacro",
+      "url": "https://raw.githubusercontent.com/IntelRealSense/realsense-ros/7a87097c499e3b0b69518d54a8e7a9ac1924e87c/realsense2_description/urdf/_d435.urdf.xacro",
+      "sha256": "ae3f57e8d38b3a6d5cc9de059e4afe545e4b895717d638b75d2ad0642cfb7f1b",
+      "bytes": 7527
+    },
+    {
+      "name": "d435i_imu.urdf.xacro",
+      "url": "https://raw.githubusercontent.com/IntelRealSense/realsense-ros/7a87097c499e3b0b69518d54a8e7a9ac1924e87c/realsense2_description/urdf/_d435i_imu_modules.urdf.xacro",
+      "sha256": "adde35b74c532d160a9346be2802d832a3d54967a54f81d994a70be1a71a6bda",
+      "bytes": 2118
+    },
+    {
+      "name": "LICENSE",
+      "url": "https://raw.githubusercontent.com/IntelRealSense/realsense-ros/7a87097c499e3b0b69518d54a8e7a9ac1924e87c/LICENSE",
+      "sha256": "7092398b52290edddcb41c6e2297f4c6343eb315ea6c83edfdbeea2a73adfbdb",
+      "bytes": 10758
+    }
+  ],
+  "parts": [
+    {
+      "part": "mid360-glass",
+      "recipe": {
+        "part": "mid360-glass",
+        "color": [
+          28,
+          32,
+          38,
+          255
+        ],
+        "target_faces": 9000
+      },
+      "files": [
+        {
+          "file": "assets/visual/sensors/mid360-glass-0.obj",
+          "rgba": [
+            0.10980392,
+            0.1254902,
+            0.14901961,
+            1.0
+          ],
+          "source_faces": 807,
+          "faces": 807,
+          "vertices": 426,
+          "bounds_m": [
+            [
+              -0.02193848416209221,
+              -0.02199999988079071,
+              -0.0076028998009860516
+            ],
+            [
+              0.02193848416209221,
+              0.02199999988079071,
+              0.013097099959850311
+            ]
+          ],
+          "bbox_deviation_m": 0.0,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "405d7e492e15fa4cfdb16a562ff4c290930ea048736f725bb40f40c7846c5ff3",
+          "bytes": 27463
+        }
+      ]
+    },
+    {
+      "part": "mid360-housing",
+      "recipe": {
+        "part": "mid360-housing",
+        "color": [
+          170,
+          174,
+          178,
+          255
+        ],
+        "target_faces": 9000
+      },
+      "files": [
+        {
+          "file": "assets/visual/sensors/mid360-housing-0.obj",
+          "rgba": [
+            0.66666667,
+            0.68235294,
+            0.69803922,
+            1.0
+          ],
+          "source_faces": 143138,
+          "faces": 17823,
+          "vertices": 8946,
+          "bounds_m": [
+            [
+              -0.04044361841561402,
+              -0.03243692219257355,
+              -0.04707162684646322
+            ],
+            [
+              0.03243692219257355,
+              0.03256493235713267,
+              -0.007500346321512894
+            ]
+          ],
+          "bbox_deviation_m": 0.00014361795665825822,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "d012b2bc4e0eeb77a06a4d82df23a7badeb3e14a984986257d1d19a7a0bd7db0",
+          "bytes": 655388
+        }
+      ]
+    },
+    {
+      "part": "d435-housing",
+      "recipe": {
+        "part": "d435-housing",
+        "color": [
+          170,
+          175,
+          180,
+          255
+        ],
+        "rpy": [
+          1.5707963267948966,
+          0,
+          1.5707963267948966
+        ],
+        "position": [
+          0.0043,
+          -0.0175,
+          0
+        ],
+        "target_faces": 12000
+      },
+      "files": [
+        {
+          "file": "assets/visual/sensors/d435-housing-0.obj",
+          "rgba": [
+            0.66666667,
+            0.68627451,
+            0.70588235,
+            1.0
+          ],
+          "source_faces": 183338,
+          "faces": 25837,
+          "vertices": 13721,
+          "bounds_m": [
+            [
+              -0.020753100660443308,
+              -0.062444768078039614,
+              -0.012596388810058723
+            ],
+            [
+              0.001514999981224539,
+              0.02670893827482592,
+              0.012982316846339336
+            ]
+          ],
+          "bbox_deviation_m": 0.0007911603708611811,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "239153307f1db699e6c9d0b8128abd4abe1f72bc5f953a8bc08ddddf3c390c55",
+          "bytes": 1005543
+        }
+      ]
+    },
+    {
+      "part": "d435-window",
+      "recipe": {
+        "part": "d435-window",
+        "color": [
+          18,
+          24,
+          31,
+          235
+        ],
+        "rpy": [
+          1.5707963267948966,
+          0,
+          1.5707963267948966
+        ],
+        "position": [
+          0.0043,
+          -0.0175,
+          0
+        ],
+        "target_faces": 3000
+      },
+      "files": [
+        {
+          "file": "assets/visual/sensors/d435-window-0.obj",
+          "rgba": [
+            0.07058824,
+            0.09411765,
+            0.12156863,
+            0.92156863
+          ],
+          "source_faces": 38901,
+          "faces": 3493,
+          "vertices": 2241,
+          "bounds_m": [
+            [
+              -0.0004832401469349844,
+              -0.059907206798816726,
+              -0.01062070019543171
+            ],
+            [
+              0.004300000000000003,
+              0.02547820013016462,
+              0.01062070019543171
+            ]
+          ],
+          "bbox_deviation_m": 0.0006986934888114499,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "72da6049c1d047befdf3c2a890f4898afc845756b429d68065f8e5436a0b33e3",
+          "bytes": 142083
+        }
+      ]
+    },
+    {
+      "part": "d435-optics",
+      "recipe": {
+        "part": "d435-optics",
+        "color": [
+          20,
+          26,
+          33,
+          255
+        ],
+        "rpy": [
+          1.5707963267948966,
+          0,
+          1.5707963267948966
+        ],
+        "position": [
+          0.0043,
+          -0.0175,
+          0
+        ],
+        "target_faces": 3000
+      },
+      "files": [
+        {
+          "file": "assets/visual/sensors/d435-optics-0.obj",
+          "rgba": [
+            0.07843137,
+            0.10196078,
+            0.12941176,
+            1.0
+          ],
+          "source_faces": 8888,
+          "faces": 3000,
+          "vertices": 1506,
+          "bounds_m": [
+            [
+              -0.007170002948430257,
+              -0.053345678032678846,
+              -0.0028632370997394387
+            ],
+            [
+              0.0007417626320720217,
+              0.019349684083331303,
+              0.0028390021655686068
+            ]
+          ],
+          "bbox_deviation_m": 0.00034968461977310725,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "dc7e482f452a870265996094df43fe8ff47fbd6d9123758e72530dc35e12d670",
+          "bytes": 103306
+        }
+      ]
+    }
+  ],
+  "preparation": {
+    "tool": "tools/prepare_sensor_assets.py",
+    "gmsh": "4.13.1"
+  },
+  "references": [
+    "https://www.livoxtech.com/mid-360/downloads",
+    "https://github.com/IntelRealSense/realsense-ros/tree/7a87097c499e3b0b69518d54a8e7a9ac1924e87c/realsense2_description"
+  ],
+  "mid360_alignment": {
+    "cad_bottom_y_mm": -25.91710000002,
+    "lidar_origin_height_mm": 47.0,
+    "rotation": [
+      [
+        -1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        1,
+        0
+      ]
+    ],
+    "bounds_m": [
+      [
+        -0.040299999999999996,
+        -0.03243692041737,
+        -0.047
+      ],
+      [
+        0.03243692041784,
+        0.03243692041782,
+        0.01309710000002
+      ]
+    ]
+  }
+}

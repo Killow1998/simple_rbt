@@ -29,6 +29,7 @@ class RosBridge final : public Transport {
   void spin_once(double timeout_s = 0.);
   void publish_clock(std::uint64_t stamp_ns);
   void publish_imu(const ImuSample& sample);
+  void publish_camera_imu(const ImuSample& sample);
   void publish_scan(const LidarScan& scan);
   void publish_odometry(std::uint64_t stamp_ns, const Pose& pose,
                         const Vec3& linear_velocity, const Vec3& angular_velocity);

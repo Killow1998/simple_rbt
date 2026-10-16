@@ -132,7 +132,7 @@ void ArtifactWriter::close_streams() {
   }
 }
 void ArtifactWriter::camera(std::uint64_t stamp, const OpticalPose &camera_pose,
-                            const CameraPair &frames) {
+                            const OpticalPose &depth_pose, const CameraPair &frames) {
   save_camera(output_, "perspective", frames.perspective);
   save_camera(output_, "panorama", frames.panorama);
   json_file(output_ / "camera-metadata.json",
@@ -152,6 +152,9 @@ void ArtifactWriter::camera(std::uint64_t stamp, const OpticalPose &camera_pose,
               {{"width", 320},
                {"height", 240},
                {"depth_kind", "z"},
+               {"depth_position_world_m", depth_pose.position},
+               {"depth_rotation_world_from_optical", depth_pose.rotation},
+               {"depth_registered_to_color", false},
                {"K",
                 {{120. / std::tan(3.14159265358979323846 / 6), 0., 159.5},
                  {0., 120. / std::tan(3.14159265358979323846 / 6), 119.5},

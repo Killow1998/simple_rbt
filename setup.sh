@@ -21,6 +21,7 @@ for argument in "$@"; do
 done
 if [[ "$native_only" == false ]]; then ./tools/setup-sdk.sh; fi
 python3 tools/prepare_visual_assets.py
+python3 tools/prepare_sensor_assets.py
 if [[ "$desktop" == ON ]]; then python3 tools/setup-gui.py; fi
 cmake -S "$project_root" -B "$project_root/build/desktop" \
   -DCMAKE_BUILD_TYPE=Release -DSIMPLE_RBT_ROS=NONE -DSIMPLE_RBT_DESKTOP="$desktop" -DSIMPLE_RBT_CUDA="$cuda"
