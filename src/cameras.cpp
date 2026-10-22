@@ -71,6 +71,13 @@ void check_pose(const OpticalPose& pose) {
 struct EglDisplay {
   EGLDisplay handle = EGL_NO_DISPLAY;
   EglDisplay() {
+    // Small sensor views suffer from llvmpipe worker synchronization when Mesa
+    // starts a worker per CPU. Bound its default pool; explicit tuning wins.
+    // Hardware GL drivers ignore this Mesa software-renderer setting.
+    if (!std::getenv("LP_NUM_THREADS")) {
+      auto workers = std::min(4u, std::max(1u, std::thread::hardware_concurrency()));
+      setenv("LP_NUM_THREADS", std::to_string(workers).c_str(), 0);
+    }
     auto query_devices = reinterpret_cast<PFNEGLQUERYDEVICESEXTPROC>(eglGetProcAddress("eglQueryDevicesEXT"));
     auto platform_display = reinterpret_cast<PFNEGLGETPLATFORMDISPLAYEXTPROC>(eglGetProcAddress("eglGetPlatformDisplayEXT"));
     if (!query_devices || !platform_display)

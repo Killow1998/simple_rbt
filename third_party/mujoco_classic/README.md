@@ -6,7 +6,8 @@ MuJoCo's public `mjr_render` API regenerates shadows for each view and does not 
 
 Local changes in `render.inc`:
 
-- Cull bounded geometry outside the four view side planes and the near clipping plane before submitting draws. Shadow casters remain complete. Reflections bypass this culling; planes, height fields, flex, skin and decorative geometry retain the native path.
+- Cull bounded geometry outside the four view side planes and the near clipping plane before submitting draws. Shadow casters remain complete. Reflections bypass this culling; height fields, flex, skin and decorative geometry retain the native path.
+- Finite planes use indexed copies of the original quad grid, in original primitive order. Skip wholly invisible strips, with a boundary margin; cast shadows using the full grid. Reflections and infinite/default planes retain native drawing. `camera_planes.cpp` follows the grid/UV arithmetic in `render_context.c`.
 - Reuse a shadow map only within one snapshot, one render context, unchanged clip distances, and exactly one supported shadow-casting light. Multiple shadow lights redraw normally. `CameraRender::begin()` invalidates it for each scene update, including observer views.
 - Delegate mesh draws to the private context-owned indexed buffers: RGB LOD uses
   a projected error estimate, shadow casters use a 1 mm estimate, and sensor depth
@@ -17,7 +18,7 @@ Local changes in `render.inc`:
 - Keep MuJoCo's clipping, materials, transparency, original sensor depth and multisampling. Use private helper names, system OpenGL entry points and explicit C++ narrowing casts. Clip-control capability belongs to the current batch rather than a loader-global variable.
 
 `helpers.inc` contains unchanged arithmetic from `render_util.c`, `mjv_rbound` from `engine_vis_init.c`, and text drawing from `render_gl2.c`. `primitives.inc` contains the original display-list offsets. The stable sort is copied unchanged. Long upstream files are kept recognizable for comparison; project policy is implemented in the small private camera render, mesh-data,
-mesh-buffer and lighting modules. Mesh vertex-normal selection in
+mesh-buffer, plane and lighting modules. Mesh vertex-normal selection in
 `camera_mesh_data.cpp` follows `render_context.c` upload arithmetic; its source
 hash is also recorded.
 

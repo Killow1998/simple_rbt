@@ -1074,3 +1074,132 @@ The verified core is `build/software-panorama/simple-rbt-sim`, SHA-256
 `3cf65bc5c74a210a9a3dff3ed0aef9db00466497dc0a4f71475335b6fcb372f1`.
 Future throughput work should target original-depth and terrain drawing, using
 these exact-output and E2E oracles; lowering sensor rates is not an accepted shortcut.
+
+
+## CPU hills with Noetic — 2026-10-22 / CPU 起伏地形与 Noetic
+
+Go2W with Noetic now sustains approximately real-time throughput on the tested
+hills route, preserving 320×240 perspective RGB/depth, 720×360 panorama from six
+256×256 views, 10 Hz cameras and 20,000-ray MID360 scans, both 200 Hz IMUs, original
+multisampling and the existing 2048 shadow cap. Models, policies, RGB LOD/error
+budgets and sensor mathematics are unchanged. Current design is maintained in
+[the runtime guide](runtime.md#software-camera-rendering--软件相机渲染).
+
+### Changes and ablation / 改动与消融
+
+- Finite-plane drawing retains the original indexed quad grid, UVs and primitive
+  order, rejecting only wholly invisible strips. Shadows use the full grid;
+  infinite planes and reflections retain native drawing. This replaces repeated
+  submission of the complete floor, without introducing geometry approximation.
+- Default the Mesa software worker pool to at most four threads, respecting an
+  existing `LP_NUM_THREADS`. Partition large CPU native ray queries across at
+  most four workers, then assemble returns in original order. Small scans stay
+  serial. No ROS wrapper or physics/control algorithm changes.
+- A dedicated C++ camera worker owns its model, state snapshot and GL context.
+  Physics and other sensors advance while it draws. Only one sample can be in
+  flight; backpressure waits rather than dropping or replacing frames. Results
+  publish on the simulation thread with their capture timestamp. Pause polling
+  and final shutdown drain are explicit. The worker is 88 lines; scheduling and
+  plane drawing stay in separate modules rather than one enlarged runtime file.
+- With the plane/thread/ray changes but synchronous cameras, a 140 s hard-hills
+  Noetic route reached RTF 0.965. Overlapping camera work raised two independent
+  runs to 0.997 and 0.994, each reaching five alternating endpoints with no sensor
+  timestamp gaps in the measured interval. This costs one model/state copy.
+- Primitive-lighting fusion gave little benefit and was not retained. Additional
+  RGB normal-weight reductions and per-LOD vertex copies were also excluded:
+  small short-run gains did not justify changing appearance or extra memory.
+  Neither shadow precision nor the accepted RGB error budget was loosened.
+
+有限地板只剔除完全不可见的原始四边形条带；雷达按原始查询并行计算，完成后按
+原顺序合并。相机改为单独线程处理冻结快照，物理无需等待整次绘制；最多一帧
+任务，慢时等待，绝不靠丢帧达到实时。消息保留采集时间戳，但存在绘制延迟。
+暂停／关闭会处理已采集帧。额外开销主要是私有模型副本，不增加磁盘模型缓存。
+
+### Sustained measurements / 持续测量
+
+Final paired 60 s hills input (`go2w`, `.3 0 .15`, full D435i/MID360 at 10 Hz),
+with no concurrent task-owned build/test. Both binaries run sequentially on CPU
+llvmpipe; unrelated host applications remain running. These are unpaced core
+loop measurements, excluding initialization and final artifact saving. The
+candidate includes completion of the final camera sample in measured wall time.
+Earlier exploratory runs are retained but are not the final paired result.
+
+| Metric / 指标 | Before `91f5561` | Final candidate / 最终候选 |
+| --- | ---: | ---: |
+| Real-time factor / 实时倍率 | 0.844 | 1.112 |
+| Wall time / 墙钟时间 | 71.05 s | 53.98 s |
+| Camera median / 相机中位耗时 | 96.4 ms | 86.1 ms |
+| Camera p95 | 123.6 ms | 117.4 ms |
+| LiDAR median / 雷达中位耗时 | 8.1 ms | 4.7 ms |
+| Mean logical cores / 平均逻辑核 | 2.36 | 2.24 |
+| CPU seconds / 累计 CPU 时间 | 167.4 s | 120.7 s |
+| Core peak RSS / 核心峰值内存 | 692.6 MiB | 764.2 MiB |
+
+The headless **Go2W + Noetic hard-hills** route lasts 140 simulated seconds,
+traversing the 48-segment, 8 cm waves (maximum segment slope 7.08°), turning and
+stopping between alternating X=0/6 m endpoints. Final wall time is
+**140.78 s**, RTF **0.994**; five endpoints reached.
+Core average CPU is 2.29 logical cores and peak RSS
+765.9 MiB; these resource figures exclude the ROS adapter,
+receiver, desktop and display server. The native executable grows 58,280 bytes
+(~57 KiB), with no additional model/policy storage.
+
+This is near-real-time throughput, **not a hard per-frame deadline**: final
+10 s windows range from 0.940 to 1.061 RTF, and camera p95 is 124.1 ms. Rendering
+still dominates; overlapping work does not make each camera frame faster or
+eliminate turn-related slow frames. A live GUI observer adds rendering work and
+is not included in this full-panorama throughput claim.
+
+最终同输入 60 秒测试从 71.05 秒降至 53.98 秒；核心累计 CPU 时间减少约 28%，
+峰值内存增加约 72 MiB。Noetic 的 140 秒、8 cm 起伏往返路线用时 140.78 秒，
+达到约 0.994 倍实时，5 次端点到达；核心约占 2.29 个逻辑核、766 MiB 峰值内存。
+整体已基本实时，仍有转向慢帧，不能解释为所有场景或每一帧都保证实时。
+
+### Acceptance / 验收
+
+- Native CTest 12/12; 224 original renderer passes plus 224 tilted/textured/
+  transparent/infinite-plane passes remain exact. Another 112 dense-mesh passes
+  retain the existing RGB quality and exact segmentation/depth checks.
+- New snapshot oracle compares all six captured RGB/depth/panorama pairs to
+  synchronous rendering while live physics advances; worker shutdown and error
+  propagation also pass. It is included in the native CI check.
+- Ten unchanged runtime parity cases pass with **exact RGB**, without an image
+  tolerance override. The final paired 60 s run also has identical saved RGB,
+  depth and LiDAR payloads, full trajectory/IMU histories, and deterministic
+  summary fields. This artifact comparison stores the final images/scan, not
+  every frame. Both runs generate 600 camera samples, 600 scans and 12,000
+  samples from each IMU.
+- Both 140 s Noetic camera-worker runs generate 1,400 camera samples/scans and
+  28,000 samples per IMU. Independent ROS receipts over simulation seconds
+  [5,139) have no missing periods: 1,340 messages per 10 Hz stream and 26,800 per
+  IMU. Perspective/panorama RGB and depth dimensions remain unchanged.
+- Seven robots × Noetic (39 checks each) and Humble (40 each), now on standard
+  hills, complete the original full-sensor 20 s E2E. Motion, command namespaces,
+  CustomMsg/PointCloud2 consistency, camera extrinsics and external-odometry
+  isolation keep their original assertions and timeouts.
+- Native desktop input 40/40, workspace/presets 17/17, diagnostics 11/11. The
+  desktop input test includes RGB/depth and observer views with panorama off;
+  it validates interaction rather than full-panorama GUI throughput.
+
+| Robot | Noetic hills RTF | Humble hills RTF |
+| --- | ---: | ---: |
+| fr_mini | 0.998 | 0.997 |
+| go2 | 0.996 | 0.996 |
+| go2w | 0.994 | 0.995 |
+| ranger_mini | 0.995 | 0.996 |
+| ridgeback | 0.997 | 0.997 |
+| scout_mini | 0.997 | 0.997 |
+| turtlebot3_waffle_pi | 0.997 | 0.997 |
+
+全车型双 ROS、桌面交互及数据一致性检查通过，没有降低超时或验收标准。
+本阶段未重跑 n3m 建图／重定位、GPU 或真机测试，也未替换系统安装的 SpRobo。
+
+Evidence (local, ignored):
+[aggregate](../output/software-hills-noetic-20261022/validation-summary.json),
+[final 140 s route](../output/software-hills-noetic-20261022/release-hard140/report.json),
+[60 s exact artifact parity](../output/software-hills-noetic-20261022/release-long-parity.json),
+[runtime parity](../output/software-hills-noetic-20261022/parity/report.json),
+[Noetic](../output/software-hills-noetic-20261022/e2e-ros1/summary.json),
+[Humble](../output/software-hills-noetic-20261022/e2e-ros2/summary.json).
+Build: `build/software-panorama/simple-rbt-sim`; SHA-256
+`a3a01aa2fef1a4005de9b149f0fe61fac0f4eced94ae3605af2866cbe5f39c9b`.

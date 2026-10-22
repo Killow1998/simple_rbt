@@ -2,6 +2,7 @@
 #include "camera_render.hpp"
 #include "camera_lighting.hpp"
 #include "camera_mesh.hpp"
+#include "camera_planes.hpp"
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <algorithm>
@@ -16,6 +17,7 @@ struct Batch {
   float near = 0, far = 0, planes[5][4]{};
   CameraMeshes *meshes = nullptr;
   CameraLighting *lighting = nullptr;
+  CameraPlanes *geometry = nullptr;
   bool fuse = false;
 };
 #if mjVERSION_HEADER == 3015000
@@ -82,6 +84,7 @@ struct CameraRender::Impl {
   Batch batch;
   std::unique_ptr<CameraMeshes> meshes;
   std::unique_ptr<CameraLighting> lighting;
+  std::unique_ptr<CameraPlanes> geometry;
 };
 CameraRender::CameraRender(const std::string &renderer, const mjModel *model)
     : p_(std::make_unique<Impl>()) {
@@ -92,6 +95,8 @@ CameraRender::CameraRender(const std::string &renderer, const mjModel *model)
   if (p_->supported) {
     p_->meshes = std::make_unique<CameraMeshes>(model);
     p_->lighting = std::make_unique<CameraLighting>();
+    p_->geometry = std::make_unique<CameraPlanes>(model);
+    p_->batch.geometry = p_->geometry.get();
     p_->batch.meshes = p_->meshes.get();
     p_->batch.lighting = p_->lighting.get();
   }

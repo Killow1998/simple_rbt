@@ -1,4 +1,5 @@
 #pragma once
+#include "runtime_camera_worker.hpp"
 #include "simple_rbt/cameras.hpp"
 #include "simple_rbt/runtime.hpp"
 #include "simple_rbt/transport.hpp"
@@ -8,14 +9,16 @@ class RuntimeCameras {
 public:
   RuntimeCameras(Simulation &, const RunOptions &);
   void advance(Simulation &, Transport *, RunObserver *);
+  void publish_ready(Transport *, RunObserver *);
+  void finish(Transport *, RunObserver *);
   Json report() const;
   void save(Simulation &, ArtifactWriter &);
   std::uint64_t count() const { return camera_frames; }
 
 private:
   const RunOptions &args;
-  std::unique_ptr<CameraRig> cameras;
-  CameraPair frames;
+  std::unique_ptr<CameraWorker> cameras;
+  std::uint64_t pending_stamp = 0;
   std::uint64_t camera_period, next_camera, camera_frames = 0;
   std::vector<double> camera_times;
 };

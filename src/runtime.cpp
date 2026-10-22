@@ -97,6 +97,7 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
   Vec3 last_applied{};
   double last_sensor_log = monotonic_seconds();
   for (std::size_t step = 0; args.indefinite || step < steps;) {
+    cameras.publish_ready(bridge.get(), observer);
     if (observer && observer->should_stop(sim))
       break;
     double before = monotonic_seconds();
@@ -165,6 +166,7 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
       break;
     ++step;
   }
+  cameras.finish(bridge.get(), observer);
   double wall = monotonic_seconds() - start;
   Json usage = loop_meter.report();
   Pose final = sim.pose();

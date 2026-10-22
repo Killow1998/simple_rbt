@@ -42,6 +42,26 @@ Other MuJoCo versions/renderers use public `mjr_render` directly. This fallback
 preserves functionality, not the measured speedup. No physics library or public
 MuJoCo symbol is replaced.
 
+Finite planes reuse indexed copies of the original quad grid and omit only
+strips wholly outside the view. Primitive order, UVs and depth stay unchanged;
+shadow casting uses the complete plane, and reflections/infinite planes retain
+native drawing. Before initializing EGL, the core defaults Mesa's software
+worker pool to at most four threads (`LP_NUM_THREADS`); an explicit environment
+setting takes precedence. Hardware GL drivers do not use this Mesa setting.
+Large CPU LiDAR scans partition independent native `mj_ray` queries across at
+most four workers, join before assembling returns, and retain the original
+sample order, timestamps and values. Small scans remain serial.
+
+Sensor camera rendering runs on one dedicated C++ worker with a private model
+and a copied `mjData` snapshot. Physics and IMU/LiDAR scheduling can advance while
+that frozen sample renders. There is at most one sample in flight: the next
+capture waits if necessary, without overwriting or dropping frames. Publication
+stays on the simulation thread and retains the capture timestamp; arrival can
+lag the current simulation clock by rendering time. Pause polling publishes
+finished samples, and shutdown drains the final captured sample before reporting
+counts and timing. This overlaps work rather than changing sensor rates; it adds
+one model/data copy in memory. `CameraRig` itself remains synchronous.
+
 The private camera mesh/lighting modules prepare context-owned buffers once.
 RGB uses distance-dependent indexed LOD, selecting against a projected half-pixel
 **error estimate** with a safety margin; this is not a certified geometric bound
@@ -61,19 +81,29 @@ See [dependency provenance](../third_party/meshoptimizer/README.md).
 误差估计；这不是严格的几何上界，也不保证阴影或颜色差异小于半像素。阴影使用
 独立的 1 mm 简化误差估计；深度保留全部原始三角形，物理、雷达和模型资产不变。
 常用双方向光下的不透明、无纹理网格合并两次光照绘制，其余情况保留原生着色。
+有限地板保留原始四边形、绘制顺序与 UV，只跳过完全不在视野中的条带；阴影仍
+使用完整地板。核心在初始化 EGL 前默认将 Mesa 软件渲染线程限制为最多 4 个，
+用户指定的 `LP_NUM_THREADS` 优先。大量 CPU 雷达射线也分配到最多 4 个线程，
+全部计算完成后按原采样顺序合并，不改变点云、时间戳或扫描频率。
+传感器相机使用独立 C++ 线程和私有模型／状态快照，绘制期间允许物理与其他
+传感器继续计算。最多保留一帧任务，处理不过来时等待，不覆盖或丢弃采样。
+消息仍由主线程发布，保留采集时间戳；到达时间会晚于采集时间，不能当成零延迟
+相机。暂停时继续收取已完成的画面，结束前等待最后一帧，代价是多一份模型内存。
 透视与全景复用同一渲染资源和物理快照，每次更新
 快照都重新计算阴影。固定版本优化只用于 MuJoCo 3.15.0 软件渲染；其他版本或
 硬件渲染走原生接口。真实性能和完整 E2E 记录见
-[阶段验证](desktop-console-plan.md#adaptive-software-rgb-meshes--软件-rgb-自适应网格).
+[阶段验证](desktop-console-plan.md#cpu-hills-with-noetic--2026-10-22--cpu-起伏地形与-noetic).
 
 The native CI oracle `camera_render_consistency` compares complete RGB and raw
 depth buffers against unmodified MuJoCo at the same shadow precision. It covers
-changing geometry, lights, camera poses, transparency, reflections and multiple
-shadow lights. Dense textured/untextured meshes additionally check RGB quality
+changing geometry, lights, camera poses, transparency, reflections, multiple
+shadow lights, and tilted/textured/infinite planes. Dense textured/untextured meshes additionally check RGB quality
 (mean channel difference ≤1/255 and ≤2% of pixels differing by >10/255) and exact
 segmentation/depth output. Runtime artifact parity separately covers robot physics, both
 IMUs, rolling/snapshot LiDAR and full 10 Hz D435i output. Performance runs must
 pass `--camera-hz 10` explicitly: the standalone CLI's default remains 1 Hz.
+`camera_snapshot` compares every captured image/depth frame to synchronous
+rendering while live physics advances, and checks worker shutdown and errors.
 
 原生 CI 用原 MuJoCo 在相同阴影精度下逐像素检查 RGB 和深度，包括物体／光源
 移动、视角改变、透明、反射和多个投影光源；高密度网格另外检查 RGB 差异限额与

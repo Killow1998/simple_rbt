@@ -96,7 +96,7 @@ std::string dense_mesh(bool textured) {
          (textured ? " texcoord=\"" + uv.str() + "\"" : "") + "/>";
 }
 void check(int lights, bool reflected, int &comparisons, bool dense = false,
-           bool textured = false) {
+           bool textured = false, bool planes = false) {
   std::string xml =
       R"(<mujoco><visual><global offwidth="320" offheight="256"/><quality shadowsize="2048"/></visual>
   <asset><texture name="checker" type="2d" builtin="checker" width="64" height="64" rgb1=".1 .2 .3" rgb2=".8 .7 .6"/>
@@ -107,6 +107,10 @@ void check(int lights, bool reflected, int &comparisons, bool dense = false,
   xml.replace(xml.find("REFLECT"), 7, reflected ? ".3" : "0");
   xml +=
       R"(<geom type="plane" size="8 8 .1" rgba=".4 .4 .4 1" material="floor"/>)";
+  if (planes)
+    xml += R"(<geom type="plane" size="3.37 2.19 .17" pos="0 1 .6" euler="12 -8 17" material="textured"/>
+      <geom type="plane" size="1.17 1.29 .13" pos="-2 0 1" euler="-24 13 0" rgba=".6 .2 .3 .5"/>
+      <geom type="plane" size="0 0 .1" pos="0 0 -.1"/>)";
   xml += R"(<geom type="box" size=".4 .7 .6" pos="2 -1 .6" material="textured"/>
   <geom type="sphere" size=".5" pos="-1 1 .8" rgba=".1 .8 .2 .4"/>
   <geom type="mesh" mesh="tetra" pos="-2 -1 .5"/>
@@ -208,6 +212,11 @@ int main() {
       for (bool reflected : {false, true})
         check(lights, reflected, comparisons);
     std::cout << comparisons << " native RGB/depth passes identical; ";
+    comparisons = 0;
+    for (int lights : {1, 2})
+      for (bool reflected : {false, true})
+        check(lights, reflected, comparisons, false, false, true);
+    std::cout << comparisons << " tilted/textured/infinite plane passes identical; ";
     comparisons = 0;
     for (bool textured : {false, true})
       check(1, false, comparisons, true, textured);

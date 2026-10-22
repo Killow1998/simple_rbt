@@ -346,7 +346,8 @@ static void renderGeom(const mjvGeom* geom, int mode, const float* headpos,
 
     // use plane-specific displaylist if available
     if (geom->dataid >= 0) {
-      glCallList(con->basePlane + geom->dataid+1);
+      if (!active->cull || !active->geometry->draw(geom, mode, active->planes))
+        glCallList(con->basePlane + geom->dataid+1);
     }
 
     // otherwise default list

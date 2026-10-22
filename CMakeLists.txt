@@ -78,12 +78,13 @@ else()
 endif()
 target_include_directories(simple_rbt_lidar PUBLIC include)
 target_compile_options(simple_rbt_lidar PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic;-ffp-contract=off> $<$<COMPILE_LANGUAGE:CUDA>:--fmad=false>)
-target_link_libraries(simple_rbt_lidar PUBLIC mujoco)
+target_link_libraries(simple_rbt_lidar PUBLIC mujoco PRIVATE Threads::Threads)
 
 add_library(simple_rbt_meshoptimizer STATIC
   third_party/meshoptimizer/allocator.cpp third_party/meshoptimizer/simplifier.cpp)
 add_library(simple_rbt_cameras src/cameras.cpp src/camera_render.cpp
-  src/camera_mesh.cpp src/camera_mesh_data.cpp src/camera_lighting.cpp)
+  src/camera_mesh.cpp src/camera_mesh_data.cpp src/camera_lighting.cpp
+  src/camera_planes.cpp)
 target_include_directories(simple_rbt_cameras PUBLIC include PRIVATE third_party)
 target_compile_options(simple_rbt_cameras PRIVATE -Wall -Wextra -Wpedantic -ffp-contract=off)
 target_link_libraries(simple_rbt_cameras PUBLIC mujoco PRIVATE simple_rbt_meshoptimizer PkgConfig::EGL PkgConfig::GL Threads::Threads)
@@ -93,13 +94,15 @@ target_include_directories(simple_rbt_course PUBLIC include)
 target_compile_options(simple_rbt_course PRIVATE -Wall -Wextra -Wpedantic -ffp-contract=off)
 target_link_libraries(simple_rbt_course PUBLIC simple_rbt_core)
 
-add_library(simple_rbt_runtime src/runtime.cpp src/runtime_imu.cpp src/runtime_lidar.cpp src/runtime_cameras.cpp src/runtime_info.cpp src/artifacts.cpp src/resources.cpp src/viewer.cpp)
+add_library(simple_rbt_runtime src/runtime.cpp src/runtime_imu.cpp src/runtime_lidar.cpp
+  src/runtime_cameras.cpp src/runtime_camera_worker.cpp src/runtime_info.cpp
+  src/artifacts.cpp src/resources.cpp src/viewer.cpp)
 target_compile_definitions(simple_rbt_runtime PRIVATE
   SIMPLE_RBT_VERSION="${PROJECT_VERSION}"
   SIMPLE_RBT_CUDA_COMPILED=$<BOOL:${SIMPLE_RBT_CUDA}>)
 target_include_directories(simple_rbt_runtime PUBLIC include)
 target_compile_options(simple_rbt_runtime PRIVATE -Wall -Wextra -Wpedantic -ffp-contract=off)
-target_link_libraries(simple_rbt_runtime PUBLIC simple_rbt_diagnostics simple_rbt_core simple_rbt_lidar simple_rbt_cameras PRIVATE glfw PkgConfig::GL PNG::PNG)
+target_link_libraries(simple_rbt_runtime PUBLIC simple_rbt_diagnostics simple_rbt_core simple_rbt_lidar simple_rbt_cameras PRIVATE glfw PkgConfig::GL PNG::PNG Threads::Threads)
 add_subdirectory(ipc)
 add_library(simple_rbt_session src/session.cpp src/session_control.cpp src/session_view.cpp)
 target_link_libraries(simple_rbt_session PUBLIC simple_rbt_runtime simple_rbt_ipc)

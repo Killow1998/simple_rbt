@@ -3,9 +3,11 @@
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <future>
 #include <limits>
 #include <sstream>
 #include <stdexcept>
+#include <thread>
 
 namespace simple_rbt {
 namespace {
@@ -234,9 +236,22 @@ void RollingLidar::scan(const mjData* data, std::uint64_t start, std::size_t cou
     std::copy(direction.begin(), direction.end(), directions.begin()+3*i);
   }
   if (impl_->mode == LidarBackend::Cpu) {
-    for (std::size_t i=0; i<count; ++i)
-      ranges[i] = mj_ray(impl_->cpu_model.get(), impl_->cpu_data.get(), origins.data()+3*i,
-                         directions.data()+3*i, impl_->groups, true, -1, nullptr, nullptr);
+    // Independent native ray queries share immutable scene data. Join before
+    // assembling returns, preserving sample order and failure propagation.
+    const std::size_t workers = count >= 4096
+        ? std::min(4u, std::max(1u, std::thread::hardware_concurrency())) : 1;
+    auto trace = [&](std::size_t first, std::size_t last) {
+      for (std::size_t i = first; i < last; ++i)
+        ranges[i] = mj_ray(impl_->cpu_model.get(), impl_->cpu_data.get(),
+                           origins.data() + 3*i, directions.data() + 3*i,
+                           impl_->groups, true, -1, nullptr, nullptr);
+    };
+    std::vector<std::future<void>> jobs;
+    for (std::size_t worker = 1; worker < workers; ++worker)
+      jobs.push_back(std::async(std::launch::async, trace,
+                               count*worker/workers, count*(worker+1)/workers));
+    trace(0, count/workers);
+    for (auto& job : jobs) job.get();
   } else {
     detail::trace_cuda_rays(impl_->cuda, origins.data(), directions.data(), count, impl_->max_range, ranges.data());
   }
