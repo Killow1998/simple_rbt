@@ -1,4 +1,5 @@
 #include "simple_rbt/cameras.hpp"
+#include "camera_render.hpp"
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
@@ -163,18 +164,24 @@ struct Scene {
 };
 struct RenderContext {
   mjrContext value{};
-  RenderContext(mjModel* model, int width, int height) {
-    // The model's default framebuffer can be much larger than these views.
-    // Restore even on an exception; no physics or other visual settings change.
+  RenderContext(mjModel* model, int width, int height, int shadow_size) {
+    // Use view-sized buffers and the software shadow budget, then restore the
+    // model even on an exception. Physics and saved model visuals stay intact.
     static std::mutex mutex;
     std::lock_guard<std::mutex> lock(mutex);
     struct Restore {
       mjModel* model;
-      int width, height;
-      ~Restore() { model->vis.global.offwidth = width; model->vis.global.offheight = height; }
-    } restore{model, model->vis.global.offwidth, model->vis.global.offheight};
+      int width, height, shadow;
+      ~Restore() {
+        model->vis.global.offwidth = width;
+        model->vis.global.offheight = height;
+        model->vis.quality.shadowsize = shadow;
+      }
+    } restore{model, model->vis.global.offwidth, model->vis.global.offheight,
+              model->vis.quality.shadowsize};
     model->vis.global.offwidth = width;
     model->vis.global.offheight = height;
+    model->vis.quality.shadowsize=shadow_size;
     mjr_defaultContext(&value);
     mjr_makeContext(model, &value, mjFONTSCALE_150);
     value.readDepthMap = mjDEPTH_ZEROFAR;
@@ -224,8 +231,6 @@ Lookup make_lookup(const CameraConfig& config) {
     ++counts[face];
   }
   Lookup lookup;
-  std::unique_ptr<RenderContext> observer_context;
-  int observer_width=0, observer_height=0;
   for (int f = 0; f < 6; ++f) lookup[f].resize(counts[f]);
   counts.fill(0);
   const double focal = size / (2. * std::tan((90. * (kPi / 180.)) / 2.));
@@ -261,8 +266,9 @@ struct CameraRig::Impl {
   mjModel* model;
   CameraConfig config;
   EglContext egl;
+  CameraRender renderer;
   Scene scene;
-  std::unique_ptr<RenderContext> perspective_context, face_context;
+  std::unique_ptr<RenderContext> sensor_context;
   Lookup lookup;
   std::unique_ptr<RenderContext> observer_context;
   int observer_width=0, observer_height=0;
@@ -273,7 +279,7 @@ struct CameraRig::Impl {
   CameraFrame face, depth_frame;
 
   Impl(mjModel* input_model, CameraConfig input_config)
-      : model(checked(input_model)), config(checked(input_config)), egl(), scene(model),
+      : model(checked(input_model)), config(checked(input_config)), egl(), renderer(egl.renderer), scene(model),
         lookup(config.render_panorama ? make_lookup(config) : Lookup{}) {
     mjv_defaultOption(&option);
     option.sitegroup[3] = 0;
@@ -287,6 +293,7 @@ struct CameraRig::Impl {
       eglMakeCurrent(egl.display->handle, EGL_NO_SURFACE, EGL_NO_SURFACE, egl.context);
   }
   void update_scene(mjData* data) {
+    renderer.begin();
     mjv_updateScene(model, data, &option, nullptr, &abstract_camera, mjCAT_ALL, &scene.value);
     no_surface.assign(static_cast<std::size_t>(scene.value.ngeom)+1, 1);
     for (int i = 0; i < scene.value.ngeom; ++i) {
@@ -316,7 +323,7 @@ struct CameraRig::Impl {
     const mjrRect viewport{0, 0, width, height};
     mjr_setBuffer(mjFB_OFFSCREEN, &context.value);
     if(rgb) {
-      mjr_render(viewport, &scene.value, &context.value);
+      renderer.render(viewport, &scene.value, &context.value);
       mjr_readPixels(frame.rgb.data(), nullptr, viewport, &context.value);
     } else frame.rgb.clear();
     const std::size_t count = pixels(width, height);
@@ -326,7 +333,7 @@ struct CameraRig::Impl {
       FlagRestore restore(scene.value);
       scene.value.flags[mjRND_SEGMENT] = 1;
       scene.value.flags[mjRND_IDCOLOR] = 1;
-      mjr_render(viewport, &scene.value, &context.value);
+      renderer.render(viewport, &scene.value, &context.value);
       mjr_readPixels(segmentation_rgb.data(), raw_depth.data(), viewport, &context.value);
     }
     // Match classic Renderer's float32 projection coefficients, double metric
@@ -356,7 +363,8 @@ struct CameraRig::Impl {
       throw std::invalid_argument("Invalid observer viewport");
     check_pose(pose);egl.make_current();
     struct Release {EglContext& e;~Release(){e.release_current();}} release{egl};
-    if(!observer_context) observer_context=std::make_unique<RenderContext>(model,width,height);
+    if(!observer_context) observer_context=std::make_unique<RenderContext>(
+        model,width,height,renderer.shadow_size(model->vis.quality.shadowsize));
     else if(width!=observer_width || height!=observer_height) mjr_resizeOffscreen(width,height,&observer_context->value);
     observer_width=width;observer_height=height;
     option.sitegroup[3]=1;update_scene(data);option.sitegroup[3]=0;
@@ -372,23 +380,28 @@ struct CameraRig::Impl {
     } release{egl};
     update_scene(data);
     if(config.render_perspective) {
-      if (!perspective_context)
-        perspective_context = std::make_unique<RenderContext>(model, config.perspective_width, config.perspective_height);
+      if (!sensor_context) {
+        const int face_size = config.render_panorama ? config.cube_face_size : 0;
+        sensor_context = std::make_unique<RenderContext>(
+            model, std::max(config.perspective_width, face_size),
+            std::max(config.perspective_height, face_size),
+            renderer.shadow_size(model->vis.quality.shadowsize));
+      }
       const bool split=config.render_depth && (pose.position!=depth_pose.position || pose.rotation!=depth_pose.rotation);
       render_view(pose, config.perspective_width, config.perspective_height,
-                  config.perspective_fov_y_deg, *perspective_context, output.perspective, config.render_depth && !split, config.render_rgb);
+                  config.perspective_fov_y_deg, *sensor_context, output.perspective, config.render_depth && !split, config.render_rgb);
       if(split) {
         render_view(depth_pose,config.perspective_width,config.perspective_height,
-                    config.perspective_fov_y_deg,*perspective_context,depth_frame,true,false);
+                    config.perspective_fov_y_deg,*sensor_context,depth_frame,true,false);
         output.perspective.depth.swap(depth_frame.depth);
       }
     }
     if (!config.render_panorama) { output.panorama = {}; return; }
-    if (!face_context)
-      face_context = std::make_unique<RenderContext>(model, config.cube_face_size, config.cube_face_size);
-    // Use the same scene for all six cube faces of this physical snapshot.
-    // Rebuild once to match the Python perspective/panorama scene boundary.
-    update_scene(data);
+    if (!sensor_context)
+      sensor_context = std::make_unique<RenderContext>(
+          model, config.cube_face_size, config.cube_face_size,
+          renderer.shadow_size(model->vis.quality.shadowsize));
+
     frame_size(output.panorama, config.panorama_width, config.panorama_height, true);
     if (!config.render_depth) output.panorama.depth.clear();
     for (int f = 0; f < 6; ++f) {
@@ -398,7 +411,7 @@ struct CameraRig::Impl {
         for (int k = 0; k < 3; ++k) value += pose.rotation[3*i+k] * kFaces[f][3*k+j];
         face_pose.rotation[3*i+j] = value;
       }
-      render_view(face_pose, config.cube_face_size, config.cube_face_size, 90., *face_context, face, config.render_depth);
+      render_view(face_pose, config.cube_face_size, config.cube_face_size, 90., *sensor_context, face, config.render_depth);
       for (const auto& entry : lookup[f]) {
         std::copy_n(face.rgb.data()+3*static_cast<std::size_t>(entry.source), 3,
                     output.panorama.rgb.data()+3*static_cast<std::size_t>(entry.destination));

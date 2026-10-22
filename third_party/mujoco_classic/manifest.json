@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/google-deepmind/mujoco",
+  "tag": "3.15.0",
+  "license": "Apache-2.0",
+  "sources": {
+    "src/render/classic/render_gl3.c": "7d54439f5f0ecb004703e23c1e27b4769065770d1a0f61dc126bf9c2247eb9ee",
+    "src/render/classic/render_util.c": "dedb417d570b94992fcd6433f04e782f67a4760aeba92c88c496001c47da9845",
+    "src/render/classic/render_gl2.c": "b33b315da39b9e4be7fed303c30d7e7d54a4345984bf91a1e6de31ae817a4a46",
+    "src/render/classic/render_context.h": "33dcdb796ea209300815aa2a31d8c53e46689625aa73300fca1ef567d36798a0",
+    "src/engine/engine_vis_init.c": "3379b720b54141fca798ab1f9987f3561595fb0eb28cceed7b33df80a2572f58",
+    "src/engine/engine_sort.h": "3875bd0f2979f71dbe0afc86826e9086f805a678d6b536077c755da1fbf23bcf",
+    "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  }
+}

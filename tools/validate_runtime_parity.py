@@ -26,7 +26,7 @@ def cases():
         yield motion, ["--robot", "scout_mini", "--sensors", "lidar", "--duration", "12",
                        "--cmd", ".6", "0", ".3", "--lidar-motion", motion]
     yield "full-d435i", ["--robot", "go2w", "--sensors", "full", "--duration", "2",
-                         "--camera-model", "d435i"]
+                         "--camera-model", "d435i", "--camera-hz", "10"]
 
 
 def digest(path):

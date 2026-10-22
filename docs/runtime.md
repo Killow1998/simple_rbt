@@ -19,6 +19,49 @@ The protocol uses separate control and data Unix sockets, fixed little-endian pa
 
 协议使用分离的控制／数据 Unix socket、固定的小端字段和有界队列。GUI 消费最新观察画面；ROS 适配器接收传感器样本并发布消息。指令来源显式选择；断开、非法指令和 0.5 秒超时会清零。停车清除指令来源并给出零指令，物理仍运行；暂停冻结仿真时间。返回配置会重启操作台拥有的会话。
 
+## Software camera rendering / 软件相机渲染
+
+Perspective RGB/depth remains 320×240, panorama RGB/radial depth remains
+720×360 from six 256×256 faces. Desktop sessions retain 10 Hz cameras and
+MID360 scans (20,000 rays), with both enabled IMUs at 200 Hz. These are rates
+in simulation time; a slow software renderer also slows the simulation.
+
+Software llvmpipe/softpipe keeps shadows with a 2048-pixel shadow-map cap;
+smaller model settings are preserved. Output resolution, depth arithmetic,
+multisampling, geometry, physics and sensor sampling do not change. Hardware
+rendering retains the model's shadow setting. Perspective and panorama views
+share one lazily created render context and one physical scene snapshot.
+
+For MuJoCo 3.15.0 software rendering, `src/camera_render.cpp` uses a private,
+[versioned classic drawing adaptation](../third_party/mujoco_classic/README.md).
+It reuses one-light shadow maps within a snapshot and rejects bounded geometry
+outside the view before drawing. Every scene update invalidates cached shadows;
+multiple shadow lights render normally, and reflection draws retain all geometry.
+Other MuJoCo versions/renderers use public `mjr_render` directly. This fallback
+preserves functionality, not the measured speedup. No physics library or public
+MuJoCo symbol is replaced.
+
+透视 RGB／深度保持 320×240，全景 RGB／径向深度保持 720×360，由六个
+256×256 视面生成。桌面相机和 MID360 保持仿真时间 10 Hz（每次 20,000
+条射线），两组启用的 IMU 均为 200 Hz。软件绘制跟不上时，整个仿真会慢于墙钟。
+软件模式保留阴影，将阴影贴图上限设为 2048；输出分辨率、深度精度、多重采样、
+模型和传感器时序均不降低。透视与全景复用同一渲染资源和物理快照，每次更新
+快照都重新计算阴影。固定版本优化只用于 MuJoCo 3.15.0 软件渲染；其他版本或
+硬件渲染走原生接口。真实性能和完整 E2E 记录见
+[阶段验证](desktop-console-plan.md#software-panorama-throughput--软件全景吞吐).
+
+The native CI oracle `camera_render_consistency` compares complete RGB and raw
+depth buffers against unmodified MuJoCo at the same shadow precision. It covers
+changing geometry, lights, camera poses, transparency, reflections and multiple
+shadow lights. Runtime artifact parity separately covers robot physics, both
+IMUs, rolling/snapshot LiDAR and full 10 Hz D435i output. Performance runs must
+pass `--camera-hz 10` explicitly: the standalone CLI's default remains 1 Hz.
+
+原生 CI 用原 MuJoCo 在相同阴影精度下逐像素检查 RGB 和深度，包括物体／光源
+移动、视角改变、透明、反射和多个投影光源。运行时对照另外验证机器人、双 IMU、
+滚动／快照扫描和 10 Hz D435i。性能测量必须显式指定 `--camera-hz 10`；
+独立命令行默认仍为 1 Hz，不能将其结果当作 10 Hz 实时证明。
+
 ## Configuration / 配置
 
 The robot registry comes from `simple-rbt-sim --list-robots` without initializing MuJoCo or graphics. The asset catalog supplies model/controller combinations and terrain presets. Wheel chassis allow `flat`, `ramp`, `hills`; Go2/Go2W additionally allow `stairs`, `rough`. Terrain levels are `standard`, `moderate`, `hard`, `extreme`.

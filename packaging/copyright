@@ -6,6 +6,7 @@ No package-wide license is asserted by the packaging process.
 
 Bundled runtime libraries:
   MuJoCo: Apache-2.0; licenses/mujoco/ also records third-party notices.
+  Classic drawing adaptation: Apache-2.0; licenses/mujoco_classic/ records source hashes and local changes.
   ONNX Runtime: MIT; licenses/onnxruntime/ includes third-party notices.
   NVIDIA CUDA runtime: governed by licenses/cuda/EULA.txt.
   nlohmann/json headers: MIT; licenses/nlohmann/LICENSE.MIT.

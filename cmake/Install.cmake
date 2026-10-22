@@ -91,6 +91,10 @@ install(FILES "${PROJECT_WORKSPACE}/packaging/copyright"
   "${PROJECT_WORKSPACE}/packaging/README.md"
   DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/sprobo" COMPONENT Runtime)
 set(LICENSE_DIR "${CMAKE_INSTALL_DATADIR}/doc/sprobo/licenses")
+install(FILES "${PROJECT_WORKSPACE}/third_party/mujoco_classic/LICENSE"
+  "${PROJECT_WORKSPACE}/third_party/mujoco_classic/README.md"
+  "${PROJECT_WORKSPACE}/third_party/mujoco_classic/manifest.json"
+  DESTINATION "${LICENSE_DIR}/mujoco_classic" COMPONENT Runtime)
 file(GLOB MUJOCO_LICENSE_DIR "${PROJECT_WORKSPACE}/.venv/lib/python*/site-packages/mujoco-*.dist-info/licenses")
 foreach(DIR IN LISTS MUJOCO_LICENSE_DIR)
   install(DIRECTORY "${DIR}/" DESTINATION "${LICENSE_DIR}/mujoco" COMPONENT Runtime)

@@ -834,9 +834,118 @@ Evidence is under `output/code-optimization-20261021/` (local, ignored by Git):
 [IMU mutation](../output/code-optimization-20261021/imu-ablation.json),
 [model writes](../output/code-optimization-20261021/model-write-ablation.json).
 
-Next: push the reviewed source and let the existing CI build/test both variants.
-Software full-panorama rendering needs separate throughput work before claiming
-real-time operation; package installation is a separate deployment step.
+This stage was pushed as `b3a86db`. The software panorama follow-up is recorded below; installation remains a separate deployment step.
 
-后续：推送已审阅代码，由既有 CI 构建／验证两种版本。软件全景吞吐需单独优化后
-再宣称实时；本轮不以代码推送冒充本机安装更新。
+本阶段已以 `b3a86db` 推送。后续软件全景优化见下；源码更新与本机安装分别记录。
+
+
+## Software panorama throughput / 软件全景吞吐
+
+Verified 2026-10-21, CPU MuJoCo 3.15.0 and llvmpipe. Xian authorized lower
+shadow precision while retaining shadows. No output dimensions, sensor rates,
+geometry, physics, controller or ROS interface were reduced or replaced.
+
+2026-10-21 验证，使用 CPU MuJoCo 3.15.0 和 llvmpipe。Xian 允许降低阴影精度，
+要求保留阴影。透视 320×240、全景 720×360／六面 256×256，相机与雷达 10 Hz、
+每扫描 20,000 条射线、双 IMU 各 200 Hz 均保留。
+
+### Changes / 修改
+
+- Share the perspective/cube render context and build one scene per physical
+  sample. Mesh uploads, framebuffer allocation and scene rebuilding are no
+  longer duplicated for the sensor views.
+- The [private classic drawing adapter](../third_party/mujoco_classic/README.md)
+  reuses one-light shadows within that sample and culls bounded geometry outside
+  the view. It retains native draw order, depth, transparency, reflections and
+  multisampling. Cache lifetime ends on every scene update. Other versions or
+  hardware renderers use the public native renderer.
+- Software shadow maps are capped at 2048; smaller model settings remain intact.
+  Removed the accidental unused renderer locals in panorama lookup construction.
+  No asynchronous physics/render state or additional rendering thread pool is
+  introduced. Parallel-view, driver and indexed-buffer probes did not justify
+  their cost and remain experiments only.
+- The native CI now compares moving scenes and changing views against original
+  MuJoCo RGB/depth buffers. Runtime parity explicitly requests 10 Hz cameras;
+  the standalone CLI default of 1 Hz must never be used as a 10 Hz speed claim.
+
+相机视角复用渲染资源和物理快照，单光源阴影仅在同一快照内复用；视野外的有界
+物体跳过绘制，但阴影投射物和反射路径保留。新增性能逻辑集中在小型相机模块；
+固定版本的第三方绘制实现单独保存来源、哈希和许可。软件阴影上限为 2048，
+不修改模型本身。未采用增加内存却未达到目标的并行渲染方案。
+
+### Measured results / 实测结果
+
+Same Go2W input, full D435i/MID360, 5 simulated seconds, 50 frames per camera,
+no concurrent project benchmark. Loop timings exclude initialization and final
+artifact saving; RSS is the whole core process high-water mark.
+
+| Metric / 指标 | Before / 原版 | After / 本轮 |
+| --- | ---: | ---: |
+| Real-time factor / 实时率 | 0.151 | 0.412 |
+| Camera pair median / 完整相机输出中位耗时 | 643 ms | 222 ms |
+| Camera pair p95 | 768 ms | 274 ms |
+| Core peak RSS / 核心峰值内存 | 858 MiB | 678 MiB |
+| Mean CPU cores / 平均 CPU 核数 | 2.97 | 2.05 |
+| CPU seconds for the same 5 s simulation | 98.6 | 24.9 |
+
+The core executable grows by 41,752 bytes (about 41 KiB); model and policy assets
+are unchanged. The 60 s continuous turning run retains 600 complete camera
+frames, 600 scans and 12,000 samples from **each** IMU, at RTF 0.413 and peak RSS
+679 MiB. This demonstrates sustained improvement, **not real time for Go2W**.
+
+相同输入约提速 2.7 倍，核心峰值内存减少约 180 MiB；程序增加约 41 KiB。
+持续转弯 60 秒运行保留完整的 600 帧相机、600 次扫描和每组 12,000 条 IMU，
+实时率 0.413，峰值 679 MiB。Go2W 仍未实时；没有用减少采样来改变这一结论。
+
+Ablation at the same 2048 shadow precision and identical input: camera medians
+are **222 ms** with both optimizations, **372 ms** without view culling, and
+**401 ms** without shadow reuse. All deterministic artifacts, including RGB and
+depth, remain byte-identical. Both optimizations are retained on measured benefit.
+
+在相同阴影精度和输入下，关闭视野裁剪使相机耗时从 222 增至 372 ms；关闭阴影
+复用则增至 401 ms。三组确定性产物（含 RGB／深度）逐字节相同，因此保留两项。
+
+### End-to-end acceptance / 端到端验收
+
+| Check / 检查 | Result / 结果 |
+| --- | --- |
+| Native CTest | 12/12 |
+| Original MuJoCo RGB/raw-depth oracle | 224/224 passes pixel-identical at equal shadow precision; moving object/light, camera changes, textured surfaces, mesh geometry, transparency, reflection and two shadow lights |
+| Runtime artifact parity | Seven robots, rolling/snapshot LiDAR, full D435i; 10 cases pass; additional explicit 10 Hz case passes. The old binary is given the same 2048 shadow precision only for this parity comparison |
+| Noetic full sensor matrix | Seven robots; 39/39 checks each; 20 s complete collection, unchanged timeouts |
+| Humble full sensor matrix | Seven robots; 40/40 checks each; 20 s complete collection, unchanged timeouts |
+| Go2W hills + Noetic | 39/39, complete 20 s, RTF 0.396 |
+| Native UI input | 40/40 |
+| Presets and scene editing | 17/17 |
+| GUI → core → Noetic diagnostics | 11/11 |
+
+Every ROS case uses RGB, depth, panorama, MID360, D435i IMU and external-odometry
+isolation. The prior overall image-collection timeouts are resolved in this tested
+matrix. Performance remains model-dependent:
+
+| Robot | Noetic RTF | Humble RTF |
+| --- | ---: | ---: |
+| Go2W | ~0.40 | 0.42 |
+| Go2 | 0.48 | 0.50 |
+| Scout Mini | 0.72 | 0.77 |
+| Ranger Mini | 0.66 | 0.66 |
+| FR Mini | ~1.00 | ~1.00 |
+| Ridgeback | ~1.00 | ~1.00 |
+| TurtleBot3 Waffle Pi | 0.60 | 0.60 |
+
+七种机器人在双 ROS 下的完整图像／雷达／双 IMU 链路均完成，原超时未重现。
+FR Mini 和 Ridgeback 约实时；其他车型仍低于实时，尤其 Go2W／Go2。GUI 和
+场景编辑可用性通过，不等于所有模型的满传感器软件渲染均已实时。本轮没有重新
+证明 n3m 全路线、重定位或真机效果。已安装的 SpRobo 未被测试构建覆盖。
+
+Evidence (local, ignored): [summary](../output/software-panorama-20261021/validation-summary.json),
+[performance](../output/software-panorama-20261021/benchmark.json),
+[ablation](../output/software-panorama-20261021/ablation.json),
+[native image oracle](../output/software-panorama-20261021/render-consistency.log),
+[10 Hz parity](../output/software-panorama-20261021/full-10hz-parity/report.json).
+The candidate is `build/software-panorama/simple-rbt-sim` with its matching console.
+Further work toward real time must address the remaining software drawing cost;
+these results do not justify silently simplifying robot meshes or lowering sensor rates.
+
+候选构建位于 `build/software-panorama/`。下一阶段仍需减少软件绘制成本，才能
+让 Go2W 满传感器达到实时；模型简化或降低采样并未获准，也未在本轮采用。

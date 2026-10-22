@@ -62,3 +62,8 @@ set_tests_properties(diagnostics PROPERTIES TIMEOUT 15 LABELS "diagnostics")
 # Same real IPC library as production; no second source list in CI scripts.
 add_executable(ros_ipc_fixture ipc/ros_fixture.cpp)
 target_link_libraries(ros_ipc_fixture PRIVATE simple_rbt_ipc)
+
+# Explicit software-EGL oracle; invoked by the native CI check.
+add_executable(camera_render_consistency camera_render_consistency.cpp)
+target_include_directories(camera_render_consistency PRIVATE ../src)
+target_link_libraries(camera_render_consistency PRIVATE simple_rbt_cameras PkgConfig::EGL PkgConfig::GL)
