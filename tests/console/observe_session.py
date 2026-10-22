@@ -21,7 +21,7 @@ def owned_workers(parent):
             values = Path(f"/proc/{pid}/cmdline").read_bytes().decode().split("\0")
         except FileNotFoundError:
             continue
-        if "--session-dir" in values:
+        if "--session-dir" in values and "--session-config" in values:
             result.append((int(pid), Path(values[values.index("--session-dir")+1])))
     return result
 

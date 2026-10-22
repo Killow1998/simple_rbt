@@ -1,3 +1,4 @@
+#include "simple_rbt/event_log.hpp"
 #include "simple_rbt/ipc.hpp"
 #include "simple_rbt/ros_bridge.hpp"
 #include <atomic>
@@ -43,6 +44,12 @@ RosOptions options(const ipc::Json &j) {
 }
 } // namespace
 int main(int argc, char **argv) {
+#ifdef SIMPLE_RBT_ROS1
+    const std::string role = "ros1";
+#else
+    const std::string role = "ros2";
+#endif
+  std::unique_ptr<diagnostics::Log> events;
   try {
     std::filesystem::path session;
     double duration = 0.;
@@ -62,6 +69,7 @@ int main(int argc, char **argv) {
       } else
         throw std::invalid_argument("unknown or incomplete option: " + arg);
     }
+    events=std::make_unique<diagnostics::Log>(role,"",std::getenv("SIMPLE_RBT_LOG_STDOUT")!=nullptr);
     validate_distro();
     if (runtime_info) {
       std::cout << ipc::Json{{"ros_distro", SIMPLE_RBT_ROS_DISTRO},
@@ -70,6 +78,7 @@ int main(int argc, char **argv) {
                             {"transport", "unix_ipc"},
                             {"configurable_odometry", true},
                             {"camera_devices", true},
+                            {"diagnostics", true},
                             {"runtime_language", "C++17"}}
                        .dump() << '\n';
       return 0;
@@ -78,28 +87,32 @@ int main(int argc, char **argv) {
       throw std::invalid_argument("--session-dir is required");
     std::signal(SIGINT, interrupted);
     std::signal(SIGTERM, interrupted);
-#ifdef SIMPLE_RBT_ROS1
-    const std::string role = "ros1";
-#else
-    const std::string role = "ros2";
-#endif
     ipc::Client client;
     const auto startup = std::chrono::steady_clock::now();
     while (!stop && !client.connect(session, role,
                                     {"clock", "imu", "camera_imu", "lidar", "odom", "camera",
-                                     "panorama", "status"})) {
+                                     "panorama", "status", "metadata"})) {
       if (std::chrono::steady_clock::now() - startup > std::chrono::seconds(20))
         throw std::runtime_error("core IPC session unavailable");
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     std::unique_ptr<RosBridge> bridge;
     ipc::Json configuration;
+    unsigned last_mask=15;
+    auto modules=[&](const ipc::Json &settings) {
+      unsigned mask=settings.value("module_mask",15U);if(mask==last_mask)return;
+      std::vector<std::string> names;unsigned bit=1;for(auto name:{"sensor","ipc","ros","control"}) {if(mask&bit)names.push_back(name);bit*=2;}events->set_modules(names);last_mask=mask;
+    };
     auto sent = std::chrono::steady_clock::now();
     std::uint64_t count = 0;
     while (!stop && client.connected()) {
       for (const auto &packet : client.poll()) {
         if (packet.kind == ipc::Kind::Hello) {
           const auto hello = ipc::decode_json(packet);
+          modules(hello.value("logging",ipc::Json::object()));
+          events->set_session(hello.value("log_session",events->session()));
+          if(events->tracing()!=hello.value("trace",false)) events->set_trace(hello.value("trace",false));
+          events->event("ipc.connected",{{"role",role}});
           const ipc::Json next = {{"options", hello.at("options")},
                                   {"extrinsics", hello.at("extrinsics")}};
           if (configuration != next) {
@@ -108,13 +121,23 @@ int main(int argc, char **argv) {
                 options(next.at("options")),
                 ipc::decode_extrinsics(next.at("extrinsics")));
             configuration = next;
-            std::cout << role << " node connected to independent core for "
+            std::cerr << role << " node connected to independent core for "
                       << bridge->options().robot_name << std::endl;
           }
           continue;
         }
         if (!bridge)
           continue;
+        if(packet.kind==ipc::Kind::Metadata) {
+          auto data=ipc::decode_json(packet);
+          modules(data.value("logging",ipc::Json::object()));
+          bool trace=data.value("logging",ipc::Json::object()).value("trace",false);
+          if(trace!=events->tracing()) events->set_trace(trace);
+          continue;
+        }
+        const std::string stream = packet.kind==ipc::Kind::Lidar?"lidar":packet.kind==ipc::Kind::Imu?"imu":packet.kind==ipc::Kind::CameraImu?"camera_imu":packet.kind==ipc::Kind::Camera?"camera":packet.kind==ipc::Kind::Panorama?"panorama":packet.kind==ipc::Kind::Odometry?"odom":"clock";
+        const auto key=diagnostics::sample_key(stream,packet.stamp_ns);
+        events->trace("ipc.received",{{"sample",key},{"bytes",packet.payload.size()}},packet.stamp_ns);
         switch (packet.kind) {
         case ipc::Kind::Clock:
           bridge->publish_clock(packet.stamp_ns);
@@ -147,6 +170,7 @@ int main(int argc, char **argv) {
         default:
           break;
         }
+        events->trace("ros.publish_called",{{"sample",key},{"stream",stream}},packet.stamp_ns);
         ++count;
       }
       if (bridge)
@@ -161,14 +185,16 @@ int main(int argc, char **argv) {
         break;
       std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
+    events->event("ipc.disconnected",{{"packets",count},{"requested_stop",bool(stop)}});
     client.send_command({});
     client.close();
     if (bridge)
       bridge->close();
-    std::cout << role << " session stopped; published " << count
+    std::cerr << role << " session stopped; published " << count
               << " packets\n";
     return 0;
   } catch (const std::exception &e) {
+    if(events) events->event("process.failed",{{"message",e.what()}},0,"error");
     std::cerr << "ROS session: " << e.what() << '\n';
     return 1;
   }

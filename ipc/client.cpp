@@ -1,3 +1,4 @@
+#include "simple_rbt/event_log.hpp"
 #include "socket.hpp"
 #include <atomic>
 #include <chrono>

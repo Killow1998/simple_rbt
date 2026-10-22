@@ -6,7 +6,7 @@ func (a *app) dependencyPanel(c *ui.Context) {
 	ui.Column(c).Padding(20).Gap(12).Children(func() {
 		ui.Row(c).Gap(12).Children(func() {
 			ui.Text(c, a.tr("Startup checks", "启动检查")).Bold().FontSize(18).Grow(1)
-			ui.Button(c, a.tr("Check again", "重新检查")).Disabled(a.checking).OnClick(a.beginPreflight)
+			ui.Button(c, a.tr("Check again", "重新检查")).Disabled(a.checking).OnClick(a.action("ui_preflight.check_again", a.beginPreflight))
 		})
 		if a.checking {
 			ui.Text(c, a.tr("Checking the system, simulator and selected ROS adapters…", "正在检查系统、仿真器和所选 ROS 适配器…")).FontSize(13)

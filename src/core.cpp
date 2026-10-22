@@ -7,6 +7,7 @@
 #include "scene.hpp"
 #include "user_scene.hpp"
 #include "tracking.hpp"
+#include "imu_sensor.hpp"
 #include <algorithm>
 #include <cmath>
 #include "sensor_devices.hpp"
@@ -39,8 +40,7 @@ struct Simulation::Impl {
   Json terrain;
   int base_site = -1, lidar_site = -1, camera_site = -1, imu_site = -1,
       mid360_site = -1;
-  int linear_address = -1, angular_address = -1, gyro_address = -1,
-      accel_address = -1;
+  int linear_address = -1, angular_address = -1;
   int site_id(const std::string &name) const {
     if (name == "base_origin")
       return base_site;
@@ -58,6 +58,7 @@ struct Simulation::Impl {
   mjData *d = nullptr;
   Vec3 command{}, policy_command{}, limits{1, .6, 1};
   CommandTracker tracker;
+  ImuSensor mid360_imu, camera_imu;
   std::unique_ptr<Controller> control;
   std::uint64_t steps = 0;
   Impl(const SimulationOptions &options)
@@ -130,8 +131,9 @@ struct Simulation::Impl {
     mid360_site = id(m, mjOBJ_SITE, "mid360_imu");
     linear_address = m->sensor_adr[id(m, mjOBJ_SENSOR, "base_linvel")];
     angular_address = m->sensor_adr[id(m, mjOBJ_SENSOR, "base_angvel")];
-    gyro_address = m->sensor_adr[id(m, mjOBJ_SENSOR, "mid360_gyro")];
-    accel_address = m->sensor_adr[id(m, mjOBJ_SENSOR, "mid360_accelerometer")];
+    mid360_imu.configure(m, "mid360_imu", "mid360_gyro", "mid360_accelerometer");
+    if (o.camera_model == "d435i")
+      camera_imu.configure(m, "camera_imu", "camera_gyro", "camera_accelerometer");
     // Only selected typed controller parameters and terrain metadata survive.
     // The complete catalog/config are construction-local and are released here.
     data_guard.release();
@@ -186,6 +188,8 @@ void Simulation::set_mount(const std::string& module, const Pose& requested) {
   }
   move_sensor_device(p_->m,module,pose,p_->o);
   mj_forward(p_->m,p_->d);
+  p_->mid360_imu.reset(p_->m, p_->d, stamp_ns());
+  if (has_camera_imu()) p_->camera_imu.reset(p_->m, p_->d, stamp_ns());
 }
 void Simulation::set_command(const Vec3 &v) {
   if (!supported_command(p_->o.robot, v)) {
@@ -228,6 +232,8 @@ void Simulation::step() {
   mj_step(p.m, p.d);
   p.steps++;
   mj_forward(p.m, p.d);
+  p.mid360_imu.advance(p.m, p.d, stamp_ns());
+  if (has_camera_imu()) p.camera_imu.advance(p.m, p.d, stamp_ns());
   for (int i = 0; i < p.m->nq; i++)
     if (!std::isfinite(p.d->qpos[i]))
       throw std::runtime_error("Nonfinite physics state");
@@ -268,12 +274,10 @@ Vec3 Simulation::angular_velocity() const {
 bool Simulation::has_camera_imu() const { return p_->o.camera_model=="d435i"; }
 ImuSample Simulation::camera_imu() const {
   if(!has_camera_imu()) throw std::runtime_error("D435 has no camera IMU");
-  return {stamp_ns(), sensor(p_->d,p_->m->sensor_adr[id(p_->m,mjOBJ_SENSOR,"camera_gyro")]),
-          sensor(p_->d,p_->m->sensor_adr[id(p_->m,mjOBJ_SENSOR,"camera_accelerometer")])};
+  return p_->camera_imu.sample();
 }
 ImuSample Simulation::imu() const {
-  return {stamp_ns(), sensor(p_->d, p_->gyro_address),
-          sensor(p_->d, p_->accel_address)};
+  return p_->mid360_imu.sample();
 }
 const Vec3 &Simulation::command() const { return p_->command; }
 const Vec3 &Simulation::command_limits() const { return p_->limits; }

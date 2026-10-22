@@ -6,6 +6,7 @@ import (
 )
 
 func (a *app) viewportInput(event ui.InputEvent) bool {
+	a.auditInput(event, "viewport")
 	if a.sceneShortcut(event) {
 		return true
 	}

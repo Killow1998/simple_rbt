@@ -9,12 +9,15 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"simple-rbt/console/diagnostics"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 )
 
 type Manager struct {
+	Events         *diagnostics.Log
 	prepareFailed  map[string]bool
 	verifiedImages map[string]string
 	connectMu      sync.Mutex
@@ -35,7 +38,13 @@ type Manager struct {
 }
 
 func NewManager(options Options, onUpdate func()) *Manager {
-	return &Manager{options: options, update: onUpdate, Client: NewClient(onUpdate), adapters: map[string]*exec.Cmd{}, containers: map[string]string{}, prepareFailed: map[string]bool{}, verifiedImages: map[string]string{}}
+	if options.StateDir == "" {
+		options.StateDir = DefaultOptions().StateDir
+	}
+	events := diagnostics.New(filepath.Join(options.StateDir, "logs"))
+	client := NewClient(onUpdate)
+	client.Events = events
+	return &Manager{Events: events, options: options, update: onUpdate, Client: client, adapters: map[string]*exec.Cmd{}, containers: map[string]string{}, prepareFailed: map[string]bool{}, verifiedImages: map[string]string{}}
 }
 func (m *Manager) notify() {
 	if m.update != nil {
@@ -43,9 +52,14 @@ func (m *Manager) notify() {
 	}
 }
 func (m *Manager) message(value string) {
+	logged := value
+	if len(logged) > 8000 {
+		logged = logged[:8000] + " [truncated]"
+	}
+	m.Events.Event("process.output", map[string]any{"message": logged})
 	m.mu.Lock()
-	m.status = value
-	m.log = append(m.log, value)
+	m.status = logged
+	m.log = append(m.log, logged)
 	if len(m.log) > 200 {
 		m.log = m.log[len(m.log)-200:]
 	}
@@ -64,6 +78,9 @@ func (m *Manager) watch(reader io.Reader, prefix string) {
 	scanner := bufio.NewScanner(reader)
 	scanner.Buffer(make([]byte, 4096), 1024*1024)
 	for scanner.Scan() {
+		if m.Events.Import(scanner.Text(), strings.TrimSuffix(prefix, ": ")) {
+			continue
+		}
 		m.message(prefix + scanner.Text())
 	}
 	if err := scanner.Err(); err != nil {
@@ -81,6 +98,8 @@ func (m *Manager) Start(config map[string]any) error {
 	if err != nil {
 		return err
 	}
+	m.Events.SetSession(filepath.Base(session))
+	m.Events.Event("session.created", map[string]any{"session": filepath.Base(session)})
 	output := filepath.Join(m.options.StateDir, "runs", filepath.Base(session))
 	if err = os.MkdirAll(filepath.Dir(output), 0700); err != nil {
 		os.Remove(session)
@@ -115,6 +134,12 @@ func (m *Manager) Start(config map[string]any) error {
 		arguments = append(arguments, "--project-root", m.options.DataRoot)
 	}
 	command := exec.Command(m.options.WorkerPath, arguments...)
+	command.Env = append(os.Environ(), "SIMPLE_RBT_LOG_DIR="+m.Events.Directory, "SIMPLE_RBT_LOG_SESSION="+filepath.Base(session), "SIMPLE_RBT_TRACE_MODULES="+strings.Join(m.Events.Modules(), ","))
+	if m.Events.TraceEnabled() {
+		command.Env = append(command.Env, "SIMPLE_RBT_TRACE=1")
+	} else {
+		command.Env = append(command.Env, "SIMPLE_RBT_TRACE=0")
+	}
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	stdout, _ := command.StdoutPipe()
 	stderr, _ := command.StderrPipe()
@@ -148,6 +173,7 @@ func (m *Manager) Start(config map[string]any) error {
 	go m.watch(stderr, "Core: ")
 	go func() {
 		err := command.Wait()
+		m.Events.Event("process.exited", map[string]any{"component": "core", "exit_code": command.ProcessState.ExitCode(), "error": fmt.Sprint(err)})
 		close(done)
 		m.mu.Lock()
 		current := m.generation == generation
@@ -219,7 +245,7 @@ func (m *Manager) Close() error {
 	if worker != nil && worker.Process != nil {
 		select {
 		case <-done:
-		case <-time.After(500 * time.Millisecond):
+		case <-time.After(1500 * time.Millisecond):
 			syscall.Kill(-worker.Process.Pid, syscall.SIGTERM)
 		}
 		select {

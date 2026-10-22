@@ -262,7 +262,7 @@ struct CameraRig::Impl {
   CameraConfig config;
   EglContext egl;
   Scene scene;
-  RenderContext perspective_context, face_context;
+  std::unique_ptr<RenderContext> perspective_context, face_context;
   Lookup lookup;
   std::unique_ptr<RenderContext> observer_context;
   int observer_width=0, observer_height=0;
@@ -274,8 +274,7 @@ struct CameraRig::Impl {
 
   Impl(mjModel* input_model, CameraConfig input_config)
       : model(checked(input_model)), config(checked(input_config)), egl(), scene(model),
-        perspective_context(model, config.perspective_width, config.perspective_height),
-        face_context(model, config.cube_face_size, config.cube_face_size), lookup(config.render_panorama ? make_lookup(config) : Lookup{}) {
+        lookup(config.render_panorama ? make_lookup(config) : Lookup{}) {
     mjv_defaultOption(&option);
     option.sitegroup[3] = 0;
     mjv_defaultCamera(&abstract_camera);
@@ -373,16 +372,20 @@ struct CameraRig::Impl {
     } release{egl};
     update_scene(data);
     if(config.render_perspective) {
+      if (!perspective_context)
+        perspective_context = std::make_unique<RenderContext>(model, config.perspective_width, config.perspective_height);
       const bool split=config.render_depth && (pose.position!=depth_pose.position || pose.rotation!=depth_pose.rotation);
       render_view(pose, config.perspective_width, config.perspective_height,
-                  config.perspective_fov_y_deg, perspective_context, output.perspective, config.render_depth && !split, config.render_rgb);
+                  config.perspective_fov_y_deg, *perspective_context, output.perspective, config.render_depth && !split, config.render_rgb);
       if(split) {
         render_view(depth_pose,config.perspective_width,config.perspective_height,
-                    config.perspective_fov_y_deg,perspective_context,depth_frame,true,false);
+                    config.perspective_fov_y_deg,*perspective_context,depth_frame,true,false);
         output.perspective.depth.swap(depth_frame.depth);
       }
     }
     if (!config.render_panorama) { output.panorama = {}; return; }
+    if (!face_context)
+      face_context = std::make_unique<RenderContext>(model, config.cube_face_size, config.cube_face_size);
     // Use the same scene for all six cube faces of this physical snapshot.
     // Rebuild once to match the Python perspective/panorama scene boundary.
     update_scene(data);
@@ -395,7 +398,7 @@ struct CameraRig::Impl {
         for (int k = 0; k < 3; ++k) value += pose.rotation[3*i+k] * kFaces[f][3*k+j];
         face_pose.rotation[3*i+j] = value;
       }
-      render_view(face_pose, config.cube_face_size, config.cube_face_size, 90., face_context, face, config.render_depth);
+      render_view(face_pose, config.cube_face_size, config.cube_face_size, 90., *face_context, face, config.render_depth);
       for (const auto& entry : lookup[f]) {
         std::copy_n(face.rgb.data()+3*static_cast<std::size_t>(entry.source), 3,
                     output.panorama.rgb.data()+3*static_cast<std::size_t>(entry.destination));

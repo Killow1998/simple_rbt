@@ -22,6 +22,10 @@ func (a *app) view(c *ui.Context) {
 			ui.Badge(c, a.stateLabel())
 		})
 		a.navigation(c)
+		if a.diagnostics.Open {
+			a.diagnosticsPage(c)
+			return
+		}
 		if !a.initialized {
 			ui.Scroll(c).Grow(1).MinHeight(0).Children(func() { a.dependencyPanel(c) })
 			return
@@ -43,7 +47,7 @@ func (a *app) view(c *ui.Context) {
 						a.pageAction(c)
 					} else {
 						a.motionButtons(c)
-						ui.Button(c, a.tr("New configuration", "返回配置")).FillWidth().OnClick(func() { a.stage = "configure"; a.page = "home"; a.startConfig() })
+						ui.Button(c, a.tr("New configuration", "返回配置")).FillWidth().OnClick(a.action("ui_layout.new_configuration", func() { a.stage = "configure"; a.page = "home"; a.startConfig() }))
 					}
 				})
 			})
@@ -62,8 +66,8 @@ func (a *app) view(c *ui.Context) {
 			} else {
 				ui.Text(c, a.tr("Core · CPU — · RAM — · RTF —", "仿真 · CPU — · 内存 — · 实时倍率 —")).FontSize(12)
 			}
-			ui.Button(c, a.tr("Details", "详情")).OnClick(func() { a.showLog = !a.showLog })
-			ui.Button(c, a.tr("Dependencies", "依赖检查")).OnClick(func() { a.showPreflight = !a.showPreflight })
+			ui.Button(c, a.tr("Details", "详情")).OnClick(a.action("ui_layout.details", func() { a.showLog = !a.showLog }))
+			ui.Button(c, a.tr("Dependencies", "依赖检查")).OnClick(a.action("ui_layout.dependencies", func() { a.showPreflight = !a.showPreflight }))
 		})
 		if a.showLog {
 			ui.Scroll(c).Height(108).Padding(8, 18).Background(panelBackground(c)).Children(func() {

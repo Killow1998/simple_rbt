@@ -149,12 +149,13 @@ func (m *Manager) StartAdapter(version string) error {
 	if version == "ros1" {
 		environment = []string{"ROS_MASTER_URI", "ROS_IP", "SIMPLE_RBT_START_MASTER"}
 	}
+	environment = append(environment, "SIMPLE_RBT_TRACE_RAW_HIGH_RATE")
 	for _, key := range environment {
 		if value := os.Getenv(key); value != "" {
 			arguments = append(arguments, "--env", key+"="+value)
 		}
 	}
-	arguments = append(arguments, image, "--session-dir", "/session")
+	arguments = append(arguments, "--env", "SIMPLE_RBT_LOG_STDOUT=1", "--env", "SIMPLE_RBT_LOG_SESSION="+filepath.Base(session), image, "--session-dir", "/session")
 	command := exec.Command("docker", arguments...)
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	stdout, _ := command.StdoutPipe()

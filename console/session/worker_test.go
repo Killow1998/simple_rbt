@@ -42,8 +42,17 @@ func TestCPPWorkerLifecycle(t *testing.T) {
 	}
 	options := DefaultOptions()
 	options.WorkerPath = worker
+	if root := os.Getenv("SIMPLE_RBT_CPP_DATA_ROOT"); root != "" {
+		options.DataRoot = root
+	}
 	options.StateDir = t.TempDir()
 	manager := NewManager(options, nil)
+	defer manager.Events.Close()
+	defer func() {
+		if t.Failed() {
+			t.Logf("core process output: %v", manager.Logs())
+		}
+	}()
 	defer manager.Close()
 	client := manager.Client
 	config := map[string]any{"robot": "ranger_mini", "terrain": "flat", "backend": "cpu", "settle_s": .5, "sensors": map[string]any{"mid360": false, "camera": true, "depth": true, "panorama": false}}
@@ -133,8 +142,17 @@ func TestROSOwnerSwitch(t *testing.T) {
 	t.Setenv("SIMPLE_RBT_START_MASTER", "1")
 	options := DefaultOptions()
 	options.WorkerPath = worker
+	if root := os.Getenv("SIMPLE_RBT_CPP_DATA_ROOT"); root != "" {
+		options.DataRoot = root
+	}
 	options.StateDir = t.TempDir()
 	manager := NewManager(options, nil)
+	defer manager.Events.Close()
+	defer func() {
+		if t.Failed() {
+			t.Logf("core process output: %v", manager.Logs())
+		}
+	}()
 	defer manager.Close()
 	if err := manager.Start(map[string]any{"robot": "ranger_mini", "backend": "cpu", "sensors": map[string]any{"mid360": false, "camera": false, "depth": false, "panorama": false}}); err != nil {
 		t.Fatal(err)

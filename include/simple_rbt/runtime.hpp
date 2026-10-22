@@ -20,8 +20,8 @@ struct RunOptions {
 class RunObserver {
 public:
   virtual ~RunObserver() = default;
-  // Called after sensor warmup, before the measured loop/clock zero. May wait
-  // for transport discovery; sampling/physics have not advanced.
+  // Called after model setup, before sensor warmup and the measured loop.
+  // May edit mounts or wait for configuration; physics has not advanced.
   virtual void configure(Simulation &, Transport *) {}
   virtual bool before_step(Simulation &, Transport *) { return true; }
   virtual void before_loop(Simulation &, Transport *) {}

@@ -78,7 +78,8 @@ func TestProgramFocusAndMetadataNeverSendControlOrTakeOver(t *testing.T) {
 	for _, owner := range []string{"program", "ros1", "ros2"} {
 		t.Run(owner, func(t *testing.T) {
 			dir, packets := controlPeer(t)
-			a := newApp(session.Options{}, defaultConfig())
+			a := newApp(session.Options{StateDir: t.TempDir()}, defaultConfig())
+			t.Cleanup(a.manager.Events.Close)
 			if err := a.manager.Client.Connect(dir); err != nil {
 				t.Fatal(err)
 			}
@@ -102,7 +103,8 @@ func TestProgramFocusAndMetadataNeverSendControlOrTakeOver(t *testing.T) {
 }
 func TestManualFocusLossSendsZeroOnRealControlSocket(t *testing.T) {
 	dir, packets := controlPeer(t)
-	a := newApp(session.Options{}, defaultConfig())
+	a := newApp(session.Options{StateDir: t.TempDir()}, defaultConfig())
+	t.Cleanup(a.manager.Events.Close)
 	if err := a.manager.Client.Connect(dir); err != nil {
 		t.Fatal(err)
 	}

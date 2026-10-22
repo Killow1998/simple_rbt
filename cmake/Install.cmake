@@ -134,7 +134,10 @@ install(DIRECTORY "${PROJECT_WORKSPACE}/wrappers/"
 install(DIRECTORY "${PROJECT_WORKSPACE}/ipc/"
   DESTINATION "${ROS_CONTEXT}/ipc" COMPONENT Runtime
   FILES_MATCHING PATTERN "*.cpp" PATTERN "*.hpp" PATTERN "CMakeLists.txt")
-foreach(HEADER ipc transport types robots)
+install(DIRECTORY "${PROJECT_WORKSPACE}/diagnostics/"
+  DESTINATION "${ROS_CONTEXT}/diagnostics" COMPONENT Runtime
+  FILES_MATCHING PATTERN "*.cpp" PATTERN "*.hpp" PATTERN "CMakeLists.txt")
+foreach(HEADER ipc transport types robots event_log)
   install(FILES "${PROJECT_WORKSPACE}/include/simple_rbt/${HEADER}.hpp"
     DESTINATION "${ROS_CONTEXT}/include/simple_rbt" COMPONENT Runtime)
 endforeach()

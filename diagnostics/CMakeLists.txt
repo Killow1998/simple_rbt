@@ -1,0 +1,6 @@
+find_package(Threads REQUIRED)
+add_library(simple_rbt_diagnostics event_log.cpp store.cpp)
+target_include_directories(simple_rbt_diagnostics PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../include" "${CMAKE_CURRENT_SOURCE_DIR}/../third_party")
+target_compile_features(simple_rbt_diagnostics PUBLIC cxx_std_17)
+target_compile_options(simple_rbt_diagnostics PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(simple_rbt_diagnostics PUBLIC Threads::Threads)

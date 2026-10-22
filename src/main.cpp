@@ -1,3 +1,4 @@
+#include "simple_rbt/event_log.hpp"
 #include "simple_rbt/paths.hpp"
 #include "simple_rbt/runtime.hpp"
 #include "simple_rbt/session.hpp"
@@ -202,6 +203,7 @@ int main(int argc, char **argv) {
     run_simulation(args, nullptr, factory);
     return 0;
   } catch (const std::exception &e) {
+    diagnostics::log().event("process.failed",{{"message",e.what()}},0,"error");
     std::cerr << "simple-rbt-sim: " << e.what() << '\n';
     return 2;
   }

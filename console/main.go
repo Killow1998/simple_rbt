@@ -33,6 +33,9 @@ func main() {
 	}
 	if *assets != "" {
 		options.DataRoot = filepath.Dir(*assets)
+		if _, err := os.Stat(filepath.Join(options.DataRoot, "deployment/ros1/Dockerfile")); err == nil {
+			options.AdapterContext = options.DataRoot
+		}
 	}
 	cfg := defaultConfig()
 	if *configPath != "" {

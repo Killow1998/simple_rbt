@@ -8,7 +8,8 @@ import (
 )
 
 func TestKeyboardMotionAndOwnership(t *testing.T) {
-	a := newApp(session.Options{}, defaultConfig())
+	a := newApp(session.Options{StateDir: t.TempDir()}, defaultConfig())
+	t.Cleanup(a.manager.Events.Close)
 	a.catalog.Robots = map[string]RobotSpec{"go2": {AllowsLateral: true, AllowsTurn: true, Limits: Vec3{2, 1, 2}}}
 	a.stage = "operate"
 	a.meta = metadata{State: "running", Source: "gui"}
@@ -71,7 +72,8 @@ func TestKeyboardMotionAndOwnership(t *testing.T) {
 	}
 }
 func TestManualLimitsRespectChassis(t *testing.T) {
-	a := newApp(session.Options{}, defaultConfig())
+	a := newApp(session.Options{StateDir: t.TempDir()}, defaultConfig())
+	t.Cleanup(a.manager.Events.Close)
 	a.catalog.Robots = map[string]RobotSpec{"go2": {AllowsLateral: false, AllowsTurn: false, MinRadius: .6, Limits: Vec3{2, 0, 2}}}
 	if a.manualVelocity(Vec3{0, 1, 1}) != (Vec3{}) {
 		t.Fatal("Ackermann lateral/in-place turn allowed")

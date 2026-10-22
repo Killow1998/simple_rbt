@@ -20,15 +20,13 @@ ctest --test-dir build/ci-cpu --output-on-failure > output/ci/ctest-cpu.txt 2>&1
 # remain CGO_ENABLED=0; the race detector requires cgo only while testing.
 go_version=$(python3 -c 'import json; print(json.load(open("third_party/mygo/manifest.json"))["go"]["version"])')
 go="$root/build/toolchains/$go_version/go/bin/go"
-g++ -std=c++17 -O2 -pthread -I include -I third_party tests/ipc/ros_fixture.cpp \
-  ipc/codec.cpp ipc/socket.cpp ipc/client.cpp ipc/server.cpp src/robots.cpp \
-  -o output/ci/ipc-fixture
 (
   cd console
   export CGO_ENABLED=1 GOTOOLCHAIN=local
   export GOMODCACHE="$root/build/go-modules" GOCACHE="$root/build/go-cache"
+  export SIMPLE_RBT_CPP_DATA_ROOT="$root"
   export SIMPLE_RBT_CPP_WORKER="$root/build/ci-cpu/simple-rbt-sim"
-  export SIMPLE_RBT_CPP_IPC_FIXTURE="$root/output/ci/ipc-fixture"
+  export SIMPLE_RBT_CPP_IPC_FIXTURE="$root/build/ci-cpu/ros_ipc_fixture"
   export LIBGL_ALWAYS_SOFTWARE=1 EGL_PLATFORM=surfaceless
   export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
   "$go" -C "$root/.vendor/mygo" test -v ./internal/text -run '^TestPango'

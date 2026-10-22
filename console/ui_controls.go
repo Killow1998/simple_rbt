@@ -15,6 +15,7 @@ type joystick struct {
 }
 
 func (a *app) controlInput(ev ui.InputEvent) bool {
+	a.auditInput(ev, "joystick")
 	if a.keyboardInput(ev) {
 		return true
 	}
@@ -128,18 +129,18 @@ func (a *app) controls(c *ui.Context) {
 }
 func (a *app) motionButtons(c *ui.Context) {
 	ui.Row(c).Gap(10).Children(func() {
-		ui.Button(c, a.tr("STOP", "停车")).Grow(1).Background(stopBackground(c)).TextColor(c.Theme().Text).OnClick(func() {
+		ui.Button(c, a.tr("STOP", "停车")).Grow(1).Background(stopBackground(c)).TextColor(c.Theme().Text).OnClick(a.action("ui_controls.stop", func() {
 			a.stopManual()
 			a.sourceLabel = manualLabel
 			_ = a.manager.Client.SendRequest(map[string]any{"op": "stop"})
-		})
+		}))
 		label := a.tr("Pause", "暂停")
 		op := "pause"
 		if a.meta.State == "paused" {
 			label = a.tr("Resume", "继续")
 			op = "start"
 		}
-		ui.Button(c, label).Grow(1).OnClick(func() { a.stopManual(); _ = a.manager.Client.SendRequest(map[string]any{"op": op}) })
+		ui.Button(c, label).Grow(1).OnClick(a.action("ui_controls.resume", func() { a.stopManual(); _ = a.manager.Client.SendRequest(map[string]any{"op": op}) }))
 	})
 }
 

@@ -19,10 +19,11 @@ class SessionObserver final : public RunObserver {
   Simulation *sim_ = nullptr;
   ipc::SessionServer *server_ = nullptr;
   bool running_ = false, started_ = false, closing_ = false, dirty_ = true;
-  std::string source_ = "gui";
+  std::string source_ = "gui", last_command_state_;
   ObserverView view_;
   std::unique_ptr<CameraRig> renderer_;
   CameraFrame image_;
+  double last_log_ = 0;
   double last_view_ = 0, last_metadata_ = 0, cpu_time_ = 0, cpu_wall_ = 0,
          simulation_time_ = 0;
   Json resources_ = {

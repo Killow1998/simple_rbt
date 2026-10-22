@@ -1,3 +1,4 @@
+#include "simple_rbt/event_log.hpp"
 #include "simple_rbt/session.hpp"
 #include "session_observer.hpp"
 #include "sensor_devices.hpp"
@@ -26,6 +27,9 @@ Json run_session(const Json &config, const std::filesystem::path &directory,
                  const std::filesystem::path &project_root) {
   if (directory.empty())
     throw std::invalid_argument("--session-dir is required");
+  Json summary=config;summary.erase("scene");
+  if(config.contains("scene")) summary["scene_summary"]={{"id",config["scene"].value("id",std::string())},{"objects",config["scene"].value("objects",Json::array()).size()}};
+  diagnostics::log().event("session.configuration",summary);
   RunOptions args;
   args.simulation.project_root = project_root;
   args.simulation.scene = config.value("scene", Json());

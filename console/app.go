@@ -18,6 +18,7 @@ type observerInfo struct {
 	Width, Height int
 }
 type metadata struct {
+	Logging       map[string]any  `json:"logging"`
 	State         string          `json:"session_state"`
 	Source        string          `json:"source"`
 	Base          Pose            `json:"base_pose"`
@@ -40,6 +41,8 @@ type metadata struct {
 	} `json:"resources"`
 }
 type app struct {
+	auditPrevious           map[string]any
+	diagnostics             diagnosticsView
 	sceneRevision           int
 	sceneHistory            sceneHistory
 	sceneField, alignTarget string
@@ -237,6 +240,7 @@ func (a *app) pump() {
 					a.win.Update(func() {
 						if !a.closed.Load() {
 							a.checkpoint()
+							a.refreshDiagnostics()
 						}
 					})
 				}
@@ -309,4 +313,5 @@ func (a *app) close() {
 	a.restartMu.Lock()
 	defer a.restartMu.Unlock()
 	_ = a.manager.Close()
+	a.manager.Events.Close()
 }

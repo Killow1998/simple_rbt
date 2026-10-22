@@ -13,6 +13,7 @@ COPY include /tmp/source/include
 COPY third_party/nlohmann /tmp/source/third_party/nlohmann
 COPY src/robots.cpp /tmp/source/src/robots.cpp
 COPY ipc /tmp/source/ipc
+COPY diagnostics /tmp/source/diagnostics
 COPY wrappers /tmp/source/wrappers
 RUN source /opt/ros/noetic/setup.bash && \
     CMAKE_PREFIX_PATH=/opt/simple-rbt/interfaces:$CMAKE_PREFIX_PATH \

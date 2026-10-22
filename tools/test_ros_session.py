@@ -25,7 +25,7 @@ def stop(process):
 def build_image(version, image, base_image=None):
     context = ROOT / "build" / "ros-adapters" / "context"
     context.mkdir(parents=True, exist_ok=True)
-    for directory in ["deployment/"+version, "include", "ipc", "wrappers",
+    for directory in ["deployment/"+version, "include", "ipc", "diagnostics", "wrappers",
                       "third_party/nlohmann", "interfaces/livox_ros_driver2"]:
         shutil.copytree(ROOT / directory, context / directory, dirs_exist_ok=True)
     (context / "src").mkdir(exist_ok=True)

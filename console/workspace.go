@@ -132,11 +132,15 @@ func (a *app) initWorkspace(restore bool) {
 }
 func (a *app) reportError(err error) {
 	if err != nil {
+		if a.manager != nil {
+			a.manager.Events.Emit("ui.failed", "error", map[string]any{"message": err.Error(), "page": a.page})
+		}
 		a.status = err.Error()
 		a.showLog = true
 	}
 }
 func (a *app) checkpoint() {
+	a.auditConfiguration()
 	if a.workspace.Version == 0 || a.workspaceBlocked {
 		return
 	}

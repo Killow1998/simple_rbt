@@ -1,9 +1,11 @@
 #include "simple_rbt/runtime.hpp"
 #include "artifacts.hpp"
 #include "resources.hpp"
+#include "runtime_cameras.hpp"
+#include "runtime_imu.hpp"
+#include "runtime_lidar.hpp"
 #include "sensor_devices.hpp"
-#include "simple_rbt/cameras.hpp"
-#include "simple_rbt/lidar.hpp"
+#include "simple_rbt/event_log.hpp"
 #include "simple_rbt/transport.hpp"
 #include "simple_rbt/viewer.hpp"
 #include <algorithm>
@@ -16,7 +18,7 @@
 
 namespace simple_rbt {
 Json run_simulation(const RunOptions &args, RunObserver *observer,
-                    const TransportFactory& transport_factory) {
+                    const TransportFactory &transport_factory) {
   ResourceMeter run_meter;
   if (!std::isfinite(args.duration) || args.duration <= 0 ||
       !std::isfinite(args.settle) || args.settle < 0 ||
@@ -27,18 +29,28 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
   if (args.sensors != "physics" && args.sensors != "lidar" &&
       args.sensors != "full")
     throw std::invalid_argument("sensors must be physics/lidar/full");
-  if (args.backend != "cpu" && args.backend != "cuda" && args.backend != "warp" && args.backend != "auto")
+  if (args.backend != "cpu" && args.backend != "cuda" &&
+      args.backend != "warp" && args.backend != "auto")
     throw std::invalid_argument("backend must be auto/cpu/cuda (warp is a "
                                 "compatibility alias for native CUDA)");
   if (args.lidar_motion != "rolling" && args.lidar_motion != "snapshot")
     throw std::invalid_argument("lidar-motion must be rolling/snapshot");
+  diagnostics::log().event("simulation.loading",
+                           {{"robot", args.simulation.robot},
+                            {"controller", args.simulation.controller},
+                            {"backend", args.backend}});
   Simulation sim(args.simulation);
-  for(int id=0;id<sim.model()->ngeom;++id) {
-    const char *raw=mj_id2name(sim.model(),mjOBJ_GEOM,id);
-    const std::string name=raw?raw:"";
-    const bool disabled=(name.rfind("visual_device_mid360",0)==0 && !args.mid360_enabled) ||
-        (name.rfind("visual_device_d435",0)==0 && !(args.camera_enabled||args.depth_enabled||args.panorama_enabled||sim.has_camera_imu()));
-    if(disabled) sim.model()->geom_rgba[4*id+3]=0;
+  diagnostics::log().event("simulation.loaded");
+  for (int id = 0; id < sim.model()->ngeom; ++id) {
+    const char *raw = mj_id2name(sim.model(), mjOBJ_GEOM, id);
+    const std::string name = raw ? raw : "";
+    const bool disabled =
+        (name.rfind("visual_device_mid360", 0) == 0 && !args.mid360_enabled) ||
+        (name.rfind("visual_device_d435", 0) == 0 &&
+         !(args.camera_enabled || args.depth_enabled || args.panorama_enabled ||
+           sim.has_camera_imu()));
+    if (disabled)
+      sim.model()->geom_rgba[4 * id + 3] = 0;
   }
   const auto &m = *sim.model();
   const int base_site = mj_name2id(&m, mjOBJ_SITE, "base_origin");
@@ -47,83 +59,32 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
   artifacts.model(sim.xml());
   std::unique_ptr<Transport> bridge;
   if (transport_factory) {
-    bridge = transport_factory(sensor_extrinsics(sim,true));
+    bridge = transport_factory(sensor_extrinsics(sim, true));
     if (!bridge)
       throw std::runtime_error("Transport factory returned null");
   }
-  if (observer) observer->configure(sim,bridge.get());
-  artifacts.model(sim.xml());
+  if (observer) {
+    observer->configure(sim, bridge.get());
+    artifacts.model(sim.xml());
+  }
   if (observer && observer->should_stop(sim)) {
-    Json cancelled={{"session_state","closed"},{"resources_run",run_meter.report()}};
-    observer->finish(cancelled);artifacts.summary(cancelled);if(bridge)bridge->close();return cancelled;
+    Json cancelled = {{"session_state", "closed"},
+                      {"resources_run", run_meter.report()}};
+    observer->finish(cancelled);
+    artifacts.summary(cancelled);
+    if (bridge)
+      bridge->close();
+    return cancelled;
   }
-  std::string active_backend=args.backend;
-  std::unique_ptr<CsvPattern> pattern;
-  std::unique_ptr<RollingLidar> lidar;
-  PoseHistory history;
-  LidarScan last_scan;
-  Pose last_snapshot_pose;
-  if (args.sensors != "physics" && args.mid360_enabled) {
-    pattern = std::make_unique<CsvPattern>(
-        (args.simulation.project_root /
-         "assets/lidar/mid360-real-centr.csv")
-            .string());
-    if(args.backend=="auto") {
-      try {lidar=std::make_unique<RollingLidar>(sim.model(),LidarBackend::Cuda,*pattern);active_backend="cuda";}
-      catch(const std::exception& e) {
-        active_backend="cpu";lidar=std::make_unique<RollingLidar>(sim.model(),LidarBackend::Cpu,*pattern);
-        if(bridge)bridge->publish_status(Json{{"lidar_backend","cpu"},{"reason",e.what()}}.dump());
-      }
-    } else lidar = std::make_unique<RollingLidar>(sim.model(),args.backend=="cpu"?LidarBackend::Cpu:LidarBackend::Cuda,*pattern);
-    auto pose = sim.pose("lidar");
-    history.add(0, pose);
-    PoseHistory warm;
-    warm.add(0, pose);
-    warm.add(100000000, pose);
-    lidar->scan(sim.data(), 0, args.rays, warm, last_scan);
-    pattern->reset();
-  }
-  std::unique_ptr<CameraRig> cameras;
-  CameraPair frames;
-  if (args.sensors == "full" && (args.camera_enabled || args.depth_enabled || args.panorama_enabled)) {
-    CameraConfig config; config.render_depth=args.depth_enabled;config.render_panorama=args.panorama_enabled;config.render_perspective=args.camera_enabled||args.depth_enabled;config.render_rgb=args.camera_enabled;
-    cameras = std::make_unique<CameraRig>(sim.model(),config);
-    cameras->render_into(sim.data(), sim.camera_pose(), sim.camera_pose("camera_depth"), frames);
-  }
+  RuntimeLidar lidar(sim, args, bridge.get());
+  RuntimeCameras cameras(sim, args);
   std::unique_ptr<Viewer> viewer;
   if (args.viewer)
     viewer = std::make_unique<Viewer>(sim.model(), sim.data());
   artifacts.open_streams();
   if (observer)
     observer->before_loop(sim, bridge.get());
-  const std::uint64_t camera_period = std::llround(1e9 / args.camera_hz);
-  std::uint64_t next_camera = camera_period, next_imu = 0;
-  auto emit_imu = [&](const ImuSample &sample,
-                      std::array<std::uint64_t, 2> brackets) {
-    if (bridge && args.mid360_enabled)
-      bridge->publish_imu(sample);
-    artifacts.imu(sample);
-    if (observer)
-      observer->on_imu(sample, brackets);
-  };
-  ImuSample previous = sim.imu();
-  ImuSample previous_camera_imu;
-  if(sim.has_camera_imu()) previous_camera_imu=sim.camera_imu();
-  auto camera_imu_at=[&](const ImuSample& current,std::uint64_t stamp) {
-    ImuSample sample=current; sample.stamp_ns=stamp;
-    if(stamp!=current.stamp_ns) {
-      const double f=double(stamp-previous_camera_imu.stamp_ns)/double(current.stamp_ns-previous_camera_imu.stamp_ns);
-      for(int i=0;i<3;++i) {
-        sample.angular_velocity[i]=previous_camera_imu.angular_velocity[i]+f*(current.angular_velocity[i]-previous_camera_imu.angular_velocity[i]);
-        sample.specific_force[i]=previous_camera_imu.specific_force[i]+f*(current.specific_force[i]-previous_camera_imu.specific_force[i]);
-      }
-    }
-    if(bridge) bridge->publish_camera_imu(sample);
-  };
-  std::uint64_t imu_samples = 1, interpolated = 0, camera_frames = 0,
-                lidar_frames = 0;
-  std::vector<double> lidar_times, camera_times;
-  std::size_t min_points = 20000, max_points = 0;
+  RuntimeImus imus(sim);
   Pose initial = sim.pose();
   double min_height = initial.position[2], max_tilt = 0;
   std::optional<double> policy_origin;
@@ -131,17 +92,17 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
   double start = monotonic_seconds();
   if (bridge)
     bridge->publish_clock(0);
-  emit_imu(previous, {0, 0});
-  if(sim.has_camera_imu()) camera_imu_at(previous_camera_imu,0);
-  next_imu = 5000000;
   std::size_t steps = std::ceil(args.duration / m.opt.timestep);
   const Vec3 local_command = args.simulation_command;
+  Vec3 last_applied{};
+  double last_sensor_log = monotonic_seconds();
   for (std::size_t step = 0; args.indefinite || step < steps;) {
-    if (observer && observer->should_stop(sim)) break;
-    double before=monotonic_seconds();
-    if (observer && !observer->before_step(sim,bridge.get())) {
+    if (observer && observer->should_stop(sim))
+      break;
+    double before = monotonic_seconds();
+    if (observer && !observer->before_step(sim, bridge.get())) {
       std::this_thread::sleep_for(std::chrono::milliseconds(5));
-      start+=monotonic_seconds()-before;
+      start += monotonic_seconds() - before;
       continue;
     }
 
@@ -155,10 +116,14 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
         policy_origin && sim.data()->time >= *policy_origin + args.settle;
     Vec3 requested = bridge ? bridge->command() : local_command;
     sim.set_command(ready ? requested : Vec3{});
+    if (sim.command() != last_applied) {
+      last_applied = sim.command();
+      diagnostics::log().event("command.applied", {{"velocity", last_applied}},
+                               sim.stamp_ns());
+    }
     sim.step();
     auto stamp = sim.stamp_ns();
-    if (lidar && args.lidar_motion == "rolling")
-      history.add(stamp, sim.pose("lidar"));
+    lidar.record_pose(sim);
     auto base = sim.pose();
     min_height = std::min(min_height, base.position[2]);
     double upright = sim.data()->site_xmat[9 * base_site + 8];
@@ -169,69 +134,9 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
       observer->on_step(sim, monotonic_seconds());
     if (bridge)
       bridge->publish_clock(stamp);
-    ImuSample current = sim.imu();
-    const auto current_camera_imu=sim.has_camera_imu()?sim.camera_imu():ImuSample{};
-    while (next_imu <= stamp) {
-      ImuSample sample;
-      sample.stamp_ns = next_imu;
-      std::array<std::uint64_t, 2> source;
-      if (next_imu == stamp) {
-        sample = current;
-        source = {stamp, stamp};
-      } else {
-        double f = double(next_imu - previous.stamp_ns) /
-                   double(stamp - previous.stamp_ns);
-        for (int i = 0; i < 3; i++) {
-          sample.angular_velocity[i] =
-              previous.angular_velocity[i] +
-              f * (current.angular_velocity[i] - previous.angular_velocity[i]);
-          sample.specific_force[i] =
-              previous.specific_force[i] +
-              f * (current.specific_force[i] - previous.specific_force[i]);
-        }
-        source = {previous.stamp_ns, stamp};
-        interpolated++;
-      }
-      emit_imu(sample, source);
-      if(sim.has_camera_imu()) camera_imu_at(current_camera_imu,next_imu);
-      imu_samples++;
-      next_imu += 5000000;
-    }
-    previous = current; previous_camera_imu=current_camera_imu;
+    imus.advance(sim, args.mid360_enabled, bridge.get(), artifacts, observer);
     if (stamp % 100000000 == 0) {
-      if (lidar) {
-        double began = monotonic_seconds();
-        std::array<std::uint64_t, 2> bounds{};
-        std::uint64_t interval = 0;
-        if (args.lidar_motion == "rolling") {
-          lidar->scan(sim.data(), stamp - 100000000, args.rays, history,
-                      last_scan);
-          bounds = history.bounds();
-          interval = history.maximum_interval(
-              last_scan.stamp_ns, last_scan.stamp_ns + (args.rays - 1) * 5000);
-        } else {
-          PoseHistory scratch;
-          auto pose = sim.pose("lidar");
-          last_snapshot_pose = pose;
-          scratch.add(stamp, pose);
-          scratch.add(stamp + 100000000, pose);
-          lidar->scan(sim.data(), stamp, args.rays, scratch, last_scan);
-          std::fill(last_scan.offsets_ns.begin(), last_scan.offsets_ns.end(),
-                    0);
-          bounds = scratch.bounds();
-        }
-        if (args.rays < 20000)
-          pattern->advance(20000 - args.rays);
-        last_snapshot_pose = sim.pose("lidar");
-        lidar_times.push_back(monotonic_seconds() - began);
-        lidar_frames++;
-        min_points = std::min(min_points, last_scan.xyz.size());
-        max_points = std::max(max_points, last_scan.xyz.size());
-        if (bridge)
-          bridge->publish_scan(last_scan);
-        if (observer)
-          observer->on_scan(last_scan, bounds, interval);
-      }
+      lidar.scan(sim, bridge.get(), observer);
       auto lin = sim.linear_velocity(), ang = sim.angular_velocity();
       if (bridge)
         bridge->publish_odometry(stamp, base, lin, ang);
@@ -239,18 +144,15 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
         observer->on_odometry(stamp, base, lin, ang);
       artifacts.trajectory(stamp, base, lin, ang);
     }
-    if (cameras && stamp >= next_camera) {
-      double began = monotonic_seconds();
-      cameras->render_into(sim.data(), sim.camera_pose(), sim.camera_pose("camera_depth"), frames);
-      if (bridge) {
-        if (args.camera_enabled || args.depth_enabled) bridge->publish_camera(stamp, frames.perspective);
-        if (args.panorama_enabled) bridge->publish_camera(stamp, frames.panorama, true);
-      }
-      if (observer)
-        observer->on_camera(stamp, frames);
-      camera_times.push_back(monotonic_seconds() - began);
-      camera_frames++;
-      next_camera += camera_period;
+    cameras.advance(sim, bridge.get(), observer);
+    if (monotonic_seconds() - last_sensor_log >= 5) {
+      diagnostics::log().event("sensors.summary",
+                               {{"imu_samples", imus.count()},
+                                {"lidar_scans", lidar.frames()},
+                                {"camera_frames", cameras.count()},
+                                {"last_scan_ms", lidar.last_ms()}},
+                               stamp);
+      last_sensor_log = monotonic_seconds();
     }
     if (viewer && step % 5 == 0)
       viewer->sync();
@@ -269,27 +171,6 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
   Vec3 displacement{};
   for (int i = 0; i < 3; i++)
     displacement[i] = final.position[i] - initial.position[i];
-  Json scan_model = nullptr;
-  if (lidar)
-    scan_model = {
-        {"acquisition_model", args.lidar_motion == "rolling"
-                                  ? "rolling_static_environment"
-                                  : "snapshot_end"},
-        {"point_time_model", args.lidar_motion == "rolling"
-                                 ? "uniform_from_csv_sample_order"
-                                 : "all_returns_at_snapshot_stamp"},
-        {"sample_rate_hz", 200000},
-        {"robot_self_occlusion", false},
-        {"dynamic_environment_supported", false},
-        {"backend_implementation",
-         active_backend == "cpu" ? "native_mj_ray" : "native_cuda_aot"},
-        {"pose_interpolation", args.lidar_motion == "rolling"
-                                   ? "linear_translation_short_arc_slerp"
-                                   : "none"},
-        {"environment_geom_count", lidar->environment_geom_count()},
-        {"ray_buffer_capacity", lidar->ray_capacity()},
-        {"pattern_timing_source",
-         "synthetic CSV sample order; not recorded hardware timestamps"}};
   Json summary = {
       {"output", artifacts.output().string()},
       {"runtime_language", "C++17"},
@@ -302,10 +183,6 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
                                ? sim.tracker_metadata()
                                : Json(nullptr)},
       {"deployment", sim.deployment_metadata()},
-      {"backend", lidar ? Json(active_backend) : Json(nullptr)},
-      {"backend_implementation",
-       lidar ? (active_backend == "cpu" ? "native_mj_ray" : "native_cuda_aot")
-             : "none"},
       {"simulation_seconds", sim.stamp_ns() * 1e-9},
       {"simulation_end_ns", sim.stamp_ns()},
       {"wall_seconds", wall},
@@ -322,39 +199,6 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
                      {"command_topic", bridge->command_topic()}}
               : Json(nullptr)},
       {"sensor_profile", args.sensors},
-      {"rays_per_frame", args.rays},
-      {"lidar_frames", lidar_frames},
-      {"min_valid_points", lidar_frames ? min_points : 0},
-      {"max_valid_points", max_points},
-      {"lidar_median_ms", lidar_times.empty()
-                              ? Json(nullptr)
-                              : Json(percentile(lidar_times, .5) * 1000)},
-      {"lidar_p95_ms", lidar_times.empty()
-                           ? Json(nullptr)
-                           : Json(percentile(lidar_times, .95) * 1000)},
-      {"scan_model", scan_model},
-      {"imu_model",
-       {{"rate_hz", 200},
-        {"frame", "mid360_imu"},
-        {"imu_position_in_lidar_m", {.011, .02329, -.04412}},
-        {"imu_orientation_in_lidar_xyzw", {0., 0., 0., 1.}},
-        {"sampling", "exact ticks or adjacent linear interpolation"},
-        {"noise_bias", "none"}}},
-      {"imu_samples", imu_samples},
-      {"imu_interpolated_samples", interpolated},
-      {"last_imu_stamp_ns", next_imu - 5000000},
-      {"cameras", bool(cameras)},
-      {"camera_hz", cameras ? args.camera_hz : 0},
-      {"camera_model", args.simulation.camera_model},
-      {"camera_imu_samples", sim.has_camera_imu()?imu_samples:0},
-
-      {"camera_frames_per_sensor", camera_frames},
-      {"camera_pair_median_ms",
-       camera_times.empty() ? Json(nullptr)
-                            : Json(percentile(camera_times, .5) * 1000)},
-      {"camera_pair_p95_ms", camera_times.empty()
-                                 ? Json(nullptr)
-                                 : Json(percentile(camera_times, .95) * 1000)},
       {"ros2", bridge && std::string(bridge->backend()) == "ros2"},
       {"ros1", bridge && std::string(bridge->backend()) == "ros1"},
       {"resources_loop", usage},
@@ -363,6 +207,9 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
        "physics, configured sensors, DDS and pacing; excludes "
        "model/device/renderer initialization and final artifact saving"},
       {"viewer", bool(viewer)}};
+  summary.update(lidar.report());
+  summary.update(cameras.report());
+  summary.update(imus.report());
   summary["applied_command_limits"] = {
       {"vx_m_s", {-sim.command_limits()[0], sim.command_limits()[0]}},
       {"vy_m_s", {-sim.command_limits()[1], sim.command_limits()[1]}},
@@ -371,14 +218,8 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
     observer->finish(summary);
   artifacts.close_streams();
   if (!args.summary_only) {
-    if (cameras) {
-      const auto camera_pose = sim.camera_pose();
-      cameras->render_into(sim.data(), camera_pose, sim.camera_pose("camera_depth"), frames);
-      artifacts.camera(sim.stamp_ns(), camera_pose, sim.camera_pose("camera_depth"), frames);
-    }
-    if (lidar && lidar_frames)
-      artifacts.lidar(last_scan, last_snapshot_pose, history,
-                      args.lidar_motion == "rolling", scan_model);
+    cameras.save(sim, artifacts);
+    lidar.save(artifacts);
   }
   artifacts.summary(summary);
   if (bridge) {

@@ -127,11 +127,11 @@ func (a *app) rosConfiguration(c *ui.Context) {
 			}
 		})
 		ui.Text(c, a.tr("External localization: disable this TF and use /ground_truth/odom for comparison only.", "外部定位：关闭此 TF，选择 /ground_truth/odom 仅作对照。")).FontSize(12).TextColor(c.Theme().TextMuted)
-		ui.Button(c, a.tr("Prepare adapters", "准备适配器")).FillWidth().Disabled(a.preparing || a.manager.Busy()).OnClick(func() { a.prepareAdapters(false) })
+		ui.Button(c, a.tr("Prepare adapters", "准备适配器")).FillWidth().Disabled(a.preparing || a.manager.Busy()).OnClick(a.action("ui_config.prepare_adapters", func() { a.prepareAdapters(false) }))
 	})
 	ui.Row(c).Gap(10).Children(func() {
-		ui.Button(c, a.tr("Export session", "导出会话")).Grow(1).OnClick(a.saveProfile)
-		ui.Button(c, a.tr("Import session", "导入会话")).Grow(1).OnClick(a.loadProfile)
+		ui.Button(c, a.tr("Export session", "导出会话")).Grow(1).OnClick(a.action("ui_config.export_session", a.saveProfile))
+		ui.Button(c, a.tr("Import session", "导入会话")).Grow(1).OnClick(a.action("ui_config.import_session", a.loadProfile))
 	})
 }
 func (a *app) cameraDeviceEnabled() bool { return a.cameraEnabled() || a.cfg.CameraModel == "d435i" }

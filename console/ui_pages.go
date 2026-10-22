@@ -41,11 +41,12 @@ func (a *app) navigation(c *ui.Context) {
 			if a.page == p.id && a.stage == "configure" {
 				label = "• " + label
 			}
-			ui.Button(c.Key("page-"+p.id), label).Disabled(a.stage != "configure").OnClick(func() { a.navigate(p.id) })
+			ui.Button(c.Key("page-"+p.id), label).Disabled(a.stage != "configure").OnClick(a.action("navigation."+p.id, func() { a.navigate(p.id) }))
 		}
 		if a.stage != "configure" {
 			ui.Text(c, a.tr("• Runtime", "• 运行操作台")).Bold()
 		}
+		ui.Button(c, a.tr("Logs", "日志")).OnClick(a.action("logs.open", func() { a.stopManual(); a.diagnostics.Open = !a.diagnostics.Open; a.refreshDiagnostics() }))
 		ui.Text(c, "").Grow(1)
 		if a.robotDirty() || a.sceneDirty() {
 			ui.Text(c, a.tr("Drafts retained · save to update presets", "草稿已保留 · 保存后更新预设")).FontSize(12).TextColor(c.Theme().TextMuted)
@@ -69,8 +70,8 @@ func (a *app) pageSidebar(c *ui.Context) {
 			}
 			ui.Text(c, dirty).Height(22).TextColor(c.Theme().Warning)
 			ui.Row(c).Gap(8).Children(func() {
-				ui.Button(c, a.tr("Save preset", "保存预设")).OnClick(func() { a.saveRobot(false) })
-				ui.Button(c, a.tr("Save as new", "另存为新预设")).OnClick(func() { a.saveRobot(true) })
+				ui.Button(c, a.tr("Save preset", "保存预设")).OnClick(a.action("ui_pages.save_preset", func() { a.saveRobot(false) }))
+				ui.Button(c, a.tr("Save as new", "另存为新预设")).OnClick(a.action("ui_pages.save_as_new", func() { a.saveRobot(true) }))
 			})
 		})
 		a.configuration(c)
@@ -83,16 +84,16 @@ func (a *app) pageSidebar(c *ui.Context) {
 func (a *app) pageAction(c *ui.Context) {
 	switch a.page {
 	case "scene":
-		ui.PrimaryButton(c, a.tr("Use scene", "使用此场景")).FillWidth().OnClick(func() {
+		ui.PrimaryButton(c, a.tr("Use scene", "使用此场景")).FillWidth().OnClick(a.action("ui_pages.use_scene", func() {
 			a.useScene()
 			if validateScene(&a.sceneDraft) == nil {
 				a.navigate("home")
 			}
-		})
+		}))
 	case "robot":
-		ui.PrimaryButton(c, a.tr("Back to launch", "返回启动页")).FillWidth().OnClick(func() { a.navigate("home") })
+		ui.PrimaryButton(c, a.tr("Back to launch", "返回启动页")).FillWidth().OnClick(a.action("ui_pages.back_to_launch", func() { a.navigate("home") }))
 	default:
-		ui.PrimaryButton(c, a.tr("Start session", "进入操控")).FillWidth().Disabled(a.loading || a.viewLoading || a.preparing || a.checking || !a.preflight.Ready || a.manager.Busy() || a.meta.State != "config").OnClick(a.startOperating)
+		ui.PrimaryButton(c, a.tr("Start session", "进入操控")).FillWidth().Disabled(a.loading || a.viewLoading || a.preparing || a.checking || !a.preflight.Ready || a.manager.Busy() || a.meta.State != "config").OnClick(a.action("ui_pages.start_session", a.startOperating))
 	}
 }
 func (a *app) launchSettings(c *ui.Context) {
@@ -119,7 +120,7 @@ func (a *app) launchSettings(c *ui.Context) {
 		if ui.Select(c.Key("robot-preset"), &selected, choices).FillWidth().Changed() {
 			a.chooseRobot(ids[selected])
 		}
-		ui.Button(c, a.tr("Edit robot preset", "编辑机器人预设")).FillWidth().OnClick(func() { a.navigate("robot") })
+		ui.Button(c, a.tr("Edit robot preset", "编辑机器人预设")).FillWidth().OnClick(a.action("ui_pages.edit_robot_preset", func() { a.navigate("robot") }))
 	})
 	section(c, a.tr("Scene", "场景"), func() {
 		choices, ids, custom := a.sceneChoices()
@@ -136,12 +137,12 @@ func (a *app) launchSettings(c *ui.Context) {
 		if ui.Select(c.Key("scene-library"), &selected, choices).FillWidth().Changed() {
 			a.chooseScene(ids[selected], custom)
 		}
-		ui.Button(c, a.tr("Open scene editor", "打开场景编辑器")).FillWidth().OnClick(func() {
+		ui.Button(c, a.tr("Open scene editor", "打开场景编辑器")).FillWidth().OnClick(a.action("ui_pages.open_scene_editor", func() {
 			if a.cfg.Scene == nil {
 				a.openTerrainScene()
 			}
 			a.navigate("scene")
-		})
+		}))
 	})
 	a.rosConfiguration(c)
 }

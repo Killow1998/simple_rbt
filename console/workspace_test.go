@@ -9,7 +9,8 @@ import (
 
 func workspaceApp(t *testing.T) *app {
 	t.Helper()
-	a := newApp(session.Options{}, defaultConfig())
+	a := newApp(session.Options{StateDir: t.TempDir()}, defaultConfig())
+	t.Cleanup(a.manager.Events.Close)
 	a.catalog = Catalog{Robots: map[string]RobotSpec{"go2": {DefaultController: "rl"}}, Models: map[string]json.RawMessage{"go2-rl": {}}, Terrains: map[string]json.RawMessage{"flat-standard": {}}}
 	return a
 }

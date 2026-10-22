@@ -33,6 +33,122 @@ A mount pose is relative to the robot base, with quaternion order `[w,x,y,z]`. N
 
 外参相对机器人 base，四元数顺序为 `[w,x,y,z]`。数值欧拉角与三维手柄修改同一 pose。MID360 内部 IMU 在雷达坐标中固定为 `[0.011,0.02329,-0.04412]` m，方向相同。调整设备时保持这一关系。控制器自身的机身 IMU 是另一感测点，不会被传感器配置移动。外参在首次开始之前编辑。
 
+### Logs and diagnostics / 日志与诊断
+
+Open **Logs** in the top navigation during configuration or operation. Daily
+logging is always on; enable **Detailed event tracing** for scan/image events and
+IPC/ROS publication diagnostics. High-rate clock and IMU events are summarized
+once per writer batch (approximately one second). Sensor, IPC, ROS and control/request tracing can
+be enabled independently. Live filters cover the latest 2,000 records / 4 MiB. **Search retained logs**
+explicitly scans the whole retained store in the background, keeping the latest
+500 matches; the page renders up to 200. These are display limits, not the
+retention limit. Refresh returns to live tailing. Export includes all retained
+records and a configuration manifest.
+
+配置和运行阶段均可从顶部“日志”进入。日常日志默认开启；打开“详细事件追踪”后，
+逐次记录扫描、图像及其 IPC／ROS 发布调用；高频时钟和 IMU 则在每批写入时
+（约一秒）汇总。传感器、进程通信、ROS、控制／
+请求可分别启用。实时筛选覆盖最近 2,000 条／4 MiB；“搜索全部保留日志”会在后台
+扫描整个保留目录，返回最新 500 条匹配，页面显示最多 200 条。刷新可返回实时日志。
+这是显示限制，不是存储限制。诊断包导出全部保留记录及配置清单。
+
+The managed store is `$XDG_STATE_HOME/simple-rbt/logs`, normally
+`~/.local/state/simple-rbt/logs`. Its **shared limit is 100,000,000 bytes (100 MB)**,
+including GUI, core and GUI-managed ROS records. Segments roll at 5 MB; a batch
+that would exceed the total limit evicts the oldest managed segments first. Only
+`srbt-<timestamp>-<pid>.jsonl` regular files in that directory are managed. Existing
+user files, run artifacts and explicit diagnostic exports are not removed.
+Exports are separate user-requested ZIP files outside this rolling quota.
+
+受管日志位于 `$XDG_STATE_HOME/simple-rbt/logs`，默认
+`~/.local/state/simple-rbt/logs`。GUI、核心及由 GUI 管理的 ROS 记录共用
+**100,000,000 字节（100 MB）**上限；每段约 5 MB，写入将超限时先移除最旧的
+受管段。仅管理该目录中 `srbt-时间戳-进程号.jsonl` 普通文件，不移除其他用户文件、
+实验产物或显式导出的诊断包。导出的 ZIP 是用户主动保存的文件，不计入自动轮转额度。
+
+Each producer has a 2 MiB queue and a background writer. Events enqueue in memory;
+writes happen in batches once per second, plus the final shutdown drain. A shared
+nonblocking file lock serializes retention and appends across processes. A busy
+store defers the batch to the next tick, without falsely reporting an I/O failure.
+Queue exhaustion and failed writes are counted;
+`logging.dropped` reports discarded records. The log page shows core/GUI writer
+health. Disk failure does not block physics; overflowing queues may lose events.
+No per-event fsync is used. A hard kill may lose the current buffered second;
+power loss can also lose OS-cached writes. A partially written last record is
+trimmed on the next append so later JSONL records remain readable.
+
+每个生产者使用 2 MiB 有界队列和后台写入线程／协程。事件先入内存，每秒批量写盘，
+正常关闭时再排空最后一批；不会每次扫描都触发文件写入。跨进程使用非阻塞文件锁
+串行执行容量清理和追加，繁忙时推迟到下次定时重试，不误报为磁盘写入失败。
+队列溢出、写入失败均计数，丢弃以
+`logging.dropped` 明示；页面显示核心和 GUI 写入状态。磁盘故障不阻塞物理循环，
+但队列耗尽可能丢事件。不逐事件 fsync；强杀可能丢失当前约一秒的缓冲，断电还可能
+丢失操作系统缓存。再次写入时修复末尾半条记录，保持后续 JSONL 可读。
+
+Records include schema version, session, writer identity, per-writer sequence,
+component, severity, UTC wall-clock nanoseconds, host monotonic nanoseconds,
+simulation time and structured fields. A sample is correlated by session plus
+`<stream>:<simulation timestamp>`; GUI actions and core requests have their own
+IDs. `ipc.offered` means offered to subscriber queues, not delivery confirmation;
+`ipc.received` records adapter receipt, and `ros.publish_called` means the ROS
+publish API returned, not that a downstream navigation node received it. Queue
+coalescing/drops appear in detailed IPC tracing. Text/parameter changes are captured
+at action boundaries or one-second checkpoints; pointer motion is coalesced rather
+than recorded per pixel. Full point clouds/images remain a separate recording task.
+
+事件包含格式版本、会话、写入者身份、进程内序号、模块、级别、UTC 墙钟纳秒、
+宿主单调时钟纳秒、仿真时间及结构化字段。使用会话＋“流名:仿真时间戳”关联传感器
+样本；GUI 操作与核心请求另有编号。`ipc.offered` 表示进入订阅者发送队列的尝试，
+不代表送达；`ipc.received` 表示适配器已收到，`ros.publish_called` 表示发布 API
+已返回，不代表导航节点已接收。详细 IPC 追踪记录合并／丢弃帧。参数和文本修改
+在操作边界或一秒检查点记录，不逐像素记录鼠标移动。完整点云／图像另用数据录制。
+
+For `clock`, `imu` and `camera_imu`, `stream.summary` preserves each pipeline
+stage separately: count, first/last simulation timestamp, payload byte total,
+and duplicate/backwards timestamp counts. Unexpected timestamp repeats/reversals
+also produce individual `stream.timestamp_anomaly` warnings, including across
+window boundaries. Session changes flush and reset the summaries. Different
+processes have independent batch boundaries: compare overlapping simulation time
+ranges, not adjacent lines. Summaries cannot reconstruct every sample or measure
+per-sample cross-process latency. Sensor data, IPC packets and ROS publications
+are unaffected. LiDAR/image events and errors retain their existing detail.
+
+`clock`、`imu`、`camera_imu` 使用 `stream.summary`，分别保留各环节的次数、
+首末仿真时间戳、载荷字节总数、时间戳重复／倒退次数。重复与倒退还会单独生成
+`stream.timestamp_anomaly` 警告，跨窗口亦可检测；更换会话时排空并重置汇总。
+不同进程的批次边界独立，应按重叠的仿真时间范围比较，不能直接对比相邻行。
+汇总无法还原每个样本，也不能计算逐样本的跨进程延迟。传感器数据、IPC 数据包和
+ROS 发布均不改变；雷达／图像事件及错误保留原有细节。
+
+For a short investigation requiring every clock/IMU trace, launch SpRobo with
+`SIMPLE_RBT_TRACE_RAW_HIGH_RATE=1` and enable detailed tracing. The launcher passes
+this setting to its core and both managed ROS adapters. For separately launched
+processes, set it in each process environment. Restart without this variable to
+restore summaries. This override increases log volume; the 100 MB quota and
+one-second batched writes still apply.
+
+需要短时间排查每条时钟／IMU 记录时，使用 `SIMPLE_RBT_TRACE_RAW_HIGH_RATE=1`
+启动 SpRobo 并开启详细追踪；启动器将此设置传给核心及两种 ROS 适配器。独立启动的
+进程需分别设置。移除该变量后重启即可恢复汇总；逐条模式仍遵守 100 MB 上限和
+每秒批量写入，但日志增长更快。
+
+The C++ core has no logging dependency on ROS or GUI. Standalone core/adapters use
+the same store format; `SIMPLE_RBT_LOG_DIR` overrides their store directory,
+`SIMPLE_RBT_TRACE=1` enables detailed tracing and `SIMPLE_RBT_TRACE_MODULES` accepts
+comma-separated `sensor,ipc,ros,control` (all by default). GUI-managed adapters emit
+batched structured stdout, which the GUI imports without rewriting event identity
+or timestamps; they do not require a writable host bind mount for logging. The
+core tells adapters the shared session and trace settings through existing IPC
+hello/metadata messages. Older adapters still work but have no structured tracing;
+prepare updated adapters to obtain the complete chain.
+
+C++ 核心记录日志不依赖 ROS 或 GUI。独立核心／适配器使用相同格式，支持
+`SIMPLE_RBT_LOG_DIR` 指定目录、`SIMPLE_RBT_TRACE=1` 开启追踪，以及
+`SIMPLE_RBT_TRACE_MODULES=sensor,ipc,ros,control` 选择模块，默认全部。GUI 管理的
+适配器批量输出结构化 stdout，由 GUI 保留原始身份和时间导入统一日志，无需为日志
+新增可写宿主挂载。核心通过既有 IPC hello／metadata 传递会话和追踪设置。
+旧适配器仍可通信，但不提供结构化追踪；完整链路需要准备更新后的适配器。
+
 ### Workspace and user scenes / 工作区与用户场景
 
 SpRobo stores versioned robot presets, scenes, drafts and the current configuration
@@ -199,6 +315,32 @@ MID360 produces 10 Hz scans, up to 20,000 CSV-ordered rays per frame and a synth
 
 MID360 为 10 Hz 扫描，每帧最多 20,000 条 CSV 顺序射线，使用合成的 200 kHz 点时钟；IMU 为 200 Hz。rolling 逐点插值刚体位姿，不做去畸变；排除机器人自身遮挡。CUDA 支持当前静态 plane／box 地形。`auto` 尝试 CUDA，无法使用时报告 CPU 回退；`cpu` 是显式的独立射线路径，回退后可能低于实时速度。`warp` 保留为原生 CUDA 的兼容名称。
 
+Both simulated IMUs (MID360 and D435i) measure completed native physics intervals.
+Specific force comes from the change in each site's world velocity, including its
+rigid lever arm, minus gravity. Angular rate comes from its rotation increment.
+An implicit integrator's instantaneous `qacc`/accelerometer and endpoint gyro do
+not describe the same averaged motion. At 200 Hz, specific impulses are accumulated
+in world axes; the net rotation is measured over that same 5 ms window. Both are
+expressed in the sensor frame at the window centre and timestamped there: the
+first published sample is **2.5 ms**, available after completing the first 5 ms.
+There is no fabricated zero-time IMU sample. This preserves temporal alignment
+with the unchanged rolling LiDAR point clock. Native `Simulation::imu()` reports
+per-physics-interval measurements at the interval end; the runtime resampler
+provides the centred 200 Hz public stream. Neither path injects position or
+orientation into an estimator. Controller body sensors and physics are unchanged;
+no artificial stationary warm-up is added. Consumers need normal initialization.
+
+MID360 和 D435i 均测量已完成的原生物理区间：加速度来自各自 site 的世界速度
+增量（包含刚性安装偏移）减去重力，角速度来自同一区间的旋转增量。隐式积分器的
+瞬时 `qacc`／accelerometer 与端点 gyro 不能直接代表同一段平均运动。
+200 Hz 输出按世界坐标累计 5 ms 内的比力冲量，并计算同一窗口内的净旋转；两者
+都转换到窗口中心的传感器坐标，并使用中心时间戳。首条发布样本为 **2.5 ms**，
+完成首个 5 ms 区间后才可用，不虚构零时刻 IMU 样本。雷达滚动扫描点时钟不变。
+原生 `Simulation::imu()` 提供物理区间末端标记的区间读数；运行时重采样器负责
+输出中心对齐的 200 Hz 数据。两者均不向估计器注入位置或姿态；控制器机身传感器
+和物理运动不变，不添加虚构的静止预热数据，使用者仍需正常初始化。
+
+
 Perspective output is RGB and metric Z-depth; panorama output is RGB and radial depth. Infinite depth means no surface was hit. A black upper image region can be the empty sky in the wall-bounded scene, rather than robot occlusion. The third-person operator view is independently rendered and does not alter sensor extrinsics.
 
 普通相机输出 RGB 和米制 Z 深度，全景输出 RGB 与径向深度；无限深度表示没有命中表面。围墙场景的黑色上方区域可能是空天空，不代表车体遮挡。第三视角独立渲染，不修改传感器外参。
@@ -261,8 +403,10 @@ Headless sessions can instead set `"source":"program"` and `"start_immediately":
 | --- | --- |
 | `src/core.cpp`, `src/scene.cpp`, `src/controllers/` | Physics, model assembly, control / 物理、模型装配、控制 |
 | `src/lidar*`, `src/cameras.cpp` | Sensor calculation / 传感器计算 |
-| `src/runtime.cpp`, `src/session.cpp` | Sampling, scheduling, session state / 采样、调度、会话 |
-| `ipc/`, `include/simple_rbt/ipc.hpp` | Neutral wire protocol / 普通进程通信协议 |
+| `src/runtime.cpp`, `src/session*.cpp` | Execution order, commands, pacing and session state / 执行顺序、命令、节奏与会话状态 |
+| `src/runtime_imu.*`, `src/runtime_lidar.*`, `src/runtime_cameras.*` | Per-sensor sampling, buffers, summaries and artifacts / 各传感器采样、缓冲、摘要与产物 |
+| `ipc/server.cpp`, `ipc/server_protocol.cpp`, `ipc/server_transport.cpp` | Connections, protocol validation, public transport methods / 连接、协议校验、公共传输方法 |
+| `console/session/wire.go`, `console/session/ipc.go` | Wire encoding and client lifetime / 帧编解码与客户端生命周期 |
 | `console/` | UI, projected gizmos, input and process lifecycle / 界面、三维手柄、输入与进程生命周期 |
 | `wrappers/`, `deployment/` | Independent ROS nodes and images / 独立 ROS 节点与镜像 |
 | `tests/`, `tools/` | Preparation and independent validation / 准备与独立验证 |
@@ -270,6 +414,22 @@ Headless sessions can instead set `"source":"program"` and `"start_immediately":
 User settings use `$XDG_CONFIG_HOME/simple-rbt`; state/results use `$XDG_STATE_HOME/simple-rbt` or the standard home-directory defaults. CLI output refuses an existing destination. `--summary-only` keeps the summary and compiled model without step/sensor files. Package removal preserves user data.
 
 设置位于 `$XDG_CONFIG_HOME/simple-rbt`，状态／结果位于 `$XDG_STATE_HOME/simple-rbt` 或对应 home 默认位置。命令行输出拒绝覆盖已有目录。`--summary-only` 保留摘要与编译模型，不保存逐步／传感器文件。卸载保留用户数据。
+
+Sensor implementations own their sample buffers and metadata; adding sensor logic does not require editing the physics/controller loop. IPC framing remains independent of GUI lifecycle and ROS conversion. Camera render contexts are allocated only for views actually rendered. The observer refresh interval starts after a completed frame so slow software rendering cannot monopolize every physics tick. Software RGB/depth/panorama rendering is still not guaranteed to run in real time.
+
+传感器实现各自管理采样缓冲与元数据，修改其内部实现不需要改动物理／控制器循环。IPC 帧编解码独立于 GUI 生命周期及 ROS 转换。相机只为实际渲染的视图创建上下文；观察窗口从一帧完成后重新计算刷新间隔，避免慢帧占满每个物理步。软件 RGB／深度／全景渲染仍不保证实时。
+
+Tests are registered in `tests/CMakeLists.txt`; production modules contain no test registration. `BUILD_TESTING=OFF` omits test executables. CI links the same `simple_rbt_ipc` library through `ros_ipc_fixture`, without maintaining a second source list. Source worker tests use `SIMPLE_RBT_CPP_DATA_ROOT` to avoid accidentally loading an older installed asset tree.
+
+测试集中登记在 `tests/CMakeLists.txt`，生产模块不再夹带测试配置。`BUILD_TESTING=OFF` 不构建测试程序；CI 的 `ros_ipc_fixture` 链接正式 IPC 库，无需同步维护第二份源码清单。源码 worker 测试用 `SIMPLE_RBT_CPP_DATA_ROOT` 显式指定对应资源，避免混入旧安装版本。
+
+```sh
+cmake --build build/optimization --target imu_consistency
+ctest --test-dir build/optimization -L sensors --output-on-failure
+ctest --test-dir build/optimization -L ipc --output-on-failure
+python3 tools/validate_runtime_parity.py --before /path/to/baseline/simple-rbt-sim \
+  --after build/optimization/simple-rbt-sim --output output/new-runtime-parity
+```
 
 Current acceptance is recorded in [console design and validation](desktop-console-plan.md). Earlier dated reports preserve their own source identity and conditions.
 当前验收见[操作台设计与验证](desktop-console-plan.md)；此前带日期的记录保留当时的代码身份和测试条件。

@@ -8,6 +8,7 @@ namespace simple_rbt::ipc::detail {
 using Bytes = std::vector<std::uint8_t>;
 Bytes frame(const Packet &);
 struct Socket {
+  std::uint64_t dropped=0;
   int fd = -1;
   Bytes input;
   std::deque<std::shared_ptr<const Bytes>> output;

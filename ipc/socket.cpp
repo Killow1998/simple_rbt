@@ -1,3 +1,4 @@
+#include "simple_rbt/event_log.hpp"
 #include "socket.hpp"
 #include <algorithm>
 #include <array>
@@ -55,6 +56,7 @@ Socket &Socket::operator=(Socket &&x) noexcept {
     output = std::move(x.output);
     sent = x.sent;
     queued_bytes = x.queued_bytes;
+    dropped=x.dropped;
   }
   return *this;
 }
@@ -73,6 +75,7 @@ bool Socket::enqueue(std::shared_ptr<const Bytes> b, bool replace_old,
       if (get(**it, 6, 2) == get(*b, 6, 2)) {
         queued_bytes -= (*it)->size();
         it = output.erase(it);
+        ++dropped;
       } else
         ++it;
     }
@@ -86,6 +89,7 @@ bool Socket::enqueue(std::shared_ptr<const Bytes> b, bool replace_old,
     auto discard = output.begin() + (sent ? 1 : 0);
     queued_bytes -= (*discard)->size();
     output.erase(discard);
+    ++dropped;
   }
   queued_bytes += b->size();
   output.push_back(std::move(b));

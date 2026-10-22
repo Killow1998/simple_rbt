@@ -3,45 +3,22 @@ package session
 
 import (
 	"crypto/rand"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"path/filepath"
+	"simple-rbt/console/diagnostics"
 	"sync"
 	"time"
 )
 
-type Kind uint16
-
-const (
-	KindHello Kind = iota + 1
-	KindRequest
-	KindCommand
-	KindClock
-	KindIMU
-	KindLidar
-	KindOdometry
-	KindCamera
-	KindPanorama
-	KindStatus
-	KindMetadata
-	KindView
-	KindError
-	KindCameraIMU
-)
-const MaxPayload = 32 * 1024 * 1024
-const ProtocolVersion = 1
-
-type Packet struct {
-	Kind    Kind
-	StampNS uint64
-	Payload []byte
-}
 type Client struct {
+	Events        *diagnostics.Log
+	requestSeq    uint64
+	action        string
+	lastCommand   [3]float64
 	subscriptions []string
 	mu            sync.Mutex
 	writeMu       sync.Mutex
@@ -115,6 +92,9 @@ func (c *Client) Connect(dir string) error {
 		c.Close()
 		return err
 	}
+	if c.Events != nil {
+		c.Events.Event("ipc.connected", nil)
+	}
 	c.stage(first, generation)
 	go c.read(control, generation)
 	go c.read(data, generation)
@@ -179,6 +159,9 @@ func (c *Client) disconnect(generation uint64) {
 	if data != nil {
 		data.Close()
 	}
+	if c.Events != nil && (control != nil || data != nil) {
+		c.Events.Event("ipc.disconnected", nil)
+	}
 	if callback != nil && (control != nil || data != nil) {
 		callback()
 	}
@@ -222,52 +205,38 @@ func (c *Client) send(kind Kind, value any) error {
 	}
 	return err
 }
-func (c *Client) SendRequest(value map[string]any) error { return c.send(KindRequest, value) }
+func (c *Client) SetAction(id string) { c.mu.Lock(); c.action = id; c.mu.Unlock() }
+func (c *Client) SendRequest(value map[string]any) error {
+	copy := map[string]any{}
+	for k, v := range value {
+		copy[k] = v
+	}
+	c.mu.Lock()
+	c.requestSeq++
+	id := fmt.Sprintf("gui-%d-%d", time.Now().UnixNano(), c.requestSeq)
+	copy["request_id"] = id
+	copy["action_id"] = c.action
+	c.mu.Unlock()
+	level := "info"
+	if value["op"] == "view" || value["op"] == "mount" {
+		level = "trace"
+	}
+	if c.Events != nil {
+		c.Events.Emit("request.sent", level, copy)
+	}
+	err := c.send(KindRequest, copy)
+	if err != nil && c.Events != nil {
+		c.Events.Emit("request.send_failed", "error", map[string]any{"request_id": id, "message": err.Error()})
+	}
+	return err
+}
 func (c *Client) SendCommand(value [3]float64) error {
+	c.mu.Lock()
+	changed := value != c.lastCommand
+	c.lastCommand = value
+	c.mu.Unlock()
+	if changed && c.Events != nil {
+		c.Events.Event("command.sent", map[string]any{"velocity": value})
+	}
 	return c.send(KindCommand, map[string]any{"velocity": value})
-}
-func readPacket(reader io.Reader) (Packet, error) {
-	var header [24]byte
-	if _, err := io.ReadFull(reader, header[:]); err != nil {
-		return Packet{}, err
-	}
-	kind := Kind(binary.LittleEndian.Uint16(header[6:8]))
-	length := binary.LittleEndian.Uint32(header[16:20])
-	if string(header[:4]) != "SRBT" || binary.LittleEndian.Uint16(header[4:6]) != ProtocolVersion || binary.LittleEndian.Uint32(header[20:24]) != 0 || kind < KindHello || kind > KindCameraIMU || length > MaxPayload {
-		return Packet{}, errors.New("unsupported or oversized IPC frame")
-	}
-	packet := Packet{Kind: kind, StampNS: binary.LittleEndian.Uint64(header[8:16]), Payload: make([]byte, length)}
-	_, err := io.ReadFull(reader, packet.Payload)
-	return packet, err
-}
-func writePacket(writer io.Writer, packet Packet) error {
-	if len(packet.Payload) > MaxPayload {
-		return errors.New("IPC payload is too large")
-	}
-	frame := make([]byte, 24+len(packet.Payload))
-	copy(frame, "SRBT")
-	binary.LittleEndian.PutUint16(frame[4:6], ProtocolVersion)
-	binary.LittleEndian.PutUint16(frame[6:8], uint16(packet.Kind))
-	binary.LittleEndian.PutUint64(frame[8:16], packet.StampNS)
-	binary.LittleEndian.PutUint32(frame[16:20], uint32(len(packet.Payload)))
-	copy(frame[24:], packet.Payload)
-	for len(frame) > 0 {
-		written, err := writer.Write(frame)
-		if err != nil {
-			return err
-		}
-		if written == 0 {
-			return io.ErrShortWrite
-		}
-		frame = frame[written:]
-	}
-	return nil
-}
-func DecodeJSON(packet Packet) (map[string]any, error) {
-	var result map[string]any
-	err := json.Unmarshal(packet.Payload, &result)
-	if err != nil {
-		return nil, fmt.Errorf("core JSON: %w", err)
-	}
-	return result, nil
 }

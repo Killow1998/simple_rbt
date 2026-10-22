@@ -25,6 +25,7 @@ func (a *app) manualVelocity(input Vec3) Vec3 {
 	return input
 }
 func (a *app) keyboardInput(ev ui.InputEvent) bool {
+	a.auditInput(ev, "drive_keyboard")
 	if !a.manualMode() || (ev.Kind != ui.InputKeyDown && ev.Kind != ui.InputKeyUp) {
 		return false
 	}

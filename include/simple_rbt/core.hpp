@@ -44,6 +44,8 @@ public:
   ImuSample camera_imu() const;
   Vec3 linear_velocity() const;
   Vec3 angular_velocity() const;
+  // Specific force and angular rate averaged over the last native physics
+  // interval, in the current sensor frame. At time zero this is the instantaneous native sensor.
   ImuSample imu() const;
   const Vec3 &command() const;
   const Vec3 &command_limits() const;

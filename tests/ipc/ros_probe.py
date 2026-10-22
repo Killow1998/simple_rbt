@@ -15,14 +15,22 @@ odom_topic = "/ground_truth/odom" if args.external_odometry else "/odom"
 odometry_samples=[]
 lidar_stamps=[]
 camera_imu_stamps=[]
+imu_stamps=[]
 custom_frames={}
 cloud_frames={}
 def stamp_ns(stamp):
     return stamp.sec*1000000000+stamp.nanosec if version=='ros2' else stamp.to_nsec()
+def centred_imu_clock(stamps):
+    intervals = [b-a for a,b in zip(stamps, stamps[1:])]
+    return (len(stamps)>100 and statistics.median(intervals)==5000000
+            and all(ns%5000000==2500000 for ns in stamps)
+            and all(dt>0 and dt%5000000==0 for dt in intervals))
+
 def received(name):
     def callback(message):
         seen[name] = message
         if name=="camera_imu":camera_imu_stamps.append(stamp_ns(message.header.stamp))
+        if name=="imu":imu_stamps.append(stamp_ns(message.header.stamp))
         if name=="odom":odometry_samples.append((time.monotonic(),message.twist.twist.linear.x))
         if name in ('lidar','points'):
             ns=stamp_ns(message.header.stamp)
@@ -191,10 +199,11 @@ if args.physical:
     if 'lidar' in seen:checks['lidar_nonempty']=seen['lidar'].point_num==len(seen['lidar'].points)>0
     if 'rgb' in seen:checks['image_complete']=len(seen['rgb'].data)==seen['rgb'].width*seen['rgb'].height*3
     if 'depth' in seen:checks['depth_complete']=len(seen['depth'].data)==seen['depth'].width*seen['depth'].height*4
+    if 'imu' in seen: checks['imu_200hz']=centred_imu_clock(imu_stamps)
     if args.camera_imu:
         imu=seen.get('camera_imu')
         checks['camera_imu_si_frame']=imu is not None and imu.header.frame_id=='camera_imu_optical_frame' and imu.orientation_covariance[0]==-1 and all(math.isfinite(getattr(imu.linear_acceleration,a)) for a in ['x','y','z'])
-        checks['camera_imu_200hz']=len(camera_imu_stamps)>100 and statistics.median(b-a for a,b in zip(camera_imu_stamps,camera_imu_stamps[1:]))==5000000 and all(ns%5000000==0 for ns in camera_imu_stamps) and all(a<b and (b-a)%5000000==0 for a,b in zip(camera_imu_stamps,camera_imu_stamps[1:]))
+        checks['camera_imu_200hz']=centred_imu_clock(camera_imu_stamps)
         checks['camera_imu_optical_gravity']=imu is not None and -12<imu.linear_acceleration.y<-7 and abs(imu.linear_acceleration.z)<3
     if not args.no_camera and not args.motion_only:
         transforms={t.child_frame_id:t for t in seen.get('tf',TFMessage()).transforms}

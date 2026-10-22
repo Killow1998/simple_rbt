@@ -13,8 +13,8 @@ func (a *app) sceneSidebar(c *ui.Context) {
 		ui.Text(c, a.tr("Unsaved changes", "未保存的修改")).TextColor(c.Theme().Warning)
 	}
 	ui.Row(c).Gap(6).Children(func() {
-		ui.Button(c, a.tr("Save scene", "保存场景")).OnClick(func() { a.saveScene(false) })
-		ui.Button(c, a.tr("Save as", "另存为")).OnClick(func() { a.saveScene(true) })
+		ui.Button(c, a.tr("Save scene", "保存场景")).OnClick(a.action("ui_scene.save_scene", func() { a.saveScene(false) }))
+		ui.Button(c, a.tr("Save as", "另存为")).OnClick(a.action("ui_scene.save_as", func() { a.saveScene(true) }))
 	})
 	ui.Row(c).Gap(6).Children(func() {
 		for _, two := range []bool{false, true} {
@@ -23,14 +23,14 @@ func (a *app) sceneSidebar(c *ui.Context) {
 			if two {
 				label = a.tr("Two floors", "双层模板")
 			}
-			ui.Button(c, label).OnClick(func() {
+			ui.Button(c, label).OnClick(a.action("ui_scene.two_floors", func() {
 				a.checkpoint()
 				a.sceneDraft = a.newScene(two)
 				a.sceneFloor = a.sceneDraft.Floors[0].ID
 				a.sceneObject = ""
 				a.hiddenFloors = map[string]bool{}
 				a.checkpoint()
-			})
+			}))
 		}
 	})
 	ui.Text(c, a.tr("Floors & objects", "楼层与物体")).Bold().Margin(12, 0, 4, 0)
@@ -40,7 +40,7 @@ func (a *app) sceneSidebar(c *ui.Context) {
 		if a.sceneFloor == f.ID {
 			label = "• " + label
 		}
-		ui.Button(c.Key("floor-"+f.ID), label).FillWidth().OnClick(func() { a.sceneFloor = f.ID; a.sceneObject = "" })
+		ui.Button(c.Key("floor-"+f.ID), label).FillWidth().OnClick(a.action("scene.select_floor."+f.ID, func() { a.sceneFloor = f.ID; a.sceneObject = "" }))
 		visible := !a.hiddenFloors[f.ID]
 		if ui.Checkbox(c.Key("floor-visible-"+f.ID), &visible, a.tr("Show in editor", "编辑器中显示")).Changed() {
 			a.hiddenFloors[f.ID] = !visible
@@ -55,11 +55,11 @@ func (a *app) sceneSidebar(c *ui.Context) {
 				if a.sceneObject == o.ID {
 					label = "• " + label
 				}
-				ui.Button(c.Key("object-"+o.ID), label).FillWidth().OnClick(func() { a.sceneObject = o.ID })
+				ui.Button(c.Key("object-"+o.ID), label).FillWidth().OnClick(a.action("scene.select_object."+o.ID, func() { a.sceneObject = o.ID }))
 			}
 		}
 	}
-	ui.Button(c, a.tr("Add floor", "添加楼层")).FillWidth().Disabled(len(a.sceneDraft.Floors) >= 32).OnClick(func() {
+	ui.Button(c, a.tr("Add floor", "添加楼层")).FillWidth().Disabled(len(a.sceneDraft.Floors) >= 32).OnClick(a.action("ui_scene.add_floor", func() {
 		h := 0.
 		for _, f := range a.sceneDraft.Floors {
 			if f.Height >= h {
@@ -70,13 +70,13 @@ func (a *app) sceneSidebar(c *ui.Context) {
 		a.sceneDraft.Floors = append(a.sceneDraft.Floors, f)
 		a.sceneFloor = f.ID
 		a.sceneObject = ""
-	})
+	}))
 	ui.Text(c, a.tr("Place object", "放置物体")).Bold().Margin(12, 0, 4, 0)
 	for _, kind := range []string{"floor", "wall", "ramp", "stairs", "obstacle"} {
 		kind := kind
-		ui.Button(c, a.sceneKindLabel(kind)).FillWidth().Disabled(len(a.sceneDraft.Objects) >= 512).OnClick(func() { a.addSceneObject(kind) })
+		ui.Button(c, a.sceneKindLabel(kind)).FillWidth().Disabled(len(a.sceneDraft.Objects) >= 512).OnClick(a.action("scene.add."+kind, func() { a.addSceneObject(kind) }))
 	}
-	ui.Button(c, a.tr("Robot spawn", "机器人出生点")).FillWidth().OnClick(func() { a.sceneObject = "spawn" })
+	ui.Button(c, a.tr("Robot spawn", "机器人出生点")).FillWidth().OnClick(a.action("ui_scene.robot_spawn", func() { a.sceneObject = "spawn" }))
 	ui.Text(c, a.tr("Hidden floors still exist in simulation.", "隐藏楼层仅影响编辑视图，仿真中仍然存在。")).FontSize(12).TextColor(c.Theme().TextMuted)
 }
 func (a *app) sceneKindLabel(kind string) string {
@@ -117,7 +117,7 @@ func (a *app) sceneEditor(c *ui.Context) {
 		ui.Text(c, a.tr("Scene editor", "场景编辑器")).Bold().Grow(1)
 		a.localizedSelect(c.Key("tool"), &a.tool, []string{"Move / 平移", "Rotate / 旋转"}).Width(130)
 		a.localizedSelect(c.Key("space"), &a.space, []string{"World / 世界", "Local / 设备"}).Width(130)
-		ui.Button(c, a.tr("Focus selection", "聚焦所选")).OnClick(func() {
+		ui.Button(c, a.tr("Focus selection", "聚焦所选")).OnClick(a.action("ui_scene.focus_selection", func() {
 			if p, ok := a.editPose(); ok {
 				a.sceneLookat = p.Position
 				a.viewport.Distance = 8
@@ -126,7 +126,7 @@ func (a *app) sceneEditor(c *ui.Context) {
 					a.viewport.Distance = clamp(norm(sub(high, low))*1.5, 8, 100)
 				}
 			}
-		})
+		}))
 	})
 	ui.Text(c, a.tr("Drag axes · right-drag to orbit · Shift + right-drag to pan · scroll to zoom", "拖动操作轴；右键环绕；Shift＋右键平移视图；滚轮缩放")).FontSize(12).TextColor(c.Theme().TextMuted)
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Gap(12).Children(func() {
@@ -188,14 +188,14 @@ func (a *app) sceneInspector(c *ui.Context) {
 		}
 		a.editVector(c, a.tr("Dimensions · m", "尺寸 · 米"), &o.Size, .02, 200)
 	}
-	ui.Button(c, a.tr("Duplicate object", "复制物体")).FillWidth().Disabled(len(a.sceneDraft.Objects) >= 512).OnClick(func() {
+	ui.Button(c, a.tr("Duplicate object", "复制物体")).FillWidth().Disabled(len(a.sceneDraft.Objects) >= 512).OnClick(a.action("ui_scene.duplicate_object", func() {
 		copy := clone(*o)
 		copy.ID = newID()
 		copy.Name += a.tr(" copy", " 副本")
 		copy.Position[0] += 1
 		a.sceneDraft.Objects = append(a.sceneDraft.Objects, copy)
 		a.sceneObject = copy.ID
-	})
+	}))
 	a.openingInspector(c, o)
 	a.alignmentInspector(c, o)
 }

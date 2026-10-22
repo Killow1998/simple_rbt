@@ -42,8 +42,8 @@ func (a *app) connectionPanel(c *ui.Context) {
 		ui.Text(c, a.tr("Counts show core connections, not ROS command publishers.", "数量表示核心连接，不代表 ROS 指令发布者。")).FontSize(12).TextColor(c.Theme().TextMuted)
 		topic := "/" + a.cfg.Robot + "/cmd_vel"
 		ui.Text(c, topic).FontSize(12)
-		ui.Button(c, a.tr("Copy command topic", "复制控制话题")).FillWidth().OnClick(func() { mygo.Clipboard.WriteText(topic) })
-		ui.Button(c, a.tr("Copy IPC session path", "复制 IPC 会话路径")).FillWidth().Disabled(!a.manager.Client.Connected()).OnClick(func() { mygo.Clipboard.WriteText(a.manager.Directory()) })
+		ui.Button(c, a.tr("Copy command topic", "复制控制话题")).FillWidth().OnClick(a.action("ui_connection.copy_command_topic", func() { mygo.Clipboard.WriteText(topic) }))
+		ui.Button(c, a.tr("Copy IPC session path", "复制 IPC 会话路径")).FillWidth().Disabled(!a.manager.Client.Connected()).OnClick(a.action("ui_connection.copy_ipc_session_path", func() { mygo.Clipboard.WriteText(a.manager.Directory()) }))
 		ui.Text(c, a.tr("Update commands at 20 Hz. After 0.5 s without commands, the core requests zero velocity.", "建议以 20 Hz 更新指令；超过 0.5 秒未更新，核心给出零速度指令。")).FontSize(12).TextColor(c.Theme().TextMuted)
 		if a.meta.Source == "gui" {
 			ui.Text(c, a.tr("Manual: losing focus clears input.", "手动控制：窗口失焦清零输入。")).FontSize(12)

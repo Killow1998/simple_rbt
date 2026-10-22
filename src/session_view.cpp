@@ -1,3 +1,4 @@
+#include "simple_rbt/event_log.hpp"
 #include "resources.hpp"
 #include "session_observer.hpp"
 #include <cmath>
@@ -31,7 +32,7 @@ OpticalPose ObserverView::pose() {
 }
 Json SessionObserver::metadata() {
   OpticalPose eye = view_.pose();
-  return {{"robot", config_.value("robot", std::string("ranger_mini"))},
+  return {{"logging", diagnostics::log().health()}, {"robot", config_.value("robot", std::string("ranger_mini"))},
           {"running", running_ && !closing_},
           {"session_state", closing_   ? "closed"
                             : running_ ? "running"
@@ -101,7 +102,10 @@ void SessionObserver::publish_metadata(double now) {
   cpu_wall_ = now;
   simulation_time_ = sim_->data()->time;
   auto data = metadata();
+  const std::string state=data.at("command_status").at("state");
+  if(state!=last_command_state_) {diagnostics::log().event("command.state",data.at("command_status"),sim_->stamp_ns(),state=="timed_out"?"warning":"info");last_command_state_=state;}
   server_->update_metadata(data);
+  if(now-last_log_>=5) {diagnostics::log().event("resources.sample",resources_,sim_->stamp_ns());last_log_=now;}
   last_metadata_ = now;
 }
 void SessionObserver::tick() {
@@ -123,6 +127,9 @@ void SessionObserver::tick() {
                                view_.height, view_.fov);
     server_->publish_packet(
         ipc::encode_camera(sim_->stamp_ns(), image_, ipc::Kind::View));
+    // A slow observer frame must not immediately trigger another render on
+    // the next physics tick. Reserve the refresh interval for simulation work.
+    now = monotonic_seconds();
     last_view_ = now;
     dirty_ = false;
   }

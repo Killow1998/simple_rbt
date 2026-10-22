@@ -1,3 +1,4 @@
+#include "simple_rbt/event_log.hpp"
 #include "resources.hpp"
 #include "session_observer.hpp"
 #include <chrono>
@@ -13,7 +14,10 @@ void SessionObserver::requests() {
       if (closing_)
         continue;
       const auto op = r.at("op").get<std::string>();
-      if (op == "shutdown") {
+      if (op == "logging") {
+        if(r.contains("modules")) diagnostics::log().set_modules(r.at("modules").get<std::vector<std::string>>());
+        diagnostics::log().set_trace(r.at("trace").get<bool>());
+      } else if (op == "shutdown") {
         closing_ = true;
         running_ = false;
         server_->set_running(false);
@@ -80,8 +84,10 @@ void SessionObserver::requests() {
         view_ = candidate;
       } else
         throw std::invalid_argument("Unknown session operation");
+      diagnostics::log().event("request.applied",{{"request_id",r.value("request_id",std::string())},{"operation",op},{"request",r}},sim_->stamp_ns(),(op=="view" || op=="mount")?"trace":"info");
       last_metadata_ = 0;
     } catch (const std::exception &e) {
+      diagnostics::log().event("request.failed",{{"request",r},{"message",e.what()}},sim_->stamp_ns(),"error");
       server_->publish_json(ipc::Kind::Error,
                             {{"message", e.what()}, {"request", r}});
     }

@@ -14,7 +14,7 @@ func adapterContext(source, version string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	files := []string{"deployment/" + version, "include", "ipc", "wrappers", "third_party/nlohmann", "interfaces/livox_ros_driver2", "src/robots.cpp"}
+	files := []string{"deployment/" + version, "include", "ipc", "diagnostics", "wrappers", "third_party/nlohmann", "interfaces/livox_ros_driver2", "src/robots.cpp"}
 	for _, relative := range files {
 		root := filepath.Join(source, relative)
 		err = filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
