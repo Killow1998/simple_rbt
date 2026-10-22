@@ -9,6 +9,7 @@
     "src/render/classic/render_context.h": "33dcdb796ea209300815aa2a31d8c53e46689625aa73300fca1ef567d36798a0",
     "src/engine/engine_vis_init.c": "3379b720b54141fca798ab1f9987f3561595fb0eb28cceed7b33df80a2572f58",
     "src/engine/engine_sort.h": "3875bd0f2979f71dbe0afc86826e9086f805a678d6b536077c755da1fbf23bcf",
-    "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "src/render/classic/render_context.c": "18c24422f28082e6df572c45812261a62db7cffa17ab656669ec0d28ed82fd54"
   }
 }

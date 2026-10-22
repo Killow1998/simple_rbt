@@ -1,5 +1,7 @@
 #define GL_GLEXT_PROTOTYPES
 #include "camera_render.hpp"
+#include "camera_lighting.hpp"
+#include "camera_mesh.hpp"
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <algorithm>
@@ -11,7 +13,10 @@ namespace {
 struct Batch {
   bool fresh = true, cull = true, clip_control = false;
   const mjrContext *context = nullptr;
-  float near = 0, far = 0, planes[4][4]{};
+  float near = 0, far = 0, planes[5][4]{};
+  CameraMeshes *meshes = nullptr;
+  CameraLighting *lighting = nullptr;
+  bool fuse = false;
 };
 #if mjVERSION_HEADER == 3015000
 // The classic renderer has private functions, so keep the pinned adaptation
@@ -43,16 +48,28 @@ void set_planes(const float *projection, const float *view) {
     for (int j = 0; j < 4; j++)
       for (int k = 0; k < 4; k++)
         matrix[4 * j + i] += double(projection[4 * k + i]) * view[4 * j + k];
-  // Side planes suffice; omit near/far rejection to remain conservative at
-  // clipping boundaries. Include the scene transform through the view matrix.
-  for (int n = 0; n < 4; n++) {
+  // Four sides and the reverse-Z near plane. This also skips high-poly sensor
+  // housings entirely behind the near clip. Keep the 0.1 mm boundary margin.
+  // Far-plane rejection is unnecessary; shadow casters bypass all view planes.
+  for (int n = 0; n < 5; n++) {
     double p[4];
     for (int j = 0; j < 4; j++)
-      p[j] = matrix[4 * j + 3] + (n % 2 ? -1 : 1) * matrix[4 * j + n / 2];
+      p[j] = matrix[4 * j + 3] +
+             (n == 4 ? -matrix[4 * j + 2]
+                     : (n % 2 ? -1 : 1) * matrix[4 * j + n / 2]);
     double length = std::sqrt(p[0] * p[0] + p[1] * p[1] + p[2] * p[2]);
     for (int j = 0; j < 4; j++)
       active->planes[n][j] = p[j] / length;
   }
+}
+bool fused_geom(const mjvGeom *g, const mjrContext *c) {
+  return active->cull && active->fuse && active->meshes->contains(g) &&
+         active->lighting->supports(g, c);
+}
+void draw_mesh(const mjvGeom *g, int mode, const mjrContext *c) {
+  if (!active->cull || !active->meshes ||
+      !active->meshes->draw(g, mode, active->near))
+    glCallList(c->baseMesh + g->dataid);
 }
 #include "mujoco_classic/engine_sort.h"
 #include "mujoco_classic/helpers.inc"
@@ -63,13 +80,21 @@ void set_planes(const float *projection, const float *view) {
 struct CameraRender::Impl {
   bool software = false, supported = false;
   Batch batch;
+  std::unique_ptr<CameraMeshes> meshes;
+  std::unique_ptr<CameraLighting> lighting;
 };
-CameraRender::CameraRender(const std::string &renderer)
+CameraRender::CameraRender(const std::string &renderer, const mjModel *model)
     : p_(std::make_unique<Impl>()) {
   p_->software = renderer.find("llvmpipe") != std::string::npos ||
                  renderer.find("softpipe") != std::string::npos;
 #if mjVERSION_HEADER == 3015000
   p_->supported = p_->software && mj_version() == mjVERSION_HEADER;
+  if (p_->supported) {
+    p_->meshes = std::make_unique<CameraMeshes>(model);
+    p_->lighting = std::make_unique<CameraLighting>();
+    p_->batch.meshes = p_->meshes.get();
+    p_->batch.lighting = p_->lighting.get();
+  }
 #endif
   const auto *extensions =
       reinterpret_cast<const char *>(glGetString(GL_EXTENSIONS));
@@ -90,6 +115,7 @@ void CameraRender::render(mjrRect viewport, mjvScene *scene,
       ~Restore() { active = previous; }
     } restore;
     active = &p_->batch;
+    active->fuse = p_->lighting->supports(scene, context);
     render_classic(viewport, scene, context);
     return;
   }

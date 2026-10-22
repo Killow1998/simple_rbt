@@ -279,7 +279,7 @@ struct CameraRig::Impl {
   CameraFrame face, depth_frame;
 
   Impl(mjModel* input_model, CameraConfig input_config)
-      : model(checked(input_model)), config(checked(input_config)), egl(), renderer(egl.renderer), scene(model),
+      : model(checked(input_model)), config(checked(input_config)), egl(), renderer(egl.renderer, model), scene(model),
         lookup(config.render_panorama ? make_lookup(config) : Lookup{}) {
     mjv_defaultOption(&option);
     option.sitegroup[3] = 0;

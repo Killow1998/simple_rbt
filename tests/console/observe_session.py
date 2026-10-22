@@ -50,12 +50,13 @@ def read_exact(connection, count):
 
 
 class Observer:
-    def __init__(self, directory, role="gui"):
+    def __init__(self, directory, role="gui", view=False):
         self.lock = threading.Lock()
         self.metadata, self.velocity, self.closed = {}, [0, 0, 0], False
         self.connections = []
+        self.preview_size = None
         hello = json.dumps({"role": role, "token": uuid.uuid4().hex,
-                            "subscriptions": ["metadata", "odom"]}).encode()
+                            "subscriptions": ["metadata", "odom"] + (["view"] if view else [])}).encode()
         for name in ("control", "data"):
             connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             connection.connect(str(directory / (name+".sock")))
@@ -81,6 +82,8 @@ class Observer:
                 with self.lock:
                     if kind == 11:
                         self.metadata = json.loads(data)
+                    elif kind == 12:
+                        self.preview_size = struct.unpack_from("<II", data)
                     elif kind == 7:
                         self.velocity = list(struct.unpack("<13d", data)[7:10])
         except (EOFError, OSError):
@@ -89,6 +92,12 @@ class Observer:
     def snapshot(self):
         with self.lock:
             return json.loads(json.dumps(self.metadata)), self.velocity[:]
+
+    def preview_ready(self, metadata):
+        # A config handshake precedes model/renderer initialization. Wait for a
+        # real frame from this worker, not a fixed sleep or the previous image.
+        view = metadata.get("observer", {})
+        return self.preview_size == (view.get("width"), view.get("height"))
 
     def wait(self, predicate, timeout=8):
         deadline = time.monotonic()+timeout

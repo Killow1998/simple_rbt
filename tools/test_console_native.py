@@ -89,8 +89,8 @@ def main():
             "--assets", str(args.assets.resolve()), "--config", str(output / "config.json"),
             "--capture", str(output / "live-scene.png"), "--capture-after-ms", "80000"], env=env, stdout=log, stderr=subprocess.STDOUT)
         try:
-            directory = child_session(process.pid); observer = Observer(directory)
-            metadata, _ = observer.wait(lambda m, v: m.get("session_state") == "config")
+            directory = child_session(process.pid); observer = Observer(directory, view=True)
+            metadata, _ = observer.wait(lambda m, v: m.get("session_state") == "config" and observer.preview_ready(m))
             time.sleep(1)
             inputs = Inputs(args.display); window = inputs.window(); inputs.focus(window)
             inputs.click(175,90); time.sleep(.4)
@@ -113,8 +113,8 @@ def main():
             choose_robot(index=robot_names.index("ranger_mini"))
             observer.close()
             directory = child_session(process.pid, exclude=directory, robot="ranger_mini")
-            observer = Observer(directory)
-            metadata, _ = observer.wait(lambda m, v: m.get("session_state") == "config" and m.get("robot") == "ranger_mini")
+            observer = Observer(directory, view=True)
+            metadata, _ = observer.wait(lambda m, v: m.get("session_state") == "config" and observer.preview_ready(m) and m.get("robot") == "ranger_mini")
             time.sleep(.5)
             check("rapid native robot changes retain one latest worker", len(owned_workers(process.pid)) == 1)
             check("superseded worker processes exit", all(not Path(f"/proc/{pid}").exists() for pid,_ in old_workers))
@@ -209,8 +209,8 @@ def main():
             choose_robot(index=robot_names.index("go2w"))
             observer.close()
             directory=child_session(process.pid,exclude=directory,robot="go2w")
-            observer=Observer(directory)
-            metadata,_=observer.wait(lambda m,v:m.get("session_state")=="config" and m.get("robot")=="go2w")
+            observer=Observer(directory, view=True)
+            metadata,_=observer.wait(lambda m,v:m.get("session_state")=="config" and observer.preview_ready(m) and m.get("robot")=="go2w")
             check("Go2W retains selected D435i device",metadata.get("camera_model")=="d435i" and metadata.get("camera_imu_locked"))
             time.sleep(.5)
             inputs.click(60,90);time.sleep(.4)
@@ -310,8 +310,8 @@ def main():
                 "--assets", str(args.assets.resolve()), "--config", str(output / "config.json"),
                 "--capture", str(output / "reopened-live-scene.png"), "--capture-after-ms", "6500"],
                 env=env, stdout=log, stderr=subprocess.STDOUT)
-            directory = child_session(process.pid); observer = Observer(directory)
-            observer.wait(lambda m, v: m.get("session_state") == "config")
+            directory = child_session(process.pid); observer = Observer(directory, view=True)
+            observer.wait(lambda m, v: m.get("session_state") == "config" and observer.preview_ready(m))
             time.sleep(.5)
             window = inputs.window(); inputs.focus(window)
             appearance("light", "zh-CN", phase="reopened")

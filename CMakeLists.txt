@@ -80,10 +80,13 @@ target_include_directories(simple_rbt_lidar PUBLIC include)
 target_compile_options(simple_rbt_lidar PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic;-ffp-contract=off> $<$<COMPILE_LANGUAGE:CUDA>:--fmad=false>)
 target_link_libraries(simple_rbt_lidar PUBLIC mujoco)
 
-add_library(simple_rbt_cameras src/cameras.cpp src/camera_render.cpp)
+add_library(simple_rbt_meshoptimizer STATIC
+  third_party/meshoptimizer/allocator.cpp third_party/meshoptimizer/simplifier.cpp)
+add_library(simple_rbt_cameras src/cameras.cpp src/camera_render.cpp
+  src/camera_mesh.cpp src/camera_mesh_data.cpp src/camera_lighting.cpp)
 target_include_directories(simple_rbt_cameras PUBLIC include PRIVATE third_party)
 target_compile_options(simple_rbt_cameras PRIVATE -Wall -Wextra -Wpedantic -ffp-contract=off)
-target_link_libraries(simple_rbt_cameras PUBLIC mujoco PRIVATE PkgConfig::EGL PkgConfig::GL Threads::Threads)
+target_link_libraries(simple_rbt_cameras PUBLIC mujoco PRIVATE simple_rbt_meshoptimizer PkgConfig::EGL PkgConfig::GL Threads::Threads)
 
 add_library(simple_rbt_course src/course.cpp src/course_geometry.cpp)
 target_include_directories(simple_rbt_course PUBLIC include)

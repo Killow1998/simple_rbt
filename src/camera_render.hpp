@@ -6,7 +6,7 @@ namespace simple_rbt {
 // One frozen scene per batch; never reuse shadow data across physics samples.
 class CameraRender {
 public:
-  explicit CameraRender(const std::string &renderer);
+  explicit CameraRender(const std::string &renderer, const mjModel *model);
   ~CameraRender();
   void begin();
   void render(mjrRect, mjvScene *, const mjrContext *);

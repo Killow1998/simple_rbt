@@ -5,11 +5,13 @@
 #include <EGL/eglext.h>
 #include <GL/gl.h>
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <iostream>
 #include <memory>
 #include <mujoco/mujoco.h>
 #include <numeric>
+#include <sstream>
 #include <stdexcept>
 #include <vector>
 namespace {
@@ -70,7 +72,31 @@ struct Pixels {
     mjr_readPixels(rgb.data(), depth.data(), viewport, context);
   }
 };
-void check(int lights, bool reflected, int &comparisons) {
+// Self-contained dense CAD-like torus: exercise LOD, exact indexed depth and
+// fused lighting in CI without downloading robot assets.
+std::string dense_mesh(bool textured) {
+  std::ostringstream vertices, uv, faces;
+  constexpr int rings = 48, sides = 24;
+  constexpr double pi = 3.14159265358979323846;
+  for (int i = 0; i <= rings; i++)
+    for (int j = 0; j <= sides; j++) {
+      double a = 2 * pi * i / rings, b = 2 * pi * j / sides;
+      vertices << (.7 + .2 * std::cos(b)) * std::cos(a) << ' '
+               << (.7 + .2 * std::cos(b)) * std::sin(a) << ' '
+               << .2 * std::sin(b) << ' ';
+      uv << double(i) / rings << ' ' << double(j) / sides << ' ';
+      if (i < rings && j < sides) {
+        int v = i * (sides + 1) + j, n = v + sides + 1;
+        faces << v << ' ' << n << ' ' << v + 1 << ' ' << v + 1 << ' ' << n
+              << ' ' << n + 1 << ' ';
+      }
+    }
+  return "<mesh name=\"tetra\" vertex=\"" + vertices.str() + "\" face=\"" +
+         faces.str() + "\"" +
+         (textured ? " texcoord=\"" + uv.str() + "\"" : "") + "/>";
+}
+void check(int lights, bool reflected, int &comparisons, bool dense = false,
+           bool textured = false) {
   std::string xml =
       R"(<mujoco><visual><global offwidth="320" offheight="256"/><quality shadowsize="2048"/></visual>
   <asset><texture name="checker" type="2d" builtin="checker" width="64" height="64" rgb1=".1 .2 .3" rgb2=".8 .7 .6"/>
@@ -86,6 +112,14 @@ void check(int lights, bool reflected, int &comparisons) {
   <geom type="mesh" mesh="tetra" pos="-2 -1 .5"/>
   <body pos="0 0 .8"><joint type="slide" axis="1 0 0"/><geom type="box" size=".3 .2 .8" rgba=".8 .1 .2 1"/></body>
   </worldbody></mujoco>)";
+  if (dense) {
+    auto start = xml.find("<mesh name=");
+    xml.replace(start, xml.find("/>", start) + 2 - start, dense_mesh(textured));
+    if (textured) {
+      start = xml.find("mesh=\"tetra\" pos=");
+      xml.insert(start, "material=\"textured\" ");
+    }
+  }
   char error[2048]{};
   std::unique_ptr<mjSpec, decltype(&mj_deleteSpec)> spec(
       mj_parseXMLString(xml.c_str(), nullptr, error, sizeof(error)),
@@ -101,7 +135,7 @@ void check(int lights, bool reflected, int &comparisons) {
   Scene scene(model.get());
   Context native(model.get()), batched(model.get());
   simple_rbt::CameraRender renderer(
-      reinterpret_cast<const char *>(glGetString(GL_RENDERER)));
+      reinterpret_cast<const char *>(glGetString(GL_RENDERER)), model.get());
   mjvOption option;
   mjv_defaultOption(&option);
   mjvCamera camera;
@@ -130,7 +164,26 @@ void check(int lights, bool reflected, int &comparisons) {
         mjr_setBuffer(mjFB_OFFSCREEN, &batched.value);
         renderer.render(viewport, &scene.value, &batched.value);
         b.read(viewport, &batched.value);
-        if (a.rgb != b.rgb || a.depth != b.depth) {
+        bool mismatch = a.rgb != b.rgb || a.depth != b.depth;
+        if (dense && !segment) {
+          // Runtime reads sensor depth from the original-geometry segmentation
+          // pass, never the RGB LOD depth attachment.
+          double error_sum = 0;
+          size_t outliers = 0;
+          for (size_t pixel = 0; pixel < a.rgb.size(); pixel += 3) {
+            int largest = 0;
+            for (int c = 0; c < 3; c++) {
+              int delta =
+                  std::abs(int(a.rgb[pixel + c]) - int(b.rgb[pixel + c]));
+              largest = std::max(largest, delta);
+              error_sum += delta;
+            }
+            outliers += largest > 10;
+          }
+          mismatch = error_sum / a.rgb.size() > 1 ||
+                     double(outliers) / (a.rgb.size() / 3) > .02;
+        }
+        if (mismatch) {
           auto pixels = std::inner_product(a.rgb.begin(), a.rgb.end(),
                                            b.rgb.begin(), 0, std::plus<int>(),
                                            std::not_equal_to<unsigned char>());
@@ -154,7 +207,13 @@ int main() {
     for (int lights : {1, 2})
       for (bool reflected : {false, true})
         check(lights, reflected, comparisons);
-    std::cout << comparisons << " native RGB/depth passes identical; renderer="
+    std::cout << comparisons << " native RGB/depth passes identical; ";
+    comparisons = 0;
+    for (bool textured : {false, true})
+      check(1, false, comparisons, true, textured);
+    std::cout << comparisons
+              << " dense mesh RGB quality / exact segmentation-depth passes; "
+                 "renderer="
               << glGetString(GL_RENDERER) << '\n';
   } catch (const std::exception &error) {
     std::cerr << error.what() << '\n';

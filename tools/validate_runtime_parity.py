@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare two native runtimes on identical inputs without relaxing payload checks."""
+"""Compare native runtimes; non-RGB payloads always require exact parity."""
 import argparse
 import hashlib
 import json
@@ -33,7 +33,23 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def compare(left, right):
+def rgb_difference(left, right, mae_limit, outlier_limit):
+    import numpy as np
+    from PIL import Image
+    a, b = np.asarray(Image.open(left)), np.asarray(Image.open(right))
+    if a.shape != b.shape or a.dtype != b.dtype or a.ndim != 3 or a.shape[2] != 3:
+        raise RuntimeError(f"RGB format changed: {left.name}")
+    difference = np.abs(a.astype(np.float32) - b)
+    result = {"mean_absolute_channel_error": float(difference.mean()),
+              "max_channel_error": float(difference.max()),
+              "pixels_above_10_fraction": float((difference.max(axis=2) > 10).mean()),
+              "before_sha256": digest(left), "after_sha256": digest(right)}
+    if result["mean_absolute_channel_error"] > mae_limit or result["pixels_above_10_fraction"] > outlier_limit:
+        raise RuntimeError(f"RGB quality budget exceeded: {left.name}: {result}")
+    return result
+
+
+def compare(left, right, rgb_mae_limit=0, rgb_outlier_limit=0):
     names = {p.name for p in left.iterdir() if p.is_file()}
     other = {p.name for p in right.iterdir() if p.is_file()}
     if names != other:
@@ -48,6 +64,8 @@ def compare(left, right):
             if before != after:
                 raise RuntimeError(f"Summary changed: {[k for k in before.keys() | after.keys() if before.get(k) != after.get(k)]}")
             result[name] = "all deterministic fields equal"
+        elif rgb_mae_limit > 0 and name in ("panorama-rgb.png", "perspective-rgb.png"):
+            result[name] = rgb_difference(a, b, rgb_mae_limit, rgb_outlier_limit)
         else:
             if digest(a) != digest(b):
                 raise RuntimeError(f"Artifact bytes changed: {name}")
@@ -60,13 +78,20 @@ def main():
     parser.add_argument("--before", type=Path, required=True)
     parser.add_argument("--after", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--rgb-mae-limit", type=float, default=0,
+                        help="Opt-in RGB-only mean channel difference limit, 0..255; default exact")
+    parser.add_argument("--rgb-outlier-limit", type=float, default=0,
+                        help="Allowed fraction of RGB pixels with any channel difference >10, 0..1")
     args = parser.parse_args()
+    if not 0 <= args.rgb_mae_limit <= 255 or not 0 <= args.rgb_outlier_limit <= 1:
+        parser.error("RGB quality limits are outside their valid ranges")
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
     env = dict(os.environ, LIBGL_ALWAYS_SOFTWARE="1", EGL_PLATFORM="surfaceless",
                __EGL_VENDOR_LIBRARY_FILENAMES="/usr/share/glvnd/egl_vendor.d/50_mesa.json",
                SIMPLE_RBT_LOG_DIR=str(output / "logs"), SIMPLE_RBT_TRACE="0")
     report = {"before_sha256": digest(args.before), "after_sha256": digest(args.after),
+              "rgb_mae_limit": args.rgb_mae_limit, "rgb_outlier_limit": args.rgb_outlier_limit,
               "excluded_summary_fields": sorted(VOLATILE), "cases": [], "passed": False}
     try:
         for name, options in cases():
@@ -78,7 +103,7 @@ def main():
                                     "--backend", "cpu", "--output", str(case / label),
                                     *options], env=env, stdout=log, stderr=subprocess.STDOUT,
                                    check=True, timeout=180)
-            result = compare(case / "before", case / "after")
+            result = compare(case / "before", case / "after", args.rgb_mae_limit, args.rgb_outlier_limit)
             report["cases"].append({"name": name, "artifacts": result})
             print(f"PASS {name}: {len(result)} artifacts", flush=True)
         report["passed"] = True

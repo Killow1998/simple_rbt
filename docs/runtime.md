@@ -28,39 +28,68 @@ in simulation time; a slow software renderer also slows the simulation.
 
 Software llvmpipe/softpipe keeps shadows with a 2048-pixel shadow-map cap;
 smaller model settings are preserved. Output resolution, depth arithmetic,
-multisampling, geometry, physics and sensor sampling do not change. Hardware
+multisampling, physics and sensor sampling do not change. Hardware
 rendering retains the model's shadow setting. Perspective and panorama views
 share one lazily created render context and one physical scene snapshot.
 
 For MuJoCo 3.15.0 software rendering, `src/camera_render.cpp` uses a private,
 [versioned classic drawing adaptation](../third_party/mujoco_classic/README.md).
 It reuses one-light shadow maps within a snapshot and rejects bounded geometry
-outside the view before drawing. Every scene update invalidates cached shadows;
-multiple shadow lights render normally, and reflection draws retain all geometry.
+outside the view, including the near clipping plane, before drawing. Every scene
+update invalidates cached shadows; multiple shadow lights render normally, and
+reflection draws retain native geometry.
 Other MuJoCo versions/renderers use public `mjr_render` directly. This fallback
 preserves functionality, not the measured speedup. No physics library or public
 MuJoCo symbol is replaced.
+
+The private camera mesh/lighting modules prepare context-owned buffers once.
+RGB uses distance-dependent indexed LOD, selecting against a projected half-pixel
+**error estimate** with a safety margin; this is not a certified geometric bound
+or a bound on shadow/color differences. Original normal/UV attributes are retained.
+Shadow casters use a separate 1 mm error estimate. Sensor depth keeps every original
+triangle. Physics, LiDAR, model assets and policy inputs never use these buffers.
+Opaque, untextured meshes under the supported two-directional-light setup combine
+base and shadowed illumination in one draw. Other lighting, materials, transparency
+and reflections retain native shading. Small meshes keep native display lists.
+See [dependency provenance](../third_party/meshoptimizer/README.md).
 
 透视 RGB／深度保持 320×240，全景 RGB／径向深度保持 720×360，由六个
 256×256 视面生成。桌面相机和 MID360 保持仿真时间 10 Hz（每次 20,000
 条射线），两组启用的 IMU 均为 200 Hz。软件绘制跟不上时，整个仿真会慢于墙钟。
 软件模式保留阴影，将阴影贴图上限设为 2048；输出分辨率、深度精度、多重采样、
-模型和传感器时序均不降低。透视与全景复用同一渲染资源和物理快照，每次更新
+物理和传感器时序均不降低。RGB 按距离选择简化网格，使用带余量的半像素投影
+误差估计；这不是严格的几何上界，也不保证阴影或颜色差异小于半像素。阴影使用
+独立的 1 mm 简化误差估计；深度保留全部原始三角形，物理、雷达和模型资产不变。
+常用双方向光下的不透明、无纹理网格合并两次光照绘制，其余情况保留原生着色。
+透视与全景复用同一渲染资源和物理快照，每次更新
 快照都重新计算阴影。固定版本优化只用于 MuJoCo 3.15.0 软件渲染；其他版本或
 硬件渲染走原生接口。真实性能和完整 E2E 记录见
-[阶段验证](desktop-console-plan.md#software-panorama-throughput--软件全景吞吐).
+[阶段验证](desktop-console-plan.md#adaptive-software-rgb-meshes--软件-rgb-自适应网格).
 
 The native CI oracle `camera_render_consistency` compares complete RGB and raw
 depth buffers against unmodified MuJoCo at the same shadow precision. It covers
 changing geometry, lights, camera poses, transparency, reflections and multiple
-shadow lights. Runtime artifact parity separately covers robot physics, both
+shadow lights. Dense textured/untextured meshes additionally check RGB quality
+(mean channel difference ≤1/255 and ≤2% of pixels differing by >10/255) and exact
+segmentation/depth output. Runtime artifact parity separately covers robot physics, both
 IMUs, rolling/snapshot LiDAR and full 10 Hz D435i output. Performance runs must
 pass `--camera-hz 10` explicitly: the standalone CLI's default remains 1 Hz.
 
 原生 CI 用原 MuJoCo 在相同阴影精度下逐像素检查 RGB 和深度，包括物体／光源
-移动、视角改变、透明、反射和多个投影光源。运行时对照另外验证机器人、双 IMU、
+移动、视角改变、透明、反射和多个投影光源；高密度网格另外检查 RGB 差异限额与
+原始深度一致性。运行时对照另外验证机器人、双 IMU、
 滚动／快照扫描和 10 Hz D435i。性能测量必须显式指定 `--camera-hz 10`；
 独立命令行默认仍为 1 Hz，不能将其结果当作 10 Hz 实时证明。
+
+For an authorized RGB-quality change, artifact comparison can opt into explicit
+limits; all non-RGB artifacts still require byte parity. Without these flags RGB
+also remains strict:
+
+```bash
+.venv/bin/python tools/validate_runtime_parity.py \
+  --before /path/to/baseline --after build/software-panorama/simple-rbt-sim \
+  --rgb-mae-limit 1 --rgb-outlier-limit .02 --output output/render-parity
+```
 
 ## Configuration / 配置
 

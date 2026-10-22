@@ -944,8 +944,133 @@ Evidence (local, ignored): [summary](../output/software-panorama-20261021/valida
 [native image oracle](../output/software-panorama-20261021/render-consistency.log),
 [10 Hz parity](../output/software-panorama-20261021/full-10hz-parity/report.json).
 The candidate is `build/software-panorama/simple-rbt-sim` with its matching console.
-Further work toward real time must address the remaining software drawing cost;
-these results do not justify silently simplifying robot meshes or lowering sensor rates.
+This stage retained original RGB meshes. Xian subsequently authorized controlled
+RGB-only simplification; that follow-up is recorded below. Sensor rates remain fixed.
 
-候选构建位于 `build/software-panorama/`。下一阶段仍需减少软件绘制成本，才能
-让 Go2W 满传感器达到实时；模型简化或降低采样并未获准，也未在本轮采用。
+本阶段保留原始 RGB 网格。Xian 随后授权了受控的 RGB 简化；后续结果见下，
+传感器频率仍保持不变。候选构建位于 `build/software-panorama/`。
+
+
+## Adaptive software RGB meshes / 软件 RGB 自适应网格
+
+Verified 2026-10-21 on CPU MuJoCo 3.15.0 and llvmpipe. This follows `2db1155`.
+Xian authorized controlled RGB-only simplification, prioritizing real-time speed.
+Output sizes, camera/LiDAR rates, ray counts, IMU rates and shadows remain as
+specified above. Physics, controllers, LiDAR and sensor depth use original geometry.
+No model/policy assets or ROS contracts changed; installed SpRobo 0.2.1 was not replaced.
+
+### Implementation and ablation / 实现与消融
+
+- Reject meshes wholly before the near clipping plane, including the camera's own
+  housing. In the isolated prototype this reduced camera median time from about
+  110 to 83 ms with **byte-identical artifacts including RGB/depth**.
+- Build context-owned indexed buffers once. RGB selects LOD using a projected
+  half-pixel **error estimate** with a margin; it is not a certified geometric
+  bound or a bound on shading differences. Preserve original normal/UV attributes.
+  Shadow meshes use a separate 1 mm estimate, retaining the 2048 shadow map.
+  Depth draws every original triangle in original order; it is never simplified.
+- Combine base and shadowed lighting for the supported opaque, untextured mesh
+  case. Removing this step raised the prototype camera median from about 83 to
+  100 ms. Exact position-only depth indexing also helped (~88 to 83 ms).
+- Remove arbitrary 5% RGB / 10% shadow triangle-count floors; stop simplification
+  at its error limit instead. A sequential 5 s comparison improved the camera
+  median from 86 to 81 ms while passing the same image-quality budget.
+- Keep CPU mesh preparation, GL buffer ownership, lighting and render orchestration
+  in separate small private C++ modules. The pinned MIT simplifier subset has
+  source hashes and installed license records. There are no runtime downloads,
+  public MuJoCo symbol overrides, new physics threads or disk mesh caches.
+- Reject the extra visibility-query, view-thread, vertex-light-cache, plane-tile,
+  PBO and index-reordering machinery after measurement. A 1024 shadow map did not
+  show a useful speed gain and exceeded the chosen RGB quality budget, so 2048 stays.
+
+跳过完全位于近裁剪面前的自身外壳；RGB 按视口选择简化级别，并合并适用材质的
+两次光照绘制。半像素是带余量的投影误差估计，不是严格证明；阴影仍保留，使用
+独立的 1 mm 网格误差估计与 2048 贴图。深度保留全部原始三角形，物理、雷达、
+控制器和资产均不改动。去掉人为的三角形数量下限后，仍受原来的误差预算约束。
+没有收益的实验不进入运行代码。
+
+### Sustained performance / 持续性能
+
+Matched 60 s Go2W turning input, 10 Hz full D435i/MID360, CPU-only. These are
+simulation-loop measurements, excluding startup and final artifact saving.
+RSS includes libraries and initialization. Other host applications were not stopped.
+
+| Metric / 指标 | Before / 本轮之前 | Final / 最终候选 |
+| --- | ---: | ---: |
+| Real-time factor / 实时率 | 0.413 | 1.018 |
+| Wall time for 60 simulated seconds / 运行阶段墙钟时间 | 145.21 s | 58.93 s |
+| Complete camera pair median / 完整相机输出中位耗时 | 223.0 ms | 83.0 ms |
+| Camera p95 | 268.9 ms | 101.2 ms |
+| Mean logical CPU cores / 平均逻辑核占用 | 2.01 | 2.32 |
+| CPU seconds for the same simulation / 同段仿真累计 CPU 时间 | 292.2 s | 136.7 s |
+| Core peak RSS / 核心峰值内存 | 678.6 MiB | 691.0 MiB |
+
+This case reaches **average real-time throughput**, not a hard per-frame deadline.
+There is limited headroom: ROS and terrain cases below remain slower. The binary
+adds 71,696 bytes (~70 KiB), without changing model/policy storage. A synchronized
+render-pass probe attributes roughly 50 ms per complete camera sample to RGB plus
+shadows and 26 ms to original-geometry depth; software drawing remains the main
+cost. These probe times exclude pixel readback and other simulation work.
+
+相同的 60 秒输入从 145.21 秒降到 58.93 秒；进入运行阶段后，平地核心达到平均
+实时。累计 CPU 时间减少约 53%，平均占用 2.32 个逻辑核，峰值内存增加约 12 MiB。
+可执行文件增加约 70 KiB。仍有慢帧，不能将这一结果解释为所有地形、ROS 和 GUI
+组合都保证实时；剩余大头仍是软件 RGB／阴影绘制与保持原模型的深度绘制。
+
+### Acceptance and limits / 验收与边界
+
+- 12/12 native CTest checks; 224 original MuJoCo RGB/depth passes remain exact.
+  Another 112 dense-mesh passes check RGB quality and exact segmentation/depth,
+  including textured and untextured meshes. This oracle also runs in native CI.
+- Ten runtime parity cases pass: seven robots, rolling/snapshot LiDAR and full
+  10 Hz D435i. A separate matched 60 s artifact comparison passes. Both runs retain
+  600 camera samples, 600 scans and 12,000 samples from each IMU. Every non-RGB
+  artifact and deterministic summary field is equal. Saved perspective RGB is
+  identical; the final panorama has mean channel error 0.305/255, with 0.818% of
+  pixels differing by more than 10/255 in at least one channel (maximum 164/255).
+  The explicit budget is mean ≤1/255 and outlier pixels ≤2%; default artifact
+  comparison still requires exact RGB unless these limits are requested.
+- Seven robots × Noetic (39 checks each) and Humble (40 each) complete the unchanged
+  20 s full-sensor E2E, including panorama and external-odometry isolation.
+- Go2W hills + Noetic: 39/39, complete collection, RTF **0.777**. Functional
+  acceptance passes; this terrain case has **not** reached real time.
+- Native desktop input: 40/40; presets/scene editing: 17/17; GUI/core/Noetic
+  diagnostics: 11/11. The desktop input case includes RGB/depth and live observer
+  views, but disables panorama; it is not a full-panorama performance result.
+
+| Robot | Noetic RTF | Humble RTF |
+| --- | ---: | ---: |
+| fr_mini | 0.998 | 0.997 |
+| go2 | 0.996 | 0.996 |
+| go2w | 0.945 | 0.886 |
+| ranger_mini | 0.996 | 0.996 |
+| ridgeback | 0.997 | 0.998 |
+| scout_mini | 0.996 | 0.996 |
+| turtlebot3_waffle_pi | 0.997 | 0.997 |
+
+全车型双 ROS 链路通过，超时与消息／运动断言未放宽。Go2W 接入 ROS 后约为
+0.89–0.95 倍实时，起伏地形 + Noetic 为 0.777；这些限制与平地核心的 1.018
+分别记录。本阶段没有重新验证 n3m 全路线、重定位、GPU 或真机，也没有部署桌面包。
+
+The first GUI runs exposed a test synchronization defect: a `config` handshake
+arrives before renderer preparation and the first preview frame. The native test
+looked for Start while it was correctly disabled; the workspace test used the
+initial 640×480 metadata. Tests now wait for an actual View packet from the current
+worker before interacting with that preview. Existing deadlines and behavior
+assertions remain unchanged. Original failures and passing reruns are retained.
+
+首轮桌面测试在新模型尚未生成预览时就查找按钮／视口。改为等待当前工作进程的
+真实 View 帧后，两组完整测试通过；不再用固定睡眠推断模型已经准备好。保留
+初次失败记录，没有修改产品的就绪条件或放宽超时。
+
+Evidence (local, ignored):
+[summary](../output/software-panorama-followup-20261021/validation-summary.json),
+[60 s artifact parity](../output/software-panorama-followup-20261021/long-parity.json),
+[runtime parity](../output/software-panorama-followup-20261021/release-parity/report.json),
+[ablation](../output/software-panorama-followup-20261021/realtime-check.json),
+[final simplification comparison](../output/software-panorama-followup-20261021/post-profile.json),
+[render profile](../output/software-panorama-followup-20261021/release-profile.json).
+The verified core is `build/software-panorama/simple-rbt-sim`, SHA-256
+`3cf65bc5c74a210a9a3dff3ed0aef9db00466497dc0a4f71475335b6fcb372f1`.
+Future throughput work should target original-depth and terrain drawing, using
+these exact-output and E2E oracles; lowering sensor rates is not an accepted shortcut.

@@ -33,7 +33,7 @@ def main():
   nonlocal observer
   if observer:observer.close()
   directory=child_session(proc.pid,exclude=exclude)
-  observer=Observer(directory);observer.wait(lambda m,v:m.get('session_state')=='config',timeout=15)
+  observer=Observer(directory,view=True);observer.wait(lambda m,v:m.get('session_state')=='config' and observer.preview_ready(m),timeout=15)
   time.sleep(.6);return directory
  def close():
   nonlocal proc,observer

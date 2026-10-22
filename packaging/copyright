@@ -9,6 +9,7 @@ Bundled runtime libraries:
   Classic drawing adaptation: Apache-2.0; licenses/mujoco_classic/ records source hashes and local changes.
   ONNX Runtime: MIT; licenses/onnxruntime/ includes third-party notices.
   NVIDIA CUDA runtime: governed by licenses/cuda/EULA.txt.
+  meshoptimizer: MIT; licenses/meshoptimizer/ records the pinned source.
   nlohmann/json headers: MIT; licenses/nlohmann/LICENSE.MIT.
   Native Go console modules: licenses/console/ contains upstream notices.
   RL SAR code/policy provenance: licenses/rl_sar-go2/ and rl_sar-go2w/.

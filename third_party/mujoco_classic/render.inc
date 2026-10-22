@@ -251,6 +251,8 @@ enum {
 static void renderGeom(const mjvGeom* geom, int mode, const float* headpos,
                        const mjvScene* scn, const mjrContext* con) {
   if(mode != mjrRND_SHADOWCAST && outside(geom)) return;
+  const bool fused = fused_geom(geom, con);
+  if (fused && mode == mjrRND_NORMAL) return;
   const float* size = geom->size;
   float temp[4] = {0, 0, 0, 1}, av;
   float rgba[4] = {geom->rgba[0], geom->rgba[1], geom->rgba[2], geom->rgba[3]};
@@ -398,7 +400,9 @@ static void renderGeom(const mjvGeom* geom, int mode, const float* headpos,
   case mjGEOM_MESH:                           // mesh
   case mjGEOM_SDF:
     if (geom->dataid >= 0) {
-      glCallList(con->baseMesh + geom->dataid);
+      if (fused && mode == mjrRND_SHADOWMAP) active->lighting->begin();
+      draw_mesh(geom, mode, con);
+      if (fused && mode == mjrRND_SHADOWMAP) active->lighting->end();
     }
     break;
 
