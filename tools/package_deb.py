@@ -92,7 +92,8 @@ def check_runtime(stage):
     libraries = stage / "usr/lib/simple-rbt"
     for elf in list(binaries.iterdir()) + list(libraries.glob("*.so*")):
         versions = run("readelf", "--version-info", str(elf), capture_output=True).stdout
-        for family, supported in (("GLIBC", (2, 35)), ("GLIBCXX", (3, 4, 29))):
+        # Jammy updates ship GCC 12's runtime; control.in requires it explicitly.
+        for family, supported in (("GLIBC", (2, 35)), ("GLIBCXX", (3, 4, 30))):
             required = [tuple(map(int, value.split(".")))
                         for value in re.findall(rf"\b{family}_([0-9.]+)", versions)]
             if required and max(required) > supported:

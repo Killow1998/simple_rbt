@@ -19,6 +19,13 @@ dependencies before starting a simulation.
 `packaging/VERSION` 统一指定框架、启动器和 Debian 包的发行版本。
 `sprobo --check-dependencies` 可以在仿真启动前检查必需与可选依赖。
 
+Install Ubuntu 22.04 updates before installing: the asynchronous camera worker
+requires `libstdc++6 >= 12`, supplied by Jammy updates. The package declares this
+dependency so an older C++ runtime cannot silently pass installation.
+
+安装前请更新 Ubuntu 22.04 系统软件包：异步相机线程需要 Jammy 更新源提供的
+`libstdc++6 >= 12`。安装包已声明此依赖，避免在旧 C++ 运行库上安装后无法启动。
+
 Open **SpRobo** from the Ubuntu application menu, or run
 `sprobo`. `simple-rbt-sim` is the headless executable. The installed
 programs use a C++ simulation worker and a native Go/mygo console; Python is used

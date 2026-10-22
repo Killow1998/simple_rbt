@@ -1203,3 +1203,34 @@ Evidence (local, ignored):
 [Humble](../output/software-hills-noetic-20261022/e2e-ros2/summary.json).
 Build: `build/software-panorama/simple-rbt-sim`; SHA-256
 `a3a01aa2fef1a4005de9b149f0fe61fac0f4eced94ae3605af2866cbe5f39c9b`.
+
+## Installed desktop update — 2026-10-22 / 桌面安装更新
+
+Installed the runtime from `b337910ad1be6128b653182277d6c609010c3d0e` as a
+local SpRobo 0.2.1 test package, preserving optional CUDA support. The version
+number is unchanged; the package hash and executable hashes identify this build.
+The default Noetic/Humble adapter tags now select the images verified in the
+preceding full E2E stage; their previous images remain available locally.
+
+Jammy 更新了本地 SpRobo 安装：启动器、核心及资源均来自上述运行代码版本，
+保留 CUDA 可选能力和原有用户配置。包版本仍为 0.2.1；本次不是新的公开发行。
+
+Packaging initially rejected the camera worker's `GLIBCXX_3.4.30` dependency.
+Jammy updates already provide libstdc++ 12; the package now explicitly requires
+`libstdc++6 >= 12` and validates that ABI ceiling instead of the original GCC 11
+ceiling. No runtime behavior was changed for this deployment.
+
+验证结果：独立 Ubuntu 容器中的安装、7 车型 CPU 启动、普通用户窗口及卸载均通过；
+Jammy 实际安装程序的 40 项桌面交互检查通过。Go2W＋Noetic 起伏地形通过 38 项检查，
+20 s 仿真 RTF 为 0.995，产生 200 帧／扫描和每套 IMU 4,000 个样本；
+图像尺寸、10 Hz 相机和雷达、200 Hz IMU 均保留。测试使用软件渲染，未重新验收 GPU。
+
+Installed executables use `/usr/share/simple-rbt` assets and bundled libraries,
+without a checkout or preparation virtualenv. Existing user settings were hash
+checked before and after deployment. Xian's next step is interactive testing via
+the application menu or `sprobo`.
+
+Local deployment evidence:
+[deployment](../output/jammy-install-b337910-20261022/deployment.json),
+[installed desktop](../output/jammy-install-b337910-20261022/gui-installed/report.json),
+[installed Noetic](../output/jammy-install-b337910-20261022/noetic-installed/summary.json).

@@ -6,7 +6,7 @@ Section: science
 Priority: optional
 Breaks: simple-rbt
 Replaces: simple-rbt
-Depends: libc6 (>= 2.35), libstdc++6 (>= 11), libgcc-s1, libgtk-3-0 (>= 3.24), libepoxy0, libpango-1.0-0, libpangocairo-1.0-0, libcairo2, libfreetype6, libharfbuzz0b, fonts-wqy-microhei, libegl1, libgl1, libglfw3, libpng16-16, libtinyxml2-9, libssl3
+Depends: libc6 (>= 2.35), libstdc++6 (>= 12), libgcc-s1, libgtk-3-0 (>= 3.24), libepoxy0, libpango-1.0-0, libpangocairo-1.0-0, libcairo2, libfreetype6, libharfbuzz0b, fonts-wqy-microhei, libegl1, libgl1, libglfw3, libpng16-16, libtinyxml2-9, libssl3
 Recommends: libgl1-mesa-dri
 Suggests: docker.io
 Installed-Size: {installed_size}
