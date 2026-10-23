@@ -10,6 +10,7 @@ mkdir -p output/ci
 export PATH="$HOME/.local/bin:$PATH"
 ./tools/setup-sdk.sh
 python3 tools/prepare_visual_assets.py
+python3 tools/bootstrap_panda_assets.py
 python3 tools/setup-gui.py
 cmake -S . -B build/ci-cpu -DCMAKE_BUILD_TYPE=Release \
   -DSIMPLE_RBT_CUDA=OFF -DSIMPLE_RBT_DESKTOP=OFF

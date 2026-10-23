@@ -25,6 +25,9 @@ func (a *app) localizedMessage(message string) string {
 }
 
 var optionLabels = map[string][2]string{
+	"panda":                {"Panda · fixed arm", "Panda · 固定机械臂"},
+	"joint_position":       {"Joint position", "关节位置"},
+	"external_camera":      {"External camera", "第三人称相机"},
 	"go2":                  {"Go2", "Go2"},
 	"go2w":                 {"Go2W", "Go2W"},
 	"turtlebot3_waffle_pi": {"TurtleBot3 Waffle Pi", "TurtleBot3 Waffle Pi"},

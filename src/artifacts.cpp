@@ -46,17 +46,23 @@ void npy(const fs::path &p, const std::vector<T> &v,
 }
 void save_camera(const fs::path &out, const std::string &name,
                  const CameraFrame &frame) {
-  png_image image{};
-  image.version = PNG_IMAGE_VERSION;
-  image.width = frame.width;
-  image.height = frame.height;
-  image.format = PNG_FORMAT_RGB;
-  if (!png_image_write_to_file(&image, (out / (name + "-rgb.png")).c_str(), 0,
-                               frame.rgb.data(), 0, nullptr))
-    throw std::runtime_error(image.message);
-  npy(out / (name + "-depth-" + (frame.radial_depth ? "range" : "z") + ".npy"),
-      frame.depth, {std::size_t(frame.height), std::size_t(frame.width)},
-      "<f4");
+  if (frame.width <= 0 || frame.height <= 0)
+    return;
+  if (!frame.rgb.empty()) {
+    png_image image{};
+    image.version = PNG_IMAGE_VERSION;
+    image.width = frame.width;
+    image.height = frame.height;
+    image.format = PNG_FORMAT_RGB;
+    if (!png_image_write_to_file(&image, (out / (name + "-rgb.png")).c_str(), 0,
+                                 frame.rgb.data(), 0, nullptr))
+      throw std::runtime_error(image.message);
+  }
+  if (!frame.depth.empty())
+    npy(out /
+            (name + "-depth-" + (frame.radial_depth ? "range" : "z") + ".npy"),
+        frame.depth, {std::size_t(frame.height), std::size_t(frame.width)},
+        "<f4");
 }
 } // namespace
 
@@ -131,10 +137,27 @@ void ArtifactWriter::close_streams() {
     imu_csv_.close();
   }
 }
-void ArtifactWriter::camera(std::uint64_t stamp, const OpticalPose &camera_pose,
-                            const OpticalPose &depth_pose, const CameraPair &frames) {
+void ArtifactWriter::camera(
+    std::uint64_t stamp, const OpticalPose &camera_pose,
+    const OpticalPose &depth_pose, const CameraPair &frames,
+    const std::optional<std::array<OpticalPose, 2>> &external) {
   save_camera(output_, "perspective", frames.perspective);
   save_camera(output_, "panorama", frames.panorama);
+  if (external) {
+    save_camera(output_, "external", frames.external);
+    json_file(output_ / "external-camera-metadata.json",
+              {{"stamp_ns", stamp},
+               {"position_world_m", (*external)[0].position},
+               {"rotation_world_from_optical", (*external)[0].rotation},
+               {"depth_position_world_m", (*external)[1].position},
+               {"depth_rotation_world_from_optical", (*external)[1].rotation},
+               {"depth_unit", "metre"},
+               {"depth_kind", "z"},
+               {"width", frames.external.width},
+               {"height", frames.external.height},
+               {"vertical_fov_deg", 60},
+               {"depth_registered_to_color", false}});
+  }
   json_file(output_ / "camera-metadata.json",
             {{"stamp_ns", stamp},
              {"position_world_m", camera_pose.position},

@@ -13,14 +13,20 @@ struct RosBridge::Impl {
   std::string command_topic, node_namespace;
   mutable std::mutex publication_mutex, command_mutex;
   Vec3 latest_command{};
+  JointCommand latest_joints;
+  std::optional<SteadyClock::time_point> joints_received;
+  std::string camera_parent,
+      external_frame = "external_camera_optical_frame",
+      external_depth_frame = "external_depth_optical_frame";
+  bool has_external_camera = false;
   std::optional<SteadyClock::time_point> received_at;
   bool closed = false, has_camera = false, separate_camera_frames = false, has_camera_imu = false;
   ros::CallbackQueue callbacks;
   std::unique_ptr<ros::NodeHandle> node;
-  ros::Subscriber commands;
+  ros::Subscriber commands, joint_commands;
   ros::Publisher clock, lidar, points, imu, imu_si, odom, camera_info, depth_info, camera_imu, status;
-  ros::Publisher tf, static_tf;
-  std::array<ros::Publisher, 2> rgb, depth;
+  ros::Publisher tf, static_tf, joints, external_info, external_depth_info;
+  std::array<ros::Publisher, 3> rgb, depth;
   std::map<std::string, ros::Publisher> publishers;
   template<class Message> ros::Publisher advertise(const std::string& topic,
                                                    int queue, bool latch = false) {
@@ -32,6 +38,13 @@ struct RosBridge::Impl {
       node_namespace("/" + options.robot_name), has_camera(extrinsics.has_camera), separate_camera_frames(extrinsics.separate_camera_frames),
       has_camera_imu(extrinsics.has_camera_imu) {
     if (options.domain_id) throw std::invalid_argument("ROS 1 uses ROS_MASTER_URI, not a DDS domain");
+    camera_parent = extrinsics.camera_parent_frame;
+    has_external_camera = extrinsics.has_external_camera;
+    const auto *spec = find_robot_spec(options.robot_name);
+    const bool arm = spec && spec->joint_control;
+    const std::string camera_prefix =
+        arm ? node_namespace + "/wrist_camera" : "/camera";
+    const std::string external_prefix = node_namespace + "/external_camera";
     if (!std::isfinite(options.command_timeout_s) || options.command_timeout_s <= 0.)
       throw std::invalid_argument("command timeout must be positive and finite");
     if (!std::isfinite(options.perspective_fov_y_deg) || options.perspective_fov_y_deg <= 0. ||
@@ -45,6 +58,13 @@ struct RosBridge::Impl {
     if (has_camera) frames.push_back(options.camera_frame);
     if (has_camera && separate_camera_frames) frames.push_back(options.camera_depth_frame);
     if (has_camera_imu) frames.push_back(options.camera_imu_frame);
+    if (!camera_parent.empty()) frames.push_back(camera_parent);
+    if (has_external_camera) {
+      valid_pose(extrinsics.external_camera);
+      valid_pose(extrinsics.external_depth);
+      frames.push_back(external_frame);
+      frames.push_back(external_depth_frame);
+    }
     for (const auto& frame : frames)
       if (frame.empty() || frame.front() == '/') throw std::invalid_argument("TF frames must be nonempty without leading slash");
     if (std::set<std::string>(frames.begin(), frames.end()).size() != frames.size())
@@ -58,34 +78,82 @@ struct RosBridge::Impl {
     if (options.publish_pointcloud2) points = advertise<messages::PointCloud>("/livox/points", 10);
     imu = advertise<messages::Imu>("/livox/imu", 64);
     imu_si = advertise<messages::Imu>("/livox/imu_si", 64);
-    if (has_camera_imu) camera_imu = advertise<messages::Imu>("/camera/imu", 64);
+    if (has_camera_imu)
+      camera_imu = advertise<messages::Imu>(camera_prefix + "/imu", 64);
     odom = advertise<messages::Odometry>(options.odom_topic, 10);
     if (has_camera) {
       for (int index = 0; index < 2; ++index) {
-        const std::string prefix = index == 0 ? "/camera" : "/camera/panorama";
+        const std::string prefix =
+            index == 0 ? camera_prefix : camera_prefix + "/panorama";
         rgb[index] = advertise<messages::Image>(prefix + "/image_raw", 2);
         depth[index] = advertise<messages::Image>(prefix + "/depth/image_raw", 2);
       }
-      camera_info = advertise<messages::CameraInfo>("/camera/camera_info", 2);
-      depth_info = advertise<messages::CameraInfo>("/camera/depth/camera_info", 2);
+      camera_info =
+          advertise<messages::CameraInfo>(camera_prefix + "/camera_info", 2);
+      depth_info = advertise<messages::CameraInfo>(
+          camera_prefix + "/depth/camera_info", 2);
     }
-    commands = node->subscribe<geometry_msgs::Twist>("cmd_vel", 10,
-        [this](const geometry_msgs::Twist::ConstPtr& message) {
-          const Vec3 command{message->linear.x, message->linear.y, message->angular.z};
-          std::lock_guard<std::mutex> lock(command_mutex);
-          if (robot_command_supported(options.robot_name, command)) {
-            latest_command = command; received_at = SteadyClock::now();
-          } else { latest_command = {}; received_at.reset(); }
-        }, ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());
+    if (has_external_camera) {
+      rgb[2] = advertise<messages::Image>(external_prefix + "/image_raw", 2);
+      depth[2] =
+          advertise<messages::Image>(external_prefix + "/depth/image_raw", 2);
+      external_info =
+          advertise<messages::CameraInfo>(external_prefix + "/camera_info", 2);
+      external_depth_info = advertise<messages::CameraInfo>(
+          external_prefix + "/depth/camera_info", 2);
+    }
+    if (arm) {
+      joints = advertise<messages::Joints>("joint_states", 10);
+      joint_commands = node->subscribe<messages::Joints>(
+          "joint_position_command", 10,
+          [this](const messages::Joints::ConstPtr &message) {
+            std::lock_guard<std::mutex> lock(command_mutex);
+            latest_joints = {message->name, message->position, false};
+            joints_received = SteadyClock::now();
+          },
+          ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());
+    }
+    if (!arm)
+      commands = node->subscribe<geometry_msgs::Twist>(
+          "cmd_vel", 10,
+          [this](const geometry_msgs::Twist::ConstPtr &message) {
+            const Vec3 command{message->linear.x, message->linear.y,
+                               message->angular.z};
+            std::lock_guard<std::mutex> lock(command_mutex);
+            if (robot_command_supported(options.robot_name, command)) {
+              latest_command = command;
+              received_at = SteadyClock::now();
+            } else {
+              latest_command = {};
+              received_at.reset();
+            }
+          },
+          ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());
     status = advertise<messages::String>(options.status_topic, 1, true);
     tf = advertise<tf2_msgs::TFMessage>("/tf", 10);
     static_tf = advertise<tf2_msgs::TFMessage>("/tf_static", 1, true);
     tf2_msgs::TFMessage fixed;
     fixed.transforms = {transform(0, options.base_frame, options.lidar_frame, extrinsics.lidar),
                         transform(0, options.base_frame, options.imu_frame, extrinsics.imu)};
-    if (has_camera) fixed.transforms.push_back(transform(0, options.base_frame, options.camera_frame, extrinsics.camera));
-    if (has_camera && separate_camera_frames) fixed.transforms.push_back(transform(0, options.base_frame, options.camera_depth_frame, extrinsics.camera_depth));
-    if (has_camera_imu) fixed.transforms.push_back(transform(0, options.base_frame, options.camera_imu_frame, extrinsics.camera_imu));
+    if (has_camera)
+      fixed.transforms.push_back(transform(
+          0, (camera_parent.empty() ? options.base_frame : camera_parent),
+          options.camera_frame, extrinsics.camera));
+    if (has_camera && separate_camera_frames)
+      fixed.transforms.push_back(transform(
+          0, (camera_parent.empty() ? options.base_frame : camera_parent),
+          options.camera_depth_frame, extrinsics.camera_depth));
+    if (has_camera_imu)
+      fixed.transforms.push_back(transform(
+          0, (camera_parent.empty() ? options.base_frame : camera_parent),
+          options.camera_imu_frame, extrinsics.camera_imu));
+    if (has_external_camera) {
+      fixed.transforms.push_back(transform(
+          0, options.odom_frame, external_frame, extrinsics.external_camera));
+      fixed.transforms.push_back(transform(0, options.odom_frame,
+                                           external_depth_frame,
+                                           extrinsics.external_depth));
+    }
     static_tf.publish(fixed);
   }
   void require_open() const {
@@ -121,7 +189,8 @@ std::size_t RosBridge::subscriber_count(const std::string& topic) const {
 }
 std::size_t RosBridge::command_publisher_count() const {
   std::lock_guard<std::mutex> lock(impl_->publication_mutex); impl_->require_open();
-  return impl_->commands.getNumPublishers();
+  return impl_->joint_commands ? impl_->joint_commands.getNumPublishers()
+                               : impl_->commands.getNumPublishers();
 }
 void RosBridge::publish_clock(std::uint64_t ns) {
   std::lock_guard<std::mutex> lock(impl_->publication_mutex); impl_->require_open();
@@ -131,10 +200,14 @@ void RosBridge::publish_clock(std::uint64_t ns) {
 void RosBridge::close() {
   std::lock_guard<std::mutex> lock(impl_->publication_mutex);
   if (impl_->closed) return;
-  impl_->closed = true; impl_->commands.shutdown();
+  impl_->closed = true;
+  impl_->commands.shutdown();
+  impl_->joint_commands.shutdown();
   for (auto& item : impl_->publishers) item.second.shutdown();
   impl_->publishers.clear(); impl_->node.reset(); impl_->callbacks.clear();
   std::lock_guard<std::mutex> command_lock(impl_->command_mutex);
   impl_->latest_command = {}; impl_->received_at.reset();
+  impl_->latest_joints = {};
+  impl_->joints_received.reset();
 }
 } // namespace simple_rbt

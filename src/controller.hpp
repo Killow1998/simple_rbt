@@ -11,6 +11,12 @@ class Controller {
 public:
   virtual ~Controller() = default;
   virtual void update(const Vec3 &command) = 0;
+  virtual void set_joints(const JointCommand &) {
+    throw std::invalid_argument("Robot has no joint position interface");
+  }
+  virtual void hold_joints() {}
+  virtual JointState joints() const { return {}; }
+  virtual Json joint_controls() const { return Json::array(); }
   ControlState state;
 };
 struct ControllerContext {

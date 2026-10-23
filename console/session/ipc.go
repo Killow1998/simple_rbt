@@ -111,7 +111,7 @@ func (c *Client) read(conn net.Conn, generation uint64) {
 	}
 }
 func latest(kind Kind) bool {
-	return kind == KindView || kind == KindCamera || kind == KindPanorama || kind == KindOdometry || kind == KindMetadata || kind == KindStatus
+	return kind == KindExternalCamera || kind == KindJointState || kind == KindView || kind == KindCamera || kind == KindPanorama || kind == KindOdometry || kind == KindMetadata || kind == KindStatus
 }
 func (c *Client) stage(packet Packet, generation uint64) {
 	c.mu.Lock()
@@ -240,3 +240,4 @@ func (c *Client) SendCommand(value [3]float64) error {
 	}
 	return c.send(KindCommand, map[string]any{"velocity": value})
 }
+func (c *Client) SendJoints(value JointCommand) error { return c.send(KindJointCommand, value) }

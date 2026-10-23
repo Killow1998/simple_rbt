@@ -148,10 +148,58 @@ void check_openings_and_landings() {
   std::cout << "Slab openings, rotated cuts, three stair turns and turning "
                "ramp passed\n";
 }
+void check_fixed_arm() {
+  SimulationOptions options;
+  options.project_root = SIMPLE_RBT_PROJECT_ROOT;
+  options.robot = "panda";
+  options.scene = scene();
+  options.scene["spawn"]["position"] = {1, -.5, 0};
+  options.external_camera_enabled = true;
+  Simulation sim(options);
+  const auto base = sim.pose();
+  require(base.position == Vec3{1, -.5, 3}, "Fixed base ignored scene spawn");
+  require(std::abs(base.quaternion[0] - std::sqrt(.5)) < 1e-9 &&
+              std::abs(base.quaternion[3] - std::sqrt(.5)) < 1e-9,
+          "Fixed base ignored spawn yaw");
+  require(std::abs(sim.model()->stat.center[1] + .2) < 1e-9 &&
+              std::abs(sim.model()->stat.center[2] - 3.4) < 1e-9,
+          "Arm visualization centre did not follow spawn");
+  auto tool = sim.pose("arm_tool"),
+       external = sim.pose("external_camera_color");
+  sim.set_joints({{"joint1"}, {.35}});
+  for (int i = 0; i < 1000; ++i)
+    sim.step();
+  require(std::abs(sim.joints().position[0] - .35) < .02 &&
+              sim.pose("arm_tool").position != tool.position,
+          "Spawned arm did not execute joint target");
+  require(sim.pose().position == base.position &&
+              sim.pose("external_camera_color").position == external.position,
+          "Arm motion moved fixed base or world camera");
+  const auto xml = sim.xml();
+  mjVFS vfs;
+  mj_defaultVFS(&vfs);
+  mj_addBufferVFS(&vfs, "arm.xml", xml.data(), xml.size());
+  char error[1024]{};
+  auto *copy = mj_loadXML("arm.xml", &vfs, error, sizeof(error));
+  mj_deleteVFS(&vfs);
+  require(copy != nullptr, error);
+  auto *data = mj_makeData(copy);
+  mj_resetDataKeyframe(copy, data, 0);
+  mj_forward(copy, data);
+  const int site = mj_name2id(copy, mjOBJ_SITE, "base_origin");
+  for (int i = 0; i < 3; ++i)
+    require(std::abs(data->site_xpos[3 * site + i] - base.position[i]) < 1e-9,
+            "Exported fixed base lost its spawn transform");
+  mj_deleteData(data);
+  mj_deleteModel(copy);
+  std::cout << "Fixed arm spawn, world camera, joint motion and model export "
+               "passed\n";
+}
 int main() {
   try {
     check_connections();
     check_openings_and_landings();
+    check_fixed_arm();
     for (auto robot : {"turtlebot3_waffle_pi", "go2w"}) {
       SimulationOptions o;
       o.project_root = SIMPLE_RBT_PROJECT_ROOT;

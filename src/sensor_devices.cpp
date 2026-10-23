@@ -1,5 +1,6 @@
 #include "sensor_devices.hpp"
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -46,6 +47,19 @@ void add_sensor_devices(tinyxml2::XMLDocument &doc,
   if (o.camera_model != "d435" && o.camera_model != "d435i")
     throw std::invalid_argument("camera_model must be d435 or d435i");
   auto *root = doc.RootElement(), *assets = root->FirstChildElement("asset");
+  if (o.external_camera_enabled) {
+    auto *mount = doc.NewElement("site");
+    mount->SetAttribute("name", "external_camera_mount");
+    mount->SetAttribute("pos", "1.2 -1.2 1.1");
+    const double pitch = 20. * std::acos(-1.) / 360.,
+                 yaw = 135. * std::acos(-1.) / 360.;
+    const double q[]{
+        std::cos(pitch) * std::cos(yaw), -std::sin(pitch) * std::sin(yaw),
+        std::sin(pitch) * std::cos(yaw), std::cos(pitch) * std::sin(yaw)};
+    mount->SetAttribute("quat", vector(q, 4).c_str());
+    mount->SetAttribute("size", ".001");
+    root->FirstChildElement("worldbody")->InsertEndChild(mount);
+  }
   if (!assets) {
     assets = doc.NewElement("asset");
     root->InsertEndChild(assets);
@@ -60,8 +74,10 @@ void add_sensor_devices(tinyxml2::XMLDocument &doc,
       const char *name = e->Attribute("name");
       if (std::string(e->Name()) == "site" && name &&
           (std::string(name) == "lidar" ||
-           std::string(name) == "camera_mount")) {
-        const bool camera = std::string(name) == "camera_mount";
+           std::string(name) == "camera_mount" ||
+           std::string(name) == "external_camera_mount")) {
+        const bool external = std::string(name) == "external_camera_mount";
+        const bool camera = std::string(name) != "lidar";
         e->SetAttribute(
             "rgba", "0 0 0 0"); // The device mesh replaces the editing marker.
         for (const auto &part : manifest.at("parts")) {
@@ -71,7 +87,8 @@ void add_sensor_devices(tinyxml2::XMLDocument &doc,
           for (std::size_t i = 0; i < part.at("files").size(); ++i) {
             const auto &entry = part.at("files")[i];
             const std::string mesh_name =
-                "device_" + part_name + "_" + std::to_string(i);
+                std::string(external ? "external_device_" : "device_") +
+                part_name + "_" + std::to_string(i);
             auto *mesh = doc.NewElement("mesh");
             mesh->SetAttribute("name", mesh_name.c_str());
             const auto path =
@@ -98,7 +115,9 @@ void add_sensor_devices(tinyxml2::XMLDocument &doc,
           for (const auto *child :
                {"camera_color", "camera_depth", "camera_imu"}) {
             auto *s = doc.NewElement("site");
-            s->SetAttribute("name", child);
+            s->SetAttribute(
+                "name",
+                (std::string(external ? "external_" : "") + child).c_str());
             s->SetAttribute("size", ".001");
             s->SetAttribute("rgba", "0 0 0 0");
             parent->InsertEndChild(s);
@@ -125,8 +144,10 @@ void add_sensor_devices(tinyxml2::XMLDocument &doc,
 }
 void move_sensor_device(mjModel *m, const std::string &device,
                         const Pose &mount, const SimulationOptions &o) {
-  const std::string prefix =
-      device == "camera" ? "visual_device_d435" : "visual_device_mid360";
+  const std::string prefix = device == "external_camera"
+                                 ? "visual_external_device_d435"
+                             : device == "camera" ? "visual_device_d435"
+                                                  : "visual_device_mid360";
   for (int id = 0; id < m->ngeom; ++id) {
     const char *name = mj_id2name(m, mjOBJ_GEOM, id);
     if (name && std::string(name).rfind(prefix, 0) == 0) {
@@ -147,6 +168,9 @@ void move_sensor_device(mjModel *m, const std::string &device,
     site(m, "camera_color", compose(mount, o.camera_color_offset));
     site(m, "camera_depth", compose(mount, o.camera_depth_offset));
     site(m, "camera_imu", optical(compose(mount, o.camera_imu_offset)));
+  } else if (device == "external_camera") {
+    site(m, "external_camera_color", compose(mount, o.camera_color_offset));
+    site(m, "external_camera_depth", compose(mount, o.camera_depth_offset));
   }
 }
 Extrinsics sensor_extrinsics(Simulation &sim, bool camera) {
@@ -159,6 +183,13 @@ Extrinsics sensor_extrinsics(Simulation &sim, bool camera) {
   x.has_camera = camera || sim.has_camera_imu();
   x.separate_camera_frames = true;
   x.has_camera_imu = sim.has_camera_imu();
+  if (!sim.joint_controls().empty())
+    x.camera_parent_frame = "arm_tool";
+  if (mj_name2id(sim.model(), mjOBJ_SITE, "external_camera_mount") >= 0) {
+    x.has_external_camera = true;
+    x.external_camera = optical(sim.pose("external_camera_color"));
+    x.external_depth = optical(sim.pose("external_camera_depth"));
+  }
   return x;
 }
 } // namespace simple_rbt

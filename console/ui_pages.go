@@ -153,12 +153,16 @@ func (a *app) changeRobotModel(name string) {
 		a.checkpoint()
 	}
 	a.cfg.Robot = name
+	if a.catalog.Robots[name].JointControl {
+		a.cfg.Sensors = Sensors{Camera: true, Depth: true, ExternalCamera: true}
+		a.selected = "camera"
+	}
 	a.cfg.Controller = a.catalog.Robots[name].DefaultController
 	a.cfg.Mounts = map[string]Pose{}
 	if a.catalog.Robots[name].Continuous && (a.cfg.Terrain == "stairs" || a.cfg.Terrain == "rough") {
 		a.cfg.Terrain = "flat"
 	}
-	a.robotPreset = RobotPreset{ID: newID(), Name: a.optionLabel(name) + " · " + a.cfg.CameraModel, RobotConfig: robotConfig(a.cfg)}
+	a.robotPreset = RobotPreset{ID: newID(), Name: a.defaultRobotPresetName(), RobotConfig: robotConfig(a.cfg)}
 	a.startConfig()
 }
 

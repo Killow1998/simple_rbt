@@ -24,7 +24,10 @@ enum class Kind : std::uint16_t {
   Metadata,
   View,
   Error,
-  CameraImu
+  CameraImu,
+  JointCommand,
+  JointState,
+  ExternalCamera
 };
 struct Packet {
   Kind kind = Kind::Metadata;
@@ -47,6 +50,10 @@ Packet encode_camera(std::uint64_t, const CameraFrame &, Kind = Kind::Camera);
 CameraFrame decode_camera(const Packet &);
 Json extrinsics_json(const Extrinsics &);
 Extrinsics decode_extrinsics(const Json &);
+Packet encode_joint_command(const simple_rbt::JointCommand &);
+simple_rbt::JointCommand decode_joint_command(const Packet &);
+Packet encode_joints(std::uint64_t, const simple_rbt::JointState &);
+simple_rbt::JointState decode_joints(const Packet &);
 
 // Two Unix stream sockets: small controls never wait behind image/cloud frames.
 // Outgoing data is bounded and drops only complete unsent frames. Commands are
@@ -69,6 +76,9 @@ public:
   std::size_t peer_count(const std::string &role) const;
   Json command_status() const; // Core receipt, not ROS publisher connectivity.
   Vec3 command() const override;
+  std::optional<simple_rbt::JointCommand> joint_command() const override;
+  void publish_joints(std::uint64_t, const simple_rbt::JointState &) override;
+  void publish_external_camera(std::uint64_t, const CameraFrame &) override;
   void spin_once(double timeout_s = 0.) override;
   void publish_clock(std::uint64_t) override;
   void publish_imu(const ImuSample &) override;

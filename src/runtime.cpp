@@ -94,6 +94,7 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
     bridge->publish_clock(0);
   std::size_t steps = std::ceil(args.duration / m.opt.timestep);
   const Vec3 local_command = args.simulation_command;
+  const bool joint_control = robot_spec(args.simulation.robot).joint_control;
   Vec3 last_applied{};
   double last_sensor_log = monotonic_seconds();
   for (std::size_t step = 0; args.indefinite || step < steps;) {
@@ -117,6 +118,14 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
         policy_origin && sim.data()->time >= *policy_origin + args.settle;
     Vec3 requested = bridge ? bridge->command() : local_command;
     sim.set_command(ready ? requested : Vec3{});
+    if (joint_control) {
+      const auto joint_command =
+          ready && bridge ? bridge->joint_command() : std::nullopt;
+      if (joint_command)
+        sim.set_joints(*joint_command);
+      else
+        sim.hold_joints();
+    }
     if (sim.command() != last_applied) {
       last_applied = sim.command();
       diagnostics::log().event("command.applied", {{"velocity", last_applied}},
@@ -135,6 +144,8 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
       observer->on_step(sim, monotonic_seconds());
     if (bridge)
       bridge->publish_clock(stamp);
+    if (joint_control && bridge && stamp % 20000000 == 0)
+      bridge->publish_joints(stamp, sim.joints());
     imus.advance(sim, args.mid360_enabled, bridge.get(), artifacts, observer);
     if (stamp % 100000000 == 0) {
       lidar.scan(sim, bridge.get(), observer);

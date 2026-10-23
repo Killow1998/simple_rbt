@@ -5,9 +5,27 @@
 namespace simple_rbt {
 const std::vector<RobotSpec> &robot_specs() {
   static const std::vector<RobotSpec> specs{
+      {"panda",
+       "joint_position",
+       {},
+       false,
+       false,
+       false,
+       false,
+       false,
+       0.,
+       true},
       {"go2", "robot_lab", {1., .6, 1.}, true, true, false, false, true, 0.},
       {"go2w", "rl_sar", {1., .6, 1.}, true, true, false, false, true, 0.},
-      {"turtlebot3_waffle_pi", "diff_drive", {.26, 0., 1.82}, false, true, true, true, true, 0.},
+      {"turtlebot3_waffle_pi",
+       "diff_drive",
+       {.26, 0., 1.82},
+       false,
+       true,
+       true,
+       true,
+       true,
+       0.},
       {"scout_mini",
        "skid_steer",
        {1.5, 0., 1.},
@@ -55,6 +73,8 @@ bool supported_command(const std::string &name, const Vec3 &command) noexcept {
   const auto *spec = find_robot_spec(name);
   if (!spec)
     return true;
+  if (spec->joint_control)
+    return command == Vec3{};
   if (!spec->allows_lateral && command[1] != 0.)
     return false;
   return spec->allows_in_place_turn || std::abs(command[0]) > 1e-9 ||

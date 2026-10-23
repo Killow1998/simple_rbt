@@ -34,6 +34,7 @@ func (a *app) terrains() []string {
 }
 func (a *app) configuration(c *ui.Context) {
 	section(c, a.tr("Robot", "机器人"), func() {
+		spec := a.catalog.Robots[a.cfg.Robot]
 		field(c, a.tr("Robot", "机器人"), func() {
 			if a.localizedSelect(c.Key("robot"), &a.cfg.Robot, sortedKeys(a.catalog.Robots)).FillWidth().Changed() {
 				a.changeRobotModel(a.cfg.Robot)
@@ -45,18 +46,23 @@ func (a *app) configuration(c *ui.Context) {
 			}
 		})
 		ui.Row(c).Gap(10).Children(func() {
-			field(c, a.tr("Motion", "运动"), func() {
-				if a.localizedSelect(c.Key("motion"), &a.cfg.ControlMode, []string{"tracked", "native"}).Width(166).Changed() {
-					a.startConfig()
-				}
-			})
+			if !spec.JointControl {
+				field(c, a.tr("Motion", "运动"), func() {
+					if a.localizedSelect(c.Key("motion"), &a.cfg.ControlMode, []string{"tracked", "native"}).Width(166).Changed() {
+						a.startConfig()
+					}
+				})
+			}
 			field(c, a.tr("LiDAR computation", "雷达计算"), func() {
 				if a.localizedSelect(c.Key("backend"), &a.cfg.Backend, []string{"auto", "cuda", "cpu"}).Width(166).Changed() {
 					a.startConfig()
 				}
 			})
 		})
-		spec := a.catalog.Robots[a.cfg.Robot]
+		if spec.JointControl {
+			ui.Text(c, a.tr("Fixed base · 7 joints + gripper", "固定底座 · 7 个关节＋夹爪")).FontSize(12).TextColor(c.Theme().TextMuted)
+			return
+		}
 		ui.Text(c, fmt.Sprintf(a.tr("Limits · vx ±%.2f m/s · wz ±%.2f rad/s", "限幅 · vx ±%.2f 米/秒 · wz ±%.2f 弧度/秒"), spec.Limits[0], spec.Limits[2])).FontSize(12).TextColor(c.Theme().TextMuted)
 		if !spec.AllowsLateral {
 			ui.Text(c, a.tr("No lateral motion", "不支持横向平移")).FontSize(12).TextColor(c.Theme().TextMuted)
@@ -86,19 +92,22 @@ func (a *app) configuration(c *ui.Context) {
 				changed = true
 			}
 		})
+		if ui.Checkbox(c.Key("external-camera"), &a.cfg.Sensors.ExternalCamera, a.tr("External camera · RGB + depth", "第三人称相机 · RGB＋深度")).Changed() {
+			changed = true
+		}
 		field(c, a.tr("Camera device", "相机型号"), func() {
 			if ui.Select(c.Key("camera-model"), &a.cfg.CameraModel, []string{"d435", "d435i"}).FillWidth().Changed() {
 				changed = true
 			}
 		})
 		if a.cfg.CameraModel == "d435i" {
-			ui.Text(c, a.tr("Built-in IMU · 200 Hz · /camera/imu", "内置 IMU · 200 Hz · /camera/imu")).FontSize(12).TextColor(c.Theme().TextMuted)
+			ui.Text(c, a.tr("Built-in wrist/device IMU · 200 Hz", "内置相机 IMU · 200 Hz")).FontSize(12).TextColor(c.Theme().TextMuted)
 		}
 		if changed {
 			a.startConfig()
 		}
 	})
-	if a.cfg.Sensors.MID360 || a.cameraDeviceEnabled() {
+	if a.cfg.Sensors.MID360 || a.cameraDeviceEnabled() || a.cfg.Sensors.ExternalCamera {
 		a.mountInspector(c)
 	}
 }

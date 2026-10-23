@@ -80,7 +80,9 @@ func TestCPPWorkerLifecycle(t *testing.T) {
 	waitMetadata(t, client, func(v map[string]any) bool { return v["session_state"] == "running" })
 	begin := time.Now()
 	seenCamera := false
-	for time.Since(begin) < 2*time.Second {
+	// Running metadata precedes EGL/shader initialization. This lifecycle test
+	// waits for its first real frame; sensor throughput is checked by E2E.
+	for time.Since(begin) < 2*time.Second || (!seenCamera && time.Since(begin) < 10*time.Second) {
 		client.SendCommand([3]float64{.3, 0, 0})
 		for _, packet := range client.Poll() {
 			if packet.Kind == KindCamera {

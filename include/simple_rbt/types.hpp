@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace simple_rbt {
@@ -20,6 +21,19 @@ struct Extrinsics {
   bool has_camera = true;
   Pose camera_depth, camera_imu;
   bool separate_camera_frames = false, has_camera_imu = false;
+  std::string camera_parent_frame;
+  bool has_external_camera = false;
+  Pose external_camera, external_depth;
+};
+struct JointCommand {
+  std::vector<std::string> name;
+  std::vector<double> position;
+  bool hold = false;
+};
+struct JointState {
+  std::vector<std::string> name;
+  std::vector<double> position, velocity, effort;
+  Pose tool_pose; // Relative to base_link, at this sample's physics time.
 };
 struct ImuSample {
   std::uint64_t stamp_ns = 0;
@@ -40,6 +54,6 @@ struct CameraFrame {
   std::vector<float> depth;
 };
 struct CameraPair {
-  CameraFrame perspective, panorama;
+  CameraFrame perspective, panorama, external;
 };
 } // namespace simple_rbt

@@ -7,7 +7,9 @@ std::string robot_command_topic(const std::string& robot_name) {
   static const std::regex name("[A-Za-z_][A-Za-z0-9_]*");
   if (!std::regex_match(robot_name, name))
     throw std::invalid_argument("robot_name must be one ROS name and cannot begin with a digit");
-  return "/" + robot_name + "/cmd_vel";
+  const auto *spec = find_robot_spec(robot_name);
+  return "/" + robot_name +
+         (spec && spec->joint_control ? "/joint_position_command" : "/cmd_vel");
 }
 bool robot_command_supported(const std::string& robot_name, const Vec3& command) {
   return supported_command(robot_name, command);

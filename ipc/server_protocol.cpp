@@ -74,7 +74,49 @@ void SessionServer::Impl::handle(Peer &p, const Packet &packet) {
   }
   if (p.data)
     return;
-  if (packet.kind == Kind::Command) {
+  if (packet.kind == Kind::JointCommand) {
+    if (!running || p.role != source ||
+        (command_client && command_client != p.id))
+      return;
+    try {
+      const auto *spec = find_robot_spec(options.robot_name);
+      if (!spec || !spec->joint_control)
+        throw std::invalid_argument("Robot has no joint control");
+      auto value = decode_joint_command(packet);
+      if (!value.hold) {
+        const auto axes = metadata.value("joint_controls", Json::array());
+        for (std::size_t i = 0; i < value.name.size(); ++i) {
+          auto axis =
+              std::find_if(axes.begin(), axes.end(), [&](const Json &a) {
+                return a.at("name") == value.name[i];
+              });
+          if (axis == axes.end() ||
+              value.position[i] < axis->at("minimum").get<double>() ||
+              value.position[i] > axis->at("maximum").get<double>())
+            throw std::invalid_argument(
+                "Unknown or out-of-range joint command");
+        }
+      }
+      if (!joint_command || joint_command->name != value.name ||
+          joint_command->position != value.position ||
+          joint_command->hold != value.hold)
+        diagnostics::log().event("joints.received",
+                                 {{"role", p.role},
+                                  {"names", value.name},
+                                  {"positions", value.position},
+                                  {"hold", value.hold}});
+      joint_command = std::move(value);
+      received = Clock::now();
+      command_client = p.id;
+    } catch (const std::exception &error) {
+      if (received != Clock::time_point{})
+        diagnostics::log().event("joints.rejected",
+                                 {{"reason", error.what()}, {"peer", p.id}}, 0,
+                                 "warning");
+      clear_command();
+      queue(p, json_packet(Kind::Error, {{"message", error.what()}}), true);
+    }
+  } else if (packet.kind == Kind::Command) {
     if (!running || p.role != source ||
         (command_client && command_client != p.id))
       return;
@@ -88,6 +130,8 @@ void SessionServer::Impl::handle(Peer &p, const Packet &packet) {
       return;
     }
     if (const auto *spec = find_robot_spec(options.robot_name)) {
+      if (spec->joint_control)
+        joint_command = simple_rbt::JointCommand{{}, {}, true};
       for (int i = 0; i < 3; ++i)
         value[i] = std::clamp(value[i], -spec->command_limits[i],
                               spec->command_limits[i]);

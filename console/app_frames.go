@@ -23,7 +23,11 @@ func (a *app) consume() {
 				continue
 			}
 			a.applyMetadata(decodeAs[metadata](data))
-		case session.KindView, session.KindCamera, session.KindPanorama:
+		case session.KindJointState:
+			if data, err := session.DecodeJSON(packet); err == nil {
+				a.jointState = decodeAs[session.JointState](data)
+			}
+		case session.KindView, session.KindCamera, session.KindPanorama, session.KindExternalCamera:
 			frame, err := session.DecodeCamera(packet)
 			if err != nil {
 				a.status = err.Error()
@@ -36,7 +40,14 @@ func (a *app) consume() {
 			if pixels == nil {
 				continue
 			}
-			if packet.Kind == session.KindView {
+			if packet.Kind == session.KindExternalCamera {
+				if a.externalCamera == nil {
+					a.externalCamera = ui.NewBitmap(pixels)
+				} else {
+					a.externalCamera.Update(pixels)
+				}
+				a.externalStamp = packet.StampNS
+			} else if packet.Kind == session.KindView {
 				if a.observer == nil {
 					a.observer = ui.NewBitmap(pixels)
 				} else {

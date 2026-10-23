@@ -38,6 +38,9 @@ func (a *app) keyboardInput(ev ui.InputEvent) bool {
 	default:
 		return false
 	}
+	if a.catalog.Robots[a.cfg.Robot].JointControl && key != ui.KeySpace {
+		return false
+	}
 	if ev.Kind == ui.InputKeyDown && ev.Mods != 0 {
 		a.stopManual()
 		return false

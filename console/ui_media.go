@@ -14,20 +14,23 @@ func (a *app) media(c *ui.Context) {
 	if a.stage != "configure" {
 		ui.Row(c).Gap(8).Children(func() {
 			ui.Text(c, a.optionLabel(sourceLabel(a.meta.Source))+" · "+a.commandStateLabel()).FontSize(13).Grow(1)
-			if a.localizedSelect(c.Key("view-mode"), &a.viewMode, []string{"Both / 双视角", "First / 第一视角", "Third / 第三视角"}).Width(200).Changed() {
+			if a.localizedSelect(c.Key("view-mode"), &a.viewMode, []string{"Both / 双视角", "First / 第一视角", "Third / 第三视角", "Observer / 自由观察"}).Width(200).Changed() {
 				a.requestView()
 			}
 		})
 	}
 	ui.Column(c).Grow(1).MinHeight(0).Gap(12).Children(func() {
 		showObserver := a.stage == "configure" || a.viewMode != "First / 第一视角" || !a.cameraEnabled()
-		showCamera := a.stage != "configure" && a.viewMode != "Third / 第三视角" && a.cameraEnabled()
+		showCamera := a.stage != "configure" && a.viewMode != "Third / 第三视角" && a.viewMode != "Observer / 自由观察" && a.cameraEnabled()
 		if showObserver {
 			ui.Column(c).Grow(1).MinHeight(0).Gap(6).Children(func() {
 				ui.Text(c, a.tr("Third-person view", "第三视角")).FontSize(12).TextColor(c.Theme().TextMuted)
 				view := ui.Box(c.Key("observer-view")).Bind(&a.driveHandles[1]).Grow(1).MinHeight(210).Radius(10).Clip().Background(viewportBackground).Focusable().Label(a.tr("3D sensor mount viewport", "传感器外参三维视图")).HandleInput(func(ev ui.InputEvent) bool {
 					if a.keyboardInput(ev) {
 						return true
+					}
+					if a.stage != "configure" && a.cfg.Sensors.ExternalCamera && a.viewMode != "Observer / 自由观察" {
+						return false
 					}
 					return a.viewportInput(ev)
 				})
@@ -40,6 +43,14 @@ func (a *app) media(c *ui.Context) {
 					a.viewport.Height = height
 					if changed {
 						a.requestView()
+					}
+					if a.stage != "configure" && a.cfg.Sensors.ExternalCamera && a.viewMode != "Observer / 自由观察" {
+						if a.externalCamera != nil {
+							p.Image(a.externalCamera, r, ui.Contain)
+						} else {
+							p.Text(r.X+18, r.Y+28, a.tr("Waiting for external camera", "等待第三人称相机"), 14, viewportText)
+						}
+						return
 					}
 					if a.observer == nil {
 						p.Text(r.X+18, r.Y+28, a.tr("Waiting for simulation view", "等待仿真画面"), 14, viewportText)

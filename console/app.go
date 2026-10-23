@@ -18,6 +18,8 @@ type observerInfo struct {
 	Width, Height int
 }
 type metadata struct {
+	JointControls []jointAxis     `json:"joint_controls"`
+	MountParents  map[string]Pose `json:"mount_parents"`
 	Logging       map[string]any  `json:"logging"`
 	State         string          `json:"session_state"`
 	Source        string          `json:"source"`
@@ -41,6 +43,10 @@ type metadata struct {
 	} `json:"resources"`
 }
 type app struct {
+	armCommand              *session.JointCommand
+	jointState              session.JointState
+	externalCamera          *ui.Bitmap
+	externalStamp           uint64
 	auditPrevious           map[string]any
 	diagnostics             diagnosticsView
 	sceneRevision           int
@@ -143,6 +149,9 @@ func (a *app) startConfig() {
 	a.viewLoading = true
 	a.viewError = ""
 	a.camera = nil
+	a.externalCamera = nil
+	a.externalStamp = 0
+	a.jointState = session.JointState{}
 	a.viewStamp = 0
 	a.cameraStamp = 0
 	a.odomStamp = 0
@@ -194,8 +203,15 @@ func (a *app) requestView() {
 	if a.restartPending || !a.manager.Client.Connected() {
 		return
 	}
-	request := a.viewport.request(a.meta.Base.Position)
+	lookat := a.meta.Base.Position
+	if a.catalog.Robots[a.cfg.Robot].JointControl {
+		lookat[2] += .45
+	}
+	request := a.viewport.request(lookat)
 	request["enabled"] = a.stage == "configure" || a.viewMode != "First / 第一视角" || !a.cameraEnabled()
+	if a.stage != "configure" && a.cfg.Sensors.ExternalCamera && a.viewMode != "Observer / 自由观察" {
+		request["enabled"] = false
+	}
 	_ = a.manager.Client.SendRequest(request)
 }
 func (a *app) pump() {
@@ -295,6 +311,7 @@ func (a *app) stopManual() {
 	a.pad.Position = point{}
 	a.pad.Lateral = 0
 	a.commandMu.Lock()
+	a.armCommand = nil
 	a.command = Vec3{}
 	_ = a.manager.Client.SendCommand([3]float64{})
 	a.commandMu.Unlock()

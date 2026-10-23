@@ -81,6 +81,7 @@ int main(int argc, char **argv) {
                             {"allows_lateral", spec.allows_lateral},
                             {"allows_in_place_turn", spec.allows_in_place_turn},
                             {"command_limits", spec.command_limits},
+                            {"joint_control", spec.joint_control},
                             {"min_turning_radius", spec.min_turning_radius}});
       std::cout << registry.dump() << '\n';
       return 0;

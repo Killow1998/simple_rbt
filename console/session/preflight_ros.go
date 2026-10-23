@@ -40,6 +40,8 @@ func (c checker) inspectROS(ctx context.Context, version string) DependencyCheck
 	var adapter struct {
 		ConfigurableOdometry bool `json:"configurable_odometry"`
 		CameraDevices        bool `json:"camera_devices"`
+		JointControl         bool `json:"joint_control"`
+		ExternalCamera       bool `json:"external_camera"`
 		Diagnostics          bool `json:"diagnostics"`
 	}
 	for _, line := range strings.Split(string(data), "\n") {
@@ -54,11 +56,13 @@ func (c checker) inspectROS(ctx context.Context, version string) DependencyCheck
 	if err != nil || observed != distro {
 		return DependencyCheck{version, false, "fail", fmt.Sprintf("ROS installation must be %s / 容器 ROS 版本必须为 %s: %s", distro, distro, strings.TrimSpace(string(data))), details}
 	}
-	if !adapter.ConfigurableOdometry || !adapter.CameraDevices {
+	if !adapter.ConfigurableOdometry || !adapter.CameraDevices || !adapter.JointControl || !adapter.ExternalCamera {
 		return DependencyCheck{version, false, "fail", "ROS adapter is outdated; select Prepare adapters / ROS 适配器需要更新，请选择准备适配器", details}
 	}
 	details["configurable_odometry"] = true
 	details["camera_devices"] = true
+	details["joint_control"] = true
+	details["external_camera"] = true
 	details["diagnostics"] = adapter.Diagnostics
 	return DependencyCheck{version, false, "pass", "Container ROS installation verified / 容器内 ROS 安装已验证: " + distro, details}
 }

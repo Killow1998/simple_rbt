@@ -58,15 +58,30 @@ func (a *app) basis() (Vec3, Vec3, Vec3) {
 	up := cross(right, forward)
 	return forward, right, up
 }
+func (a *app) mountParent() Pose { return a.mountParentFor(a.selected) }
+func (a *app) mountParentFor(name string) Pose {
+	if a.page == "scene" {
+		return Pose{Quaternion: Quat{1, 0, 0, 0}}
+	}
+	if parent, ok := a.meta.MountParents[name]; ok {
+		return parent
+	}
+	return a.meta.Base
+}
 func (a *app) world(p Vec3) Vec3 {
 	if a.page == "scene" {
 		return p
 	}
-	return add(a.meta.Base.Position, rotate(p, a.meta.Base.Quaternion))
+	return add(a.mountParent().Position, rotate(p, a.mountParent().Quaternion))
 }
-func (a *app) project(p Vec3) point {
+func (a *app) project(p Vec3) point { return a.projectWorld(a.world(p)) }
+func (a *app) projectMount(name string, p Vec3) point {
+	parent := a.mountParentFor(name)
+	return a.projectWorld(add(parent.Position, rotate(p, parent.Quaternion)))
+}
+func (a *app) projectWorld(p Vec3) point {
 	f, right, up := a.basis()
-	rel := sub(a.world(p), a.viewInfo().Position)
+	rel := sub(p, a.viewInfo().Position)
 	depth := dot(rel, f)
 	if depth <= 1e-6 {
 		return point{math.NaN(), math.NaN()}

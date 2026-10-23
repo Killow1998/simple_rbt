@@ -26,3 +26,11 @@ Ranger Mini V3、普通四轮 Scout Mini、FR-mini 和 Ridgeback 的外观使用
 
 Official visual CAD is separate from validated dynamics. Preparation scripts verify source and
 derived hashes; runtime C++ loads the exported model directly and never invokes these scripts.
+
+Panda 使用 MuJoCo Menagerie 的 Apache-2.0 模型，包括七个关节、两个联动夹指、
+原碰撞体与执行器。`manifests/panda_manifest.json` 固定来源 commit 和 69 个源码／网格／许可文件。
+`tools/bootstrap_panda_assets.py` 校验或下载这些文件；安装包只携带所需网格与许可。
+本地 MJCF 加入传感器安装点、统一场景光源和 2 m 渲染尺度，物理参数保留。
+
+Panda assets are pinned and hash-checked from MuJoCo Menagerie. The installed
+runtime loads the MJCF directly; preparation Python is not started by SpRobo.

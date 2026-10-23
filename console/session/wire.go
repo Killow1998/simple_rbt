@@ -25,6 +25,9 @@ const (
 	KindView
 	KindError
 	KindCameraIMU
+	KindJointCommand
+	KindJointState
+	KindExternalCamera
 )
 const MaxPayload = 32 * 1024 * 1024
 const ProtocolVersion = 1
@@ -42,7 +45,7 @@ func readPacket(reader io.Reader) (Packet, error) {
 	}
 	kind := Kind(binary.LittleEndian.Uint16(header[6:8]))
 	length := binary.LittleEndian.Uint32(header[16:20])
-	if string(header[:4]) != "SRBT" || binary.LittleEndian.Uint16(header[4:6]) != ProtocolVersion || binary.LittleEndian.Uint32(header[20:24]) != 0 || kind < KindHello || kind > KindCameraIMU || length > MaxPayload {
+	if string(header[:4]) != "SRBT" || binary.LittleEndian.Uint16(header[4:6]) != ProtocolVersion || binary.LittleEndian.Uint32(header[20:24]) != 0 || kind < KindHello || kind > KindExternalCamera || length > MaxPayload {
 		return Packet{}, errors.New("unsupported or oversized IPC frame")
 	}
 	packet := Packet{Kind: kind, StampNS: binary.LittleEndian.Uint64(header[8:16]), Payload: make([]byte, length)}

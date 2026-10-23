@@ -26,6 +26,9 @@ class RosBridge final : public Transport {
   RosBridge& operator=(const RosBridge&) = delete;
 
   Vec3 command() const;
+  std::optional<JointCommand> joint_command() const override;
+  void publish_joints(std::uint64_t, const JointState &) override;
+  void publish_external_camera(std::uint64_t, const CameraFrame &) override;
   void spin_once(double timeout_s = 0.);
   void publish_clock(std::uint64_t stamp_ns);
   void publish_imu(const ImuSample& sample);
@@ -46,7 +49,8 @@ class RosBridge final : public Transport {
   void close();
 
  private:
-  struct Impl;
-  std::unique_ptr<Impl> impl_;
+   void publish_image(std::uint64_t, const CameraFrame &, int kind);
+   struct Impl;
+   std::unique_ptr<Impl> impl_;
 };
 }  // namespace simple_rbt

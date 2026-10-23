@@ -1,5 +1,6 @@
 #include "simple_rbt/event_log.hpp"
 #include "simple_rbt/ipc.hpp"
+#include "simple_rbt/robots.hpp"
 #include "simple_rbt/ros_bridge.hpp"
 #include <atomic>
 #include <chrono>
@@ -73,14 +74,18 @@ int main(int argc, char **argv) {
     validate_distro();
     if (runtime_info) {
       std::cout << ipc::Json{{"ros_distro", SIMPLE_RBT_ROS_DISTRO},
-                            {"ros_version", SIMPLE_RBT_ROS_VERSION},
-                            {"ros_client_version", SIMPLE_RBT_ROS_CLIENT_VERSION},
-                            {"transport", "unix_ipc"},
-                            {"configurable_odometry", true},
-                            {"camera_devices", true},
-                            {"diagnostics", true},
-                            {"runtime_language", "C++17"}}
-                       .dump() << '\n';
+                             {"ros_version", SIMPLE_RBT_ROS_VERSION},
+                             {"ros_client_version",
+                              SIMPLE_RBT_ROS_CLIENT_VERSION},
+                             {"transport", "unix_ipc"},
+                             {"configurable_odometry", true},
+                             {"camera_devices", true},
+                             {"joint_control", true},
+                             {"external_camera", true},
+                             {"diagnostics", true},
+                             {"runtime_language", "C++17"}}
+                       .dump()
+                << '\n';
       return 0;
     }
     if (session.empty())
@@ -89,9 +94,11 @@ int main(int argc, char **argv) {
     std::signal(SIGTERM, interrupted);
     ipc::Client client;
     const auto startup = std::chrono::steady_clock::now();
-    while (!stop && !client.connect(session, role,
-                                    {"clock", "imu", "camera_imu", "lidar", "odom", "camera",
-                                     "panorama", "status", "metadata"})) {
+    while (!stop &&
+           !client.connect(session, role,
+                           {"clock", "imu", "camera_imu", "lidar", "odom",
+                            "camera", "panorama", "external_camera", "joints",
+                            "status", "metadata"})) {
       if (std::chrono::steady_clock::now() - startup > std::chrono::seconds(20))
         throw std::runtime_error("core IPC session unavailable");
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -135,10 +142,26 @@ int main(int argc, char **argv) {
           if(trace!=events->tracing()) events->set_trace(trace);
           continue;
         }
-        const std::string stream = packet.kind==ipc::Kind::Lidar?"lidar":packet.kind==ipc::Kind::Imu?"imu":packet.kind==ipc::Kind::CameraImu?"camera_imu":packet.kind==ipc::Kind::Camera?"camera":packet.kind==ipc::Kind::Panorama?"panorama":packet.kind==ipc::Kind::Odometry?"odom":"clock";
+        const std::string stream =
+            packet.kind == ipc::Kind::Lidar            ? "lidar"
+            : packet.kind == ipc::Kind::Imu            ? "imu"
+            : packet.kind == ipc::Kind::CameraImu      ? "camera_imu"
+            : packet.kind == ipc::Kind::Camera         ? "camera"
+            : packet.kind == ipc::Kind::Panorama       ? "panorama"
+            : packet.kind == ipc::Kind::ExternalCamera ? "external_camera"
+            : packet.kind == ipc::Kind::JointState     ? "joints"
+            : packet.kind == ipc::Kind::Odometry       ? "odom"
+                                                       : "clock";
         const auto key=diagnostics::sample_key(stream,packet.stamp_ns);
         events->trace("ipc.received",{{"sample",key},{"bytes",packet.payload.size()}},packet.stamp_ns);
         switch (packet.kind) {
+        case ipc::Kind::JointState:
+          bridge->publish_joints(packet.stamp_ns, ipc::decode_joints(packet));
+          break;
+        case ipc::Kind::ExternalCamera:
+          bridge->publish_external_camera(packet.stamp_ns,
+                                          ipc::decode_camera(packet));
+          break;
         case ipc::Kind::Clock:
           bridge->publish_clock(packet.stamp_ns);
           break;
@@ -177,7 +200,12 @@ int main(int argc, char **argv) {
         bridge->spin_once();
       const auto now = std::chrono::steady_clock::now();
       if (bridge && now - sent >= std::chrono::milliseconds(20)) {
-        client.send_command(bridge->command());
+        const auto *spec = find_robot_spec(bridge->options().robot_name);
+        if (spec && spec->joint_control)
+          client.send_packet(ipc::encode_joint_command(
+              bridge->joint_command().value_or(JointCommand{{}, {}, true})));
+        else
+          client.send_command(bridge->command());
         sent = now;
       }
       if (duration > 0. &&

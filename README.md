@@ -4,7 +4,7 @@
 
 A robot simulator with a C++17 MuJoCo core and **SpRobo**, its native [MyGo](https://github.com/egoist/mygo) launcher and operator console. The framework and repository remain `simple_rbt`. Configure the robot, terrain and sensors, adjust sensor mounts in a live 3D view, then drive manually or select a program command source. ROS 1 Noetic and ROS 2 Humble are optional independent C++ adapters.
 
-Supported robots: Go2, Go2W, TurtleBot3 Waffle Pi, Scout Mini, FR-mini, Ridgeback and Ranger Mini. Pure wheel chassis use flat ground, ramps and continuous hills. Go2 and Go2W also offer stairs and stepped terrain. Command tracking is a simulator aid, rather than a hardware performance claim.
+Supported robots: Go2, Go2W, TurtleBot3 Waffle Pi, Scout Mini, FR-mini, Ridgeback, Ranger Mini and the fixed-base Franka Emika Panda arm. Pure wheel chassis use flat ground, ramps and continuous hills. Go2 and Go2W also offer stairs and stepped terrain. Command tracking is a simulator aid, rather than a hardware performance claim.
 
 ## Install and launch
 
@@ -39,6 +39,11 @@ clicking the joystick or a driving view. Keyboard and joystick share speed limit
 releasing keys or losing focus stops manual input. Official MID360/D435 visuals
 include optional independent D435i IMU output, rigid internal mounts and separate
 RGB/depth optical origins. See [sensor and keyboard usage](docs/runtime.md).
+
+Panda uses seven joint-position targets and a coupled gripper. Both the wrist-mounted
+first-person camera and the world-fixed third-person camera publish RGB, depth and
+CameraInfo at the configured camera rate (default 320×240, 10 Hz). Their mounts use
+the existing numeric/3D editor and named presets. See [arm controls and camera topics](docs/runtime.md#fixed-arm-and-two-cameras--固定机械臂与双相机).
 
 ## Development
 

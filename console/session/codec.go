@@ -17,6 +17,16 @@ type Odometry struct {
 	Quaternion      [4]float64
 	Linear, Angular [3]float64
 }
+type JointCommand struct {
+	Name     []string  `json:"name"`
+	Position []float64 `json:"position"`
+	Hold     bool      `json:"hold"`
+}
+type JointState struct {
+	Name     []string  `json:"name"`
+	Position []float64 `json:"position"`
+	Velocity []float64 `json:"velocity"`
+}
 
 func DecodeCamera(packet Packet) (CameraFrame, error) {
 	data := packet.Payload

@@ -69,7 +69,7 @@ func gizmoLabel(p *ui.Painter, r ui.Rect, q point, label string, color ui.Color)
 	p.Text(x, y, label, 12, color)
 }
 func (a *app) visibleMount(name string) bool {
-	return name == "mid360" && a.cfg.Sensors.MID360 || name == "camera" && a.cameraDeviceEnabled()
+	return name == "mid360" && a.cfg.Sensors.MID360 || name == "camera" && a.cameraDeviceEnabled() || name == "external_camera" && a.cfg.Sensors.ExternalCamera
 }
 func (a *app) drawGizmo(p *ui.Painter, r ui.Rect) {
 	a.viewport.Handles = nil
@@ -116,12 +116,12 @@ func (a *app) drawGizmo(p *ui.Painter, r ui.Rect) {
 	})
 }
 func (a *app) drawMounts(p *ui.Painter, r ui.Rect) {
-	for _, name := range []string{"mid360", "camera"} {
+	for _, name := range []string{"mid360", "camera", "external_camera"} {
 		pose, ok := a.cfg.Mounts[name]
 		if !ok || !a.visibleMount(name) {
 			continue
 		}
-		q, color := a.project(pose.Position), ui.Hex("#e3e7ed")
+		q, color := a.projectMount(name, pose.Position), ui.Hex("#e3e7ed")
 		if name == a.selected {
 			color = gizmoHighlight
 		} else {

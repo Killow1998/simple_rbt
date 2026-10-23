@@ -2,6 +2,7 @@
 #include "simple_rbt/types.hpp"
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 
 namespace simple_rbt {
@@ -25,6 +26,9 @@ class Transport {
 public:
   virtual ~Transport() = default;
   virtual Vec3 command() const = 0;
+  virtual std::optional<JointCommand> joint_command() const { return {}; }
+  virtual void publish_joints(std::uint64_t, const JointState &) {}
+  virtual void publish_external_camera(std::uint64_t, const CameraFrame &) {}
   virtual void spin_once(double timeout_s = 0.) = 0;
   virtual void publish_clock(std::uint64_t) = 0;
   virtual void publish_imu(const ImuSample&) = 0;

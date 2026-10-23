@@ -41,7 +41,7 @@ setpriv --reuid=65534 --regid=65534 --clear-groups \
     /usr/bin/simple-rbt-sim --help > "$evidence/sim-help.txt"
 /usr/bin/simple-rbt-sim --list-robots > "$evidence/robot-registry.json"
 robots=$(jq -er '.[].name' "$evidence/robot-registry.json")
-test "$(jq length "$evidence/robot-registry.json")" -eq 7
+test "$(jq length "$evidence/robot-registry.json")" -eq 8
 for robot in $robots; do
     setpriv --reuid=65534 --regid=65534 --clear-groups \
         /usr/bin/simple-rbt-sim --robot "$robot" --sensors physics --backend cpu \
@@ -95,4 +95,4 @@ test ! -e /usr/share/applications/sprobo.desktop
 test ! -d /usr/share/simple-rbt
 test ! -d /usr/lib/simple-rbt
 test -f /tmp/sprobo-user/config/user-state-marker
-printf 'install, non-root native window, seven CPU models, dependency isolation and uninstall passed\n'
+printf 'install, non-root native window, eight CPU models, dependency isolation and uninstall passed\n'

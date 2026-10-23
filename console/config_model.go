@@ -9,10 +9,11 @@ import (
 )
 
 type Sensors struct {
-	MID360   bool `json:"mid360"`
-	Camera   bool `json:"camera"`
-	Depth    bool `json:"depth"`
-	Panorama bool `json:"panorama"`
+	MID360         bool `json:"mid360"`
+	Camera         bool `json:"camera"`
+	Depth          bool `json:"depth"`
+	Panorama       bool `json:"panorama"`
+	ExternalCamera bool `json:"external_camera"`
 }
 type ROSConfig struct {
 	PublishOdomTF bool   `json:"publish_odom_tf"`
@@ -35,6 +36,7 @@ type Config struct {
 	Adapters         map[string]bool `json:"adapters"`
 }
 type RobotSpec struct {
+	JointControl      bool    `json:"joint_control"`
 	Name              string  `json:"name"`
 	DefaultController string  `json:"default_controller"`
 	Continuous        bool    `json:"continuous_terrain"`
@@ -50,7 +52,7 @@ type Catalog struct {
 }
 
 func defaultConfig() Config {
-	return Config{CameraModel: "d435", ROS: ROSConfig{true, "/odom"}, Robot: "go2", Controller: "auto", ControlMode: "tracked", Terrain: "flat", TerrainLevel: "standard", Backend: "auto", Sensors: Sensors{true, true, true, false}, Mounts: map[string]Pose{}, CameraHz: 10, Adapters: map[string]bool{}}
+	return Config{CameraModel: "d435", ROS: ROSConfig{true, "/odom"}, Robot: "go2", Controller: "auto", ControlMode: "tracked", Terrain: "flat", TerrainLevel: "standard", Backend: "auto", Sensors: Sensors{MID360: true, Camera: true, Depth: true}, Mounts: map[string]Pose{}, CameraHz: 10, Adapters: map[string]bool{}}
 }
 func loadJSON(path string, out any) error {
 	data, err := os.ReadFile(path)

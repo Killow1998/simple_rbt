@@ -72,6 +72,10 @@ func (a *app) controls(c *ui.Context) {
 				_ = a.manager.Client.SendRequest(map[string]any{"op": "source", "source": sourceName(a.sourceLabel)})
 			}
 		})
+		if a.catalog.Robots[a.cfg.Robot].JointControl {
+			a.armControls(c)
+			return
+		}
 		ui.Box(c.Key("drive-pad")).Bind(&a.driveHandles[0]).Height(224).Radius(12).Background(c.Theme().Background).Focusable().Disabled(!a.manualMode()).Label(a.tr("Hold joystick to move; release to stop", "按住摇杆运动，松开停车")).HandleInput(a.controlInput).Draw(func(p *ui.Painter, r ui.Rect) {
 			a.pad.Width = float64(r.W)
 			a.pad.Height = float64(r.H)
@@ -129,7 +133,7 @@ func (a *app) controls(c *ui.Context) {
 }
 func (a *app) motionButtons(c *ui.Context) {
 	ui.Row(c).Gap(10).Children(func() {
-		ui.Button(c, a.tr("STOP", "停车")).Grow(1).Background(stopBackground(c)).TextColor(c.Theme().Text).OnClick(a.action("ui_controls.stop", func() {
+		ui.Button(c, a.tr("STOP", "停止")).Grow(1).Background(stopBackground(c)).TextColor(c.Theme().Text).OnClick(a.action("ui_controls.stop", func() {
 			a.stopManual()
 			a.sourceLabel = manualLabel
 			_ = a.manager.Client.SendRequest(map[string]any{"op": "stop"})

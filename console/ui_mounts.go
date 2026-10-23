@@ -13,10 +13,13 @@ func (a *app) mountInspector(c *ui.Context) {
 	if a.cameraDeviceEnabled() {
 		choices = append(choices, "camera")
 	}
+	if a.cfg.Sensors.ExternalCamera {
+		choices = append(choices, "external_camera")
+	}
 	if len(choices) == 0 {
 		return
 	}
-	if (a.selected == "mid360" && !a.cfg.Sensors.MID360) || (a.selected == "camera" && !a.cameraDeviceEnabled()) {
+	if (a.selected == "external_camera" && !a.cfg.Sensors.ExternalCamera) || (a.selected == "mid360" && !a.cfg.Sensors.MID360) || (a.selected == "camera" && !a.cameraDeviceEnabled()) {
 		a.selected = choices[0]
 	}
 	section(c, a.tr("Sensor mount", "安装外参"), func() {
@@ -26,7 +29,13 @@ func (a *app) mountInspector(c *ui.Context) {
 			ui.Text(c, a.tr("Waiting for model defaults", "等待模型默认外参")).FontSize(12).TextColor(c.Theme().TextMuted)
 			return
 		}
-		ui.Text(c, a.tr("base_link · metres", "base_link · 米")).FontSize(12).TextColor(c.Theme().TextMuted)
+		frame := "base_link"
+		if a.selected == "external_camera" {
+			frame = "world"
+		} else if a.selected == "camera" && a.catalog.Robots[a.cfg.Robot].JointControl {
+			frame = "arm_tool"
+		}
+		ui.Text(c, a.tr(frame+" · metres", frame+" · 米")).FontSize(12).TextColor(c.Theme().TextMuted)
 		for i, label := range []string{"X", "Y", "Z"} {
 			i, label := i, label
 			ui.Row(c).Gap(10).Children(func() {

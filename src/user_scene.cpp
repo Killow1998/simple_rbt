@@ -39,6 +39,59 @@ void identity(const Json &x, std::set<std::string> &ids) {
   require(!name.empty() && name.size() <= 160,
           "Scene name is empty or too long");
 }
+void place_fixed_base(tinyxml2::XMLElement *world, const Json &scene) {
+  for (auto *body = world->FirstChildElement("body"); body;
+       body = body->NextSiblingElement("body")) {
+    if (body->FirstChildElement("joint") ||
+        body->FirstChildElement("freejoint"))
+      continue;
+    for (auto *site = body->FirstChildElement("site"); site;
+         site = site->NextSiblingElement("site")) {
+      const char *name = site->Attribute("name");
+      if (!name || std::string(name) != "base_origin")
+        continue;
+      Vec3 position{};
+      Quat quaternion{1, 0, 0, 0};
+      if (auto *text = body->Attribute("pos")) {
+        std::istringstream input(text);
+        for (auto &v : position)
+          input >> v;
+      }
+      if (auto *text = body->Attribute("quat")) {
+        std::istringstream input(text);
+        for (auto &v : quaternion)
+          input >> v;
+      }
+      const auto spawn = scene.at("spawn").at("position").get<Vec3>();
+      for (int i = 0; i < 3; ++i)
+        position[i] += spawn[i];
+      position[2] += floors(scene).at(scene.at("spawn").at("floor"));
+      const double half =
+          scene.at("spawn").at("yaw_deg").get<double>() * std::acos(-1.) / 360.;
+      const Quat yaw{std::cos(half), 0, 0, std::sin(half)};
+      Quat result;
+      mju_mulQuat(result.data(), yaw.data(), quaternion.data());
+      // Place fixed bodies before compilation so static collision bounds and
+      // the exported model use the same transform as the rendered scene.
+      body->SetAttribute("pos", numbers(position).c_str());
+      body->SetAttribute("quat", numbers(result).c_str());
+      if (auto *statistic = world->Parent()->FirstChildElement("statistic")) {
+        if (const char *text = statistic->Attribute("center")) {
+          Vec3 center{}, placed{};
+          std::istringstream input(text);
+          for (auto &v : center)
+            input >> v;
+          mju_rotVecQuat(placed.data(), center.data(), yaw.data());
+          for (int i = 0; i < 3; ++i)
+            placed[i] += spawn[i];
+          placed[2] += floors(scene).at(scene.at("spawn").at("floor"));
+          statistic->SetAttribute("center", numbers(placed).c_str());
+        }
+      }
+      return;
+    }
+  }
+}
 } // namespace
 void validate_user_scene(const Json &s) {
   require(s.at("version") == 1, "Unsupported scene version");
@@ -83,6 +136,7 @@ void append_user_scene(tinyxml2::XMLDocument &doc, const Json &s) {
   validate_user_scene(s);
   auto heights = floors(s);
   auto *world = doc.RootElement()->FirstChildElement("worldbody");
+  place_fixed_base(world, s);
   int index = 0;
   for (const auto &o : scene_boxes(s)) {
     auto pos = o.at("position").get<Vec3>(), size = o.at("size").get<Vec3>();
@@ -114,7 +168,15 @@ void apply_scene_spawn(mjModel *m, mjData *d, const Json &s) {
       joint = i;
       break;
     }
-  require(joint >= 0, "Robot requires a free root for scene spawning");
+  if (joint < 0) {
+    const int site = mj_name2id(m, mjOBJ_SITE, "base_origin");
+    require(site >= 0, "Fixed robot requires a base origin");
+    const int body = m->site_bodyid[site];
+    require(body > 0 && m->body_parentid[body] == 0 &&
+                m->body_jntnum[body] == 0,
+            "Invalid fixed robot root");
+    return;
+  }
   int q = m->jnt_qposadr[joint];
   auto pos = s.at("spawn").at("position").get<Vec3>();
   pos[2] += floors(s).at(s.at("spawn").at("floor"));

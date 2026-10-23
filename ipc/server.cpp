@@ -13,6 +13,9 @@ SessionServer::Impl::Impl(const std::filesystem::path &p, TransportOptions o,
   if (options.robot_name.empty() || !std::isfinite(options.command_timeout_s) ||
       options.command_timeout_s <= 0.)
     throw std::invalid_argument("invalid IPC transport options");
+  if (const auto *spec = find_robot_spec(options.robot_name);
+      spec && spec->joint_control)
+    topic = ns + "/joint_position_command";
   std::filesystem::create_directories(path);
   ::chmod(path.c_str(), 0700);
   control_listener = detail::listener(path / "control.sock");
@@ -60,8 +63,10 @@ void SessionServer::Impl::broadcast(Packet packet) {
     const bool latest =
         p.role == "gui" &&
         (packet.kind == Kind::View || packet.kind == Kind::Camera ||
-         packet.kind == Kind::Panorama || packet.kind == Kind::Odometry ||
-         packet.kind == Kind::Metadata || packet.kind == Kind::Status);
+         packet.kind == Kind::ExternalCamera ||
+         packet.kind == Kind::JointState || packet.kind == Kind::Panorama ||
+         packet.kind == Kind::Odometry || packet.kind == Kind::Metadata ||
+         packet.kind == Kind::Status);
     auto dropped = p.socket.dropped;
     if (!p.socket.enqueue(b, !control, latest))
       p.socket.close();
@@ -77,6 +82,7 @@ void SessionServer::Impl::broadcast(Packet packet) {
 
 void SessionServer::Impl::clear_command() {
   command = {};
+  joint_command.reset();
   command_client = 0;
   received = {};
 }

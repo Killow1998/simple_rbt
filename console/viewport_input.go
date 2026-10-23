@@ -47,7 +47,7 @@ func (a *app) viewportInput(event ui.InputEvent) bool {
 			return true
 		}
 		for name, pose := range a.cfg.Mounts {
-			if a.visibleMount(name) && plen(psub(pointer, a.project(pose.Position))) < 18 {
+			if a.visibleMount(name) && plen(psub(pointer, a.projectMount(name, pose.Position))) < 18 {
 				a.selected = name
 				v.Orbit = false
 				return true

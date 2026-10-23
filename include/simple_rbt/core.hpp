@@ -19,7 +19,8 @@ struct SimulationOptions {
               go2_startup = "crouched";
   double difficulty = 1., friction = -1.;
   std::uint64_t seed = 0;
-  std::optional<Pose> mid360_mount, camera_mount;
+  std::optional<Pose> mid360_mount, camera_mount, external_camera_mount;
+  bool external_camera_enabled = false;
   std::string camera_model = "d435";
   Pose camera_color_offset{{0.,.015,0.}}, camera_depth_offset{},
        camera_imu_offset{{-.01174,-.00552,.0051}};
@@ -31,6 +32,13 @@ public:
   Simulation(const Simulation &) = delete;
   Simulation &operator=(const Simulation &) = delete;
   void set_command(const Vec3 &);
+  void set_joints(const JointCommand &);
+  void hold_joints();
+  JointState joints() const;
+  Json joint_controls() const;
+  Pose relative_pose(const std::string &site,
+                     const std::string &parent = "base_origin") const;
+  Pose mount_parent(const std::string &module) const;
   void step();
   // Configuration only; the controller body IMU is never modified.
   void set_mount(const std::string& module, const Pose&);

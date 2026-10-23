@@ -47,6 +47,9 @@ Json run_session(const Json &config, const std::filesystem::path &directory,
         args.simulation.mid360_mount = session_detail::parse_pose(it.value());
       else if (it.key() == "camera")
         args.simulation.camera_mount = session_detail::parse_pose(it.value());
+      else if (it.key() == "external_camera")
+        args.simulation.external_camera_mount =
+            session_detail::parse_pose(it.value());
       else
         throw std::invalid_argument("Unknown sensor mount");
     }
@@ -55,8 +58,11 @@ Json run_session(const Json &config, const std::filesystem::path &directory,
   args.camera_enabled = sensors.value("camera", true);
   args.depth_enabled = sensors.value("depth", true);
   args.panorama_enabled = sensors.value("panorama", false);
+  args.simulation.external_camera_enabled =
+      sensors.value("external_camera", false);
   args.sensors =
-      (args.camera_enabled || args.depth_enabled || args.panorama_enabled)
+      (args.camera_enabled || args.depth_enabled || args.panorama_enabled ||
+       args.simulation.external_camera_enabled)
           ? "full"
       : args.mid360_enabled ? "lidar"
                             : "physics";

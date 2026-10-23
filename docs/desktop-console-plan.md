@@ -1,7 +1,11 @@
 # Desktop console and session architecture / 操作台与会话架构
 
-Status: SpRobo 0.2.1 released after all GitHub acceptance jobs passed and installed on Jammy. Framework name remains `simple_rbt`. / 状态：SpRobo 0.2.1 已通过全部 GitHub 验收、发布并安装到 Jammy；框架名称保持 `simple_rbt`。[Release / 发行](https://github.com/Killow1998/simple_rbt/releases/tag/v0.2.1) · [Successful CI / 通过的 CI](https://github.com/Killow1998/simple_rbt/actions/runs/38708515822)。
-Date / 日期：2026-10-15。
+Current stage: fixed-base Panda control and two RGB-D sensors, installed on Jammy
+for local testing. Framework name remains `simple_rbt`; launcher remains SpRobo.
+The public [0.2.1 release](https://github.com/Killow1998/simple_rbt/releases/tag/v0.2.1)
+predates this stage. / 当前阶段：固定底座 Panda 与双 RGB-D 相机已安装到 Jammy，
+供本地测试；框架与启动器名称不变。本阶段尚未发布新的公开发行包。
+Date / 日期：2026-10-23。
 
 ## Product / 产品
 
@@ -41,9 +45,9 @@ The configuration screen selects compatible robot/controller/terrain combination
 
 配置界面选择相容的机器人／控制器／地形、传感器输出和安装位姿。XYZ／欧拉角输入与平移轴／旋转环编辑同一个归一化四元数 pose。视口显示核心实际渲染的模型，叠加投影操作柄；设备选择、机身／设备轴和观察旋转／缩放按各自模式操作。
 
-Starting enters the SpRobo operator screen with first/third views, held joystick, command-source choice, stop/pause and measured core CPU/RAM/RTF. Joystick release and window focus loss clear manual commands only. Program IPC/ROS commands continue while unfocused, with the same 0.5-second deadman and owner-disconnect stop. Returning to configuration stops the old worker/adapters and starts a fresh private session. User presets and results keep their existing XDG paths; uninstall preserves them.
+Starting enters the SpRobo operator screen with first/third views, chassis joystick or arm joint/gripper controls, command-source choice, stop/pause and measured core CPU/RAM/RTF. Joystick release and window focus loss stop manual motion only. Program IPC/ROS commands continue while unfocused, with the same 0.5-second deadman and owner-disconnect stop. Returning to configuration stops the old worker/adapters and starts a fresh private session. User presets and results keep their existing XDG paths; uninstall preserves them.
 
-开始后进入 SpRobo 操作台，提供第一／第三视角、按住运动的摇杆、指令来源、停车／暂停和实测核心 CPU／RAM／RTF。松开摇杆与失焦仅清零手动指令；程序 IPC／ROS 不受窗口焦点影响，仍保留 0.5 秒超时和控制端断开停车。返回配置时关闭旧 worker／适配器，建立新的私有会话。预设与结果保留既有 XDG 路径，卸载保留用户数据。
+开始后进入 SpRobo 操作台，提供第一／第三视角、底盘摇杆或机械臂关节与夹爪控制、指令来源、停止／暂停和实测核心 CPU／RAM／RTF。松开摇杆与失焦仅停止手动运动；程序 IPC／ROS 不受窗口焦点影响，仍保留 0.5 秒超时和控制端断开停止。返回配置时关闭旧 worker／适配器，建立新的私有会话。预设与结果保留既有 XDG 路径，卸载保留用户数据。
 
 The launch page combines built-in terrains and user scenes in one selector; terrain
 levels are part of the scene name. A separate scene editor supports floor slabs,
@@ -67,9 +71,9 @@ MyGo console (Go) ↔ control/data sockets ↔ MuJoCo worker (C++)
                         Noetic container         Humble container
 ```
 
-Core, console and either ROS adapter can have independent lifetimes. Each ROS adapter publishes the core's actual samples directly to its peers; neither ROS runtime is linked into the host core/console. Docker images pin public official bases. Selecting both adapters permits both outputs, with one explicit motion-command owner. Command timeout is 0.5 s. Stop revokes a prior ROS owner and leaves active physics at zero command; Pause freezes simulation time.
+Core, console and either ROS adapter can have independent lifetimes. Each ROS adapter publishes the core's actual samples directly to its peers; neither ROS runtime is linked into the host core/console. Docker images pin public official bases. Selecting both adapters permits both outputs, with one explicit motion-command owner. Command timeout is 0.5 s. Stop returns ownership to manual control and clears chassis velocity or holds the current arm pose; Pause freezes simulation time.
 
-核心、操作台和 ROS 适配器分别拥有生命周期。适配器直接向各自节点发布核心的实际样本；宿主核心／界面不链接 ROS。Docker 镜像固定公开官方基础镜像。可同时启用两种输出，但运动只接受一个显式选中的来源；超时为 0.5 秒。停车撤销先前 ROS 来源，让物理以零指令继续；暂停冻结仿真时间。
+核心、操作台和 ROS 适配器分别拥有生命周期。适配器直接向各自节点发布核心的实际样本；宿主核心／界面不链接 ROS。Docker 镜像固定公开官方基础镜像。可同时启用两种输出，但运动只接受一个显式选中的来源；超时为 0.5 秒。停止后控制权回到手动，底盘速度归零，机械臂保持当前位置；暂停冻结仿真时间。
 
 Control/status use a separate socket from large sensor/view frames. Wire packets have a 24-byte little-endian header: `SRBT`, uint16 version/kind, uint64 simulation timestamp, uint32 payload length and zero reserved uint32. Payloads are explicit scalar/array schemas, never STL layouts or pointers. Per-packet limit is 32 MiB. Private directory/socket permissions are 0700/0600. GUI queues retain latest complete view/camera/odometry frames and never modify partially sent frames. ROS streams retain sample delivery semantics.
 
@@ -1234,3 +1238,81 @@ Local deployment evidence:
 [deployment](../output/jammy-install-b337910-20261022/deployment.json),
 [installed desktop](../output/jammy-install-b337910-20261022/gui-installed/report.json),
 [installed Noetic](../output/jammy-install-b337910-20261022/noetic-installed/summary.json).
+
+## Fixed-base Panda and two RGB-D sensors — 2026-10-23 / 固定机械臂与双相机
+
+Added the pinned MuJoCo Menagerie Panda model with its original joint limits,
+inertias, contacts and coupled fingers. A catalog-driven C++ position controller
+provides seven arm targets and a gripper target. The console selects joint
+controls by capability; mobile robots retain their existing velocity controls.
+Native IPC and both separate C++ ROS adapters carry joint commands and feedback.
+The interface currently executes joint-position targets; Cartesian planning and
+grasp-task execution have not been implemented or validated.
+
+新增固定底座 Panda：七关节、联动夹爪、手动及程序控制。控制和传感器仍由 C++
+核心实现，ROS 1／ROS 2 保持独立。当前支持关节位置目标，不包含末端路径规划或
+抓取任务执行。模型来源、单位、超时及话题见
+[runtime contract / 运行接口](runtime.md#fixed-arm-and-two-cameras--固定机械臂与双相机)。
+
+Wrist and world-fixed D435 sensors produce separate 320×240 RGB and metric Z
+depth at 10 Hz, with camera information and TF. They share a frozen physics
+snapshot, rendering worker and context. Numeric and drag editing use each
+mount's actual parent frame; a named preset retains both mounts. The external
+sensor supplies the third-person runtime view; free Observer remains separate.
+Fixed robots can also use a user scene's spawn and floor elevation.
+
+腕部第一人称与世界固定的第三人称相机各自输出 RGB、深度、标定及 TF。
+两套外参都支持数值编辑、拖拽和命名预设恢复。双相机共用同一物理快照及渲染线程，
+不复制整个仿真实例；机械臂也支持用户场景中的出生点与楼层高度。
+
+### Verified results / 验收结果
+
+| Check / 检查 | Result / 结果 |
+| --- | --- |
+| Installed native control and RGB-D geometry / 安装后的控制与双相机几何 | 21/21; independent rays validate both depth streams |
+| Installed arm desktop E2E / 安装后的机械臂桌面交互 | 15/15; both mounts, presets, joints, gripper, focus ownership and both themes/languages |
+| Existing desktop E2E / 既有桌面交互 | 40/40 |
+| Panda + Noetic / Humble | 34/34 each; both RGB-D streams, TF, joints, timeout and invalid-command recovery |
+| Panda + Noetic without cameras / 关闭相机 | 10/10 |
+| Go2W + Scout Mini on hills / 两种底盘起伏地形回归 | Noetic 33 each; Humble 34 each |
+| Native CTest / 原生测试 | 12/12; IPC tests run on host because sandbox sockets cannot bind |
+| Go race tests / Go 并发检查 | all three packages pass |
+| Clean Ubuntu package / 干净 Ubuntu 安装包 | install, eight CPU models, non-root window, dependency isolation and uninstall pass |
+
+The installed core's 12-second arm run generates 120 samples from each camera
+at RTF **0.9985**, mean CPU **0.44 logical cores**, and peak RSS **513.4 MiB**.
+Both 20-second ROS runs are approximately **0.999 RTF**. These use CPU physics
+and Mesa software rendering with shadows. CPU/RSS cover the core process,
+excluding console, display server, ROS adapter and receiver. They do not establish
+grasping, long-route, GPU or real-hardware performance.
+
+安装后实测保持 320×240、10 Hz 和阴影，双相机基本实时。资源数据仅覆盖核心进程，
+不包含界面、显示服务和 ROS。包约 27.7 MiB，安装内容约 152.9 MiB；相较前次本地
+安装，磁盘增加约 33.0 MiB，主要来自 Panda 网格。没有要求 GPU。
+
+Two validation findings informed the implementation: the model's automatically
+computed 36 m visualization extent clipped the close wrist geometry and reduced
+shadow precision. Explicit 2 m extent and a spawn-aware centre restore the 1 cm
+near plane without changing physics. Separately, a worker can report running
+before software EGL finishes initialization; the lifecycle test now waits for
+its first real image within 10 seconds. Sensor rates and runtime deadlines did
+not change.
+
+模型自动计算的显示范围过大，曾导致腕部近景被裁剪；现在显式设置机械臂工作区的
+显示范围，并随出生点移动。另一个问题是 EGL 初始化晚于运行状态消息；生命周期
+测试现等待首张实际图像，不再将状态消息当作图像就绪。频率与运行时限未放宽。
+
+Jammy now uses the verified package and both updated local ROS adapter images.
+Existing user configuration hashes are unchanged. The package keeps version
+0.2.1 for local testing; no new public release was created. Xian can reopen
+SpRobo, choose **Panda · fixed arm**, and test joint/gripper and camera controls.
+
+Jammy 已更新，原有用户配置不变。Xian 下一步可重新打开 SpRobo，选择
+**Panda · 固定机械臂**，测试关节、夹爪和双相机。
+
+Local evidence / 本地证据：
+[deployment](../output/panda-integration-20261023/deployment.json),
+[installed native](../output/panda-integration-20261023/installed-native/report.json),
+[installed desktop](../output/panda-integration-20261023/installed-gui/report.json),
+[Noetic](../output/panda-integration-20261023/jammy-ros1/summary.json),
+[Humble](../output/panda-integration-20261023/jammy-ros2/summary.json).

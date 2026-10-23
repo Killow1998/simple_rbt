@@ -61,13 +61,15 @@ Json runtime_info(const std::filesystem::path &root) {
             {"controller_backend", "cpu"}, {"assets_valid", false},
             {"robots", Json::array()}};
   for (const auto &spec : robot_specs())
-    info["robots"].push_back({{"name", spec.name},
-                              {"default_controller", spec.default_controller},
-                              {"continuous_terrain", spec.continuous_terrain},
-                              {"allows_lateral", spec.allows_lateral},
-                              {"allows_in_place_turn", spec.allows_in_place_turn},
-                              {"command_limits", spec.command_limits},
-                              {"min_turning_radius", spec.min_turning_radius}});
+    info["robots"].push_back(
+        {{"name", spec.name},
+         {"default_controller", spec.default_controller},
+         {"continuous_terrain", spec.continuous_terrain},
+         {"allows_lateral", spec.allows_lateral},
+         {"allows_in_place_turn", spec.allows_in_place_turn},
+         {"command_limits", spec.command_limits},
+         {"joint_control", spec.joint_control},
+         {"min_turning_radius", spec.min_turning_radius}});
   try {
     if (mj_version() != mjVERSION_HEADER)
       throw std::runtime_error("MuJoCo library and header versions differ");

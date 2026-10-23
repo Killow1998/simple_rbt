@@ -190,20 +190,35 @@ CameraFrame decode_camera(const Packet &p) {
   return f;
 }
 Json extrinsics_json(const Extrinsics &e) {
-  return {{"lidar", pose_json(e.lidar)},
+  return {{"camera_parent_frame", e.camera_parent_frame},
+          {"has_external_camera", e.has_external_camera},
+          {"external_camera", pose_json(e.external_camera)},
+          {"external_depth", pose_json(e.external_depth)},
+          {"lidar", pose_json(e.lidar)},
           {"imu", pose_json(e.imu)},
           {"camera", pose_json(e.camera)},
           {"has_camera", e.has_camera},
-          {"camera_depth", pose_json(e.camera_depth)}, {"camera_imu", pose_json(e.camera_imu)},
-          {"separate_camera_frames", e.separate_camera_frames}, {"has_camera_imu", e.has_camera_imu}};
+          {"camera_depth", pose_json(e.camera_depth)},
+          {"camera_imu", pose_json(e.camera_imu)},
+          {"separate_camera_frames", e.separate_camera_frames},
+          {"has_camera_imu", e.has_camera_imu}};
 }
 Extrinsics decode_extrinsics(const Json &j) {
-  Extrinsics e{from_pose(j.at("lidar")), from_pose(j.at("imu")),
-          from_pose(j.at("camera")), j.at("has_camera").get<bool>()};
+  Extrinsics e;
+  e.lidar = from_pose(j.at("lidar"));
+  e.imu = from_pose(j.at("imu"));
+  e.camera = from_pose(j.at("camera"));
+  e.has_camera = j.at("has_camera").get<bool>();
   e.separate_camera_frames=j.value("separate_camera_frames",false);
   e.has_camera_imu=j.value("has_camera_imu",false);
   if(e.separate_camera_frames) e.camera_depth=from_pose(j.at("camera_depth"));
   if(e.has_camera_imu) e.camera_imu=from_pose(j.at("camera_imu"));
+  e.camera_parent_frame = j.value("camera_parent_frame", std::string());
+  e.has_external_camera = j.value("has_external_camera", false);
+  if (e.has_external_camera) {
+    e.external_camera = from_pose(j.at("external_camera"));
+    e.external_depth = from_pose(j.at("external_depth"));
+  }
   return e;
 }
 } // namespace simple_rbt::ipc

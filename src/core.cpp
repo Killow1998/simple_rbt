@@ -151,6 +151,9 @@ Simulation::Simulation(const SimulationOptions &o)
     : p_(std::make_unique<Impl>(o)) {
   set_mount("mid360", o.mid360_mount.value_or(extrinsics("lidar")));
   set_mount("camera", o.camera_mount.value_or(extrinsics("camera_mount")));
+  if (o.external_camera_enabled)
+    set_mount("external_camera", o.external_camera_mount.value_or(
+                                     extrinsics("external_camera_mount")));
 }
 Simulation::~Simulation() = default;
 mjModel *Simulation::model() const { return p_->m; }
@@ -163,7 +166,11 @@ void Simulation::set_mount(const std::string& module, const Pose& requested) {
   for (double v:pose.quaternion) { if (!std::isfinite(v)) throw std::invalid_argument("Nonfinite mount rotation"); norm+=v*v; }
   if (norm<1e-12) throw std::invalid_argument("Zero mount quaternion");
   for (double& v:pose.quaternion) v/=std::sqrt(norm);
-  int target = module=="mid360" ? p_->lidar_site : module=="camera" ? p_->camera_site : -1;
+  int target = module == "mid360"   ? p_->lidar_site
+               : module == "camera" ? p_->camera_site
+               : module == "external_camera" && p_->o.external_camera_enabled
+                   ? p_->site_id("external_camera_mount")
+                   : -1;
   if (target<0) throw std::invalid_argument("Only MID360 assembly and camera mounts are editable");
   auto assign=[&](int site,const Pose& value){
     p_->m->site_sameframe[site]=mjSAMEFRAME_NONE;
@@ -198,6 +205,41 @@ void Simulation::set_command(const Vec3 &v) {
   }
   for (int i = 0; i < 3; i++)
     p_->command[i] = clamp(v[i], -p_->limits[i], p_->limits[i]);
+}
+void Simulation::set_joints(const JointCommand &command) {
+  p_->control->set_joints(command);
+}
+void Simulation::hold_joints() { p_->control->hold_joints(); }
+Json Simulation::joint_controls() const {
+  return p_->control->joint_controls();
+}
+JointState Simulation::joints() const {
+  auto state = p_->control->joints();
+  if (!state.name.empty())
+    state.tool_pose = relative_pose("arm_tool");
+  return state;
+}
+Pose Simulation::relative_pose(const std::string &site,
+                               const std::string &parent) const {
+  const auto a = pose(parent), b = pose(site);
+  Quat inverse{a.quaternion[0], -a.quaternion[1], -a.quaternion[2],
+               -a.quaternion[3]};
+  Vec3 delta;
+  for (int i = 0; i < 3; ++i)
+    delta[i] = b.position[i] - a.position[i];
+  Pose out;
+  mju_rotVecQuat(out.position.data(), delta.data(), inverse.data());
+  mju_mulQuat(out.quaternion.data(), inverse.data(), b.quaternion.data());
+  return out;
+}
+Pose Simulation::mount_parent(const std::string &module) const {
+  const int site =
+      p_->site_id(module == "mid360" ? "lidar" : module + "_mount");
+  const int body = p_->m->site_bodyid[site];
+  Pose p;
+  std::copy_n(p_->d->xpos + 3 * body, 3, p.position.begin());
+  std::copy_n(p_->d->xquat + 4 * body, 4, p.quaternion.begin());
+  return p;
 }
 void Simulation::step() {
   auto &p = *p_;
@@ -328,14 +370,24 @@ std::string Simulation::xml() const {
   auto visit=[&](auto&& self,tinyxml2::XMLElement* e)->void {
     if(std::string(e->Name())=="site") {
       const char* name=e->Attribute("name");
-      if(name && (std::string(name)=="lidar" || std::string(name)=="mid360_imu" || std::string(name).rfind("camera_",0)==0)) {
+      if (name &&
+          (std::string(name) == "lidar" || std::string(name) == "mid360_imu" ||
+           (std::string(name).rfind("camera_", 0) == 0 ||
+            std::string(name).rfind("external_camera_", 0) == 0))) {
         int i=p_->site_id(name);e->SetAttribute("pos",numbers(p_->m->site_pos+3*i,3).c_str());e->SetAttribute("quat",numbers(p_->m->site_quat+4*i,4).c_str());
       }
     }
     if(std::string(e->Name())=="geom") {
       const char* name=e->Attribute("name");
-      if(name && std::string(name).rfind("visual_device_",0)==0) {
-        const auto mount=extrinsics(std::string(name).rfind("visual_device_d435",0)==0?"camera_mount":"lidar");
+      if (name &&
+          (std::string(name).rfind("visual_device_", 0) == 0 ||
+           std::string(name).rfind("visual_external_device_", 0) == 0)) {
+        const auto mount = extrinsics(
+            std::string(name).rfind("visual_external_device_", 0) == 0
+                ? "external_camera_mount"
+            : std::string(name).rfind("visual_device_d435", 0) == 0
+                ? "camera_mount"
+                : "lidar");
         e->SetAttribute("pos",numbers(mount.position.data(),3).c_str());
         e->SetAttribute("quat",numbers(mount.quaternion.data(),4).c_str());
         const int id=mj_name2id(p_->m,mjOBJ_GEOM,name);

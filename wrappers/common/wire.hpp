@@ -11,14 +11,15 @@
 #include <stdexcept>
 
 #ifdef SIMPLE_RBT_ROS1
-#include <ros/ros.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <livox_ros_driver2/CustomMsg.h>
 #include <nav_msgs/Odometry.h>
+#include <ros/ros.h>
 #include <rosgraph_msgs/Clock.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/Imu.h>
+#include <sensor_msgs/JointState.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <std_msgs/String.h>
 namespace simple_rbt::messages {
@@ -32,6 +33,7 @@ using Clock = rosgraph_msgs::Clock;
 using CameraInfo = sensor_msgs::CameraInfo;
 using Image = sensor_msgs::Image;
 using Imu = sensor_msgs::Imu;
+using Joints = sensor_msgs::JointState;
 using PointCloud = sensor_msgs::PointCloud2;
 using Field = sensor_msgs::PointField;
 using String = std_msgs::String;
@@ -44,6 +46,7 @@ using String = std_msgs::String;
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <std_msgs/msg/string.hpp>
 namespace simple_rbt::messages {
@@ -57,6 +60,7 @@ using Clock = rosgraph_msgs::msg::Clock;
 using CameraInfo = sensor_msgs::msg::CameraInfo;
 using Image = sensor_msgs::msg::Image;
 using Imu = sensor_msgs::msg::Imu;
+using Joints = sensor_msgs::msg::JointState;
 using PointCloud = sensor_msgs::msg::PointCloud2;
 using Field = sensor_msgs::msg::PointField;
 using String = std_msgs::msg::String;

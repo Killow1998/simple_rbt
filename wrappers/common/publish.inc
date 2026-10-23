@@ -91,6 +91,15 @@ void RosBridge::publish_odometry(std::uint64_t ns, const Pose& pose,
     impl_->publish_transform(transform(ns, impl_->options.odom_frame, impl_->options.base_frame, pose));
 }
 void RosBridge::publish_camera(std::uint64_t ns, const CameraFrame& frame, bool panorama) {
+  publish_image(ns, frame, panorama ? 1 : 0);
+}
+void RosBridge::publish_external_camera(std::uint64_t ns,
+                                        const CameraFrame &frame) {
+  publish_image(ns, frame, 2);
+}
+void RosBridge::publish_image(std::uint64_t ns, const CameraFrame &frame,
+                              int kind) {
+  const bool panorama = kind == 1, external = kind == 2;
   if (frame.width <= 0 || frame.height <= 0 || frame.width > std::numeric_limits<int>::max() / 4)
     throw std::invalid_argument("camera width and height must be positive and fit ROS row stride");
   const std::size_t count = static_cast<std::size_t>(frame.width) * frame.height;
@@ -101,13 +110,25 @@ void RosBridge::publish_camera(std::uint64_t ns, const CameraFrame& frame, bool 
   if (frame.radial_depth != panorama)
     throw std::invalid_argument("camera radial_depth must match panorama kind");
   std::lock_guard<std::mutex> lock(impl_->publication_mutex); impl_->require_open();
-  if (!impl_->has_camera) throw std::invalid_argument("camera extrinsics are required to publish camera images");
-  const int kind = panorama ? 1 : 0;
+  if (external ? !impl_->has_external_camera : !impl_->has_camera)
+    throw std::invalid_argument(
+        "camera extrinsics are required to publish camera images");
+  const std::string color_frame =
+      external ? impl_->external_frame : impl_->options.camera_frame;
+  const std::string depth_frame = external ? impl_->external_depth_frame
+                                           : impl_->options.camera_depth_frame;
   messages::Image rgb;
-  rgb.header = header(ns, impl_->options.camera_frame); rgb.height = frame.height; rgb.width = frame.width;
+  rgb.header = header(ns, color_frame);
+  rgb.height = frame.height;
+  rgb.width = frame.width;
   rgb.encoding = "rgb8"; rgb.is_bigendian = false; rgb.step = frame.width * 3; rgb.data = frame.rgb;
   messages::Image depth;
-  depth.header = header(ns, !panorama && impl_->separate_camera_frames ? impl_->options.camera_depth_frame : impl_->options.camera_frame); depth.height = frame.height; depth.width = frame.width;
+  depth.header =
+      header(ns, external || (!panorama && impl_->separate_camera_frames)
+                     ? depth_frame
+                     : color_frame);
+  depth.height = frame.height;
+  depth.width = frame.width;
   depth.encoding = "32FC1"; depth.is_bigendian = false; depth.step = frame.width * 4;
   depth.data.resize(frame.depth.size() * sizeof(float));
   for (std::size_t index = 0; index < frame.depth.size(); ++index)
@@ -131,7 +152,38 @@ void RosBridge::publish_camera(std::uint64_t ns, const CameraFrame& frame, bool 
     info.r = {1., 0., 0., 0., 1., 0., 0., 0., 1.};
     info.p = {focal, 0., cx, 0., 0., focal, cy, 0., 0., 0., 1., 0.};
 #endif
-    send(impl_->camera_info, info);
-    if (!frame.depth.empty()) { info.header=depth.header; send(impl_->depth_info,info); }
+    send(external ? impl_->external_info : impl_->camera_info, info);
+    if (!frame.depth.empty()) {
+      info.header = depth.header;
+      send(external ? impl_->external_depth_info : impl_->depth_info, info);
+    }
+  }
+}
+std::optional<JointCommand> RosBridge::joint_command() const {
+  std::lock_guard<std::mutex> lock(impl_->command_mutex);
+  if (!impl_->joints_received ||
+      SteadyClock::now() - *impl_->joints_received >=
+          std::chrono::duration<double>(impl_->options.command_timeout_s))
+    return {};
+  return impl_->latest_joints;
+}
+void RosBridge::publish_joints(std::uint64_t ns, const JointState &state) {
+  std::lock_guard<std::mutex> lock(impl_->publication_mutex);
+  impl_->require_open();
+  if (state.name.size() != state.position.size() ||
+      state.name.size() != state.velocity.size() ||
+      state.name.size() != state.effort.size())
+    throw std::invalid_argument("Inconsistent joint state");
+  messages::Joints message;
+  message.header = header(ns, impl_->options.base_frame);
+  message.name = state.name;
+  message.position = state.position;
+  message.velocity = state.velocity;
+  message.effort = state.effort;
+  send(impl_->joints, message);
+  if (!impl_->camera_parent.empty()) {
+    valid_pose(state.tool_pose);
+    impl_->publish_transform(transform(ns, impl_->options.base_frame,
+                                       impl_->camera_parent, state.tool_pose));
   }
 }

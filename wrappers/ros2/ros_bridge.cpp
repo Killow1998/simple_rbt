@@ -46,6 +46,12 @@ struct RosBridge::Impl {
   std::string command_topic, node_namespace;
   mutable std::mutex publication_mutex, command_mutex;
   Vec3 latest_command{};
+  JointCommand latest_joints;
+  std::optional<SteadyClock::time_point> joints_received;
+  std::string camera_parent,
+      external_frame = "external_camera_optical_frame",
+      external_depth_frame = "external_depth_optical_frame";
+  bool has_external_camera = false;
   std::optional<SteadyClock::time_point> received_at;
   bool closed = false;
   bool has_camera = false, separate_camera_frames = false, has_camera_imu = false;
@@ -53,13 +59,17 @@ struct RosBridge::Impl {
   rclcpp::Node::SharedPtr node;
   std::unique_ptr<rclcpp::executors::SingleThreadedExecutor> executor;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr commands;
+  rclcpp::Subscription<messages::Joints>::SharedPtr joint_commands;
+  rclcpp::Publisher<messages::Joints>::SharedPtr joints;
   rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clock;
   rclcpp::Publisher<livox_ros_driver2::msg::CustomMsg>::SharedPtr lidar;
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr points;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu, imu_si, camera_imu;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom;
-  std::array<rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr, 2> rgb, depth;
-  rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info, depth_info;
+  std::array<rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr, 3> rgb,
+      depth;
+  rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr camera_info,
+      depth_info, external_info, external_depth_info;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status;
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf;
   std::unique_ptr<tf2_ros::StaticTransformBroadcaster> static_tf;
@@ -68,6 +78,13 @@ struct RosBridge::Impl {
       command_topic(robot_command_topic(options.robot_name)), node_namespace("/" + options.robot_name),
       has_camera(extrinsics.has_camera), separate_camera_frames(extrinsics.separate_camera_frames),
       has_camera_imu(extrinsics.has_camera_imu) {
+    camera_parent = extrinsics.camera_parent_frame;
+    has_external_camera = extrinsics.has_external_camera;
+    const auto *spec = find_robot_spec(options.robot_name);
+    const bool arm = spec && spec->joint_control;
+    const std::string camera_prefix =
+        arm ? node_namespace + "/wrist_camera" : "/camera";
+    const std::string external_prefix = node_namespace + "/external_camera";
     if (!std::isfinite(options.command_timeout_s) || options.command_timeout_s <= 0.)
       throw std::invalid_argument("command timeout must be positive and finite");
     if (!std::isfinite(options.perspective_fov_y_deg) || options.perspective_fov_y_deg <= 0. ||
@@ -81,6 +98,13 @@ struct RosBridge::Impl {
     if (has_camera) frames.push_back(options.camera_frame);
     if (has_camera && separate_camera_frames) frames.push_back(options.camera_depth_frame);
     if (has_camera_imu) frames.push_back(options.camera_imu_frame);
+    if (!camera_parent.empty()) frames.push_back(camera_parent);
+    if (has_external_camera) {
+      valid_pose(extrinsics.external_camera);
+      valid_pose(extrinsics.external_depth);
+      frames.push_back(external_frame);
+      frames.push_back(external_depth_frame);
+    }
     for (const auto& frame : frames)
       if (frame.empty() || frame.front() == '/') throw std::invalid_argument("TF frames must be nonempty without leading slash");
     if (std::set<std::string>(frames.begin(), frames.end()).size() != frames.size())
@@ -104,36 +128,82 @@ struct RosBridge::Impl {
       if (options.publish_pointcloud2) points = node->create_publisher<sensor_msgs::msg::PointCloud2>("/livox/points", 10);
       imu = node->create_publisher<sensor_msgs::msg::Imu>("/livox/imu", 10);
       imu_si = node->create_publisher<sensor_msgs::msg::Imu>("/livox/imu_si", 10);
-      if (has_camera_imu) camera_imu = node->create_publisher<sensor_msgs::msg::Imu>("/camera/imu", 10);
+      if (has_camera_imu)
+        camera_imu = node->create_publisher<sensor_msgs::msg::Imu>(
+            camera_prefix + "/imu", 10);
       odom = node->create_publisher<nav_msgs::msg::Odometry>(options.odom_topic, 10);
       if (has_camera) {
         for (int index = 0; index < 2; ++index) {
-          const std::string prefix = index == 0 ? "/camera" : "/camera/panorama";
+          const std::string prefix =
+              index == 0 ? camera_prefix : camera_prefix + "/panorama";
           rgb[index] = node->create_publisher<sensor_msgs::msg::Image>(prefix + "/image_raw", 2);
           depth[index] = node->create_publisher<sensor_msgs::msg::Image>(prefix + "/depth/image_raw", 2);
         }
-        camera_info = node->create_publisher<sensor_msgs::msg::CameraInfo>("/camera/camera_info", 2);
-        depth_info = node->create_publisher<sensor_msgs::msg::CameraInfo>("/camera/depth/camera_info", 2);
+        camera_info = node->create_publisher<sensor_msgs::msg::CameraInfo>(
+            camera_prefix + "/camera_info", 2);
+        depth_info = node->create_publisher<sensor_msgs::msg::CameraInfo>(
+            camera_prefix + "/depth/camera_info", 2);
       }
-      commands = node->create_subscription<geometry_msgs::msg::Twist>("cmd_vel", 10,
-          [this](geometry_msgs::msg::Twist::ConstSharedPtr message) {
-            const Vec3 command{message->linear.x, message->linear.y, message->angular.z};
-            std::lock_guard<std::mutex> lock(command_mutex);
-            if (robot_command_supported(options.robot_name, command)) {
-              latest_command = command; received_at = SteadyClock::now();
-            } else {
-              latest_command = {}; received_at.reset();
-            }
-          });
+      if (has_external_camera) {
+        rgb[2] = node->create_publisher<messages::Image>(
+            external_prefix + "/image_raw", 2);
+        depth[2] = node->create_publisher<messages::Image>(
+            external_prefix + "/depth/image_raw", 2);
+        external_info = node->create_publisher<messages::CameraInfo>(
+            external_prefix + "/camera_info", 2);
+        external_depth_info = node->create_publisher<messages::CameraInfo>(
+            external_prefix + "/depth/camera_info", 2);
+      }
+      if (arm) {
+        joints = node->create_publisher<messages::Joints>("joint_states", 10);
+        joint_commands = node->create_subscription<messages::Joints>(
+            "joint_position_command", 10,
+            [this](messages::Joints::ConstSharedPtr message) {
+              std::lock_guard<std::mutex> lock(command_mutex);
+              latest_joints = {message->name, message->position, false};
+              joints_received = SteadyClock::now();
+            });
+      }
+      if (!arm)
+        commands = node->create_subscription<geometry_msgs::msg::Twist>(
+            "cmd_vel", 10,
+            [this](geometry_msgs::msg::Twist::ConstSharedPtr message) {
+              const Vec3 command{message->linear.x, message->linear.y,
+                                 message->angular.z};
+              std::lock_guard<std::mutex> lock(command_mutex);
+              if (robot_command_supported(options.robot_name, command)) {
+                latest_command = command;
+                received_at = SteadyClock::now();
+              } else {
+                latest_command = {};
+                received_at.reset();
+              }
+            });
       status = node->create_publisher<std_msgs::msg::String>(options.status_topic, rclcpp::QoS(1).transient_local());
       tf = std::make_unique<tf2_ros::TransformBroadcaster>(node);
       static_tf = std::make_unique<tf2_ros::StaticTransformBroadcaster>(node);
       std::vector<geometry_msgs::msg::TransformStamped> transforms{
           transform(0, options.base_frame, options.lidar_frame, extrinsics.lidar),
           transform(0, options.base_frame, options.imu_frame, extrinsics.imu)};
-      if (has_camera) transforms.push_back(transform(0, options.base_frame, options.camera_frame, extrinsics.camera));
-      if (has_camera && separate_camera_frames) transforms.push_back(transform(0, options.base_frame, options.camera_depth_frame, extrinsics.camera_depth));
-      if (has_camera_imu) transforms.push_back(transform(0, options.base_frame, options.camera_imu_frame, extrinsics.camera_imu));
+      if (has_camera)
+        transforms.push_back(transform(
+            0, (camera_parent.empty() ? options.base_frame : camera_parent),
+            options.camera_frame, extrinsics.camera));
+      if (has_camera && separate_camera_frames)
+        transforms.push_back(transform(
+            0, (camera_parent.empty() ? options.base_frame : camera_parent),
+            options.camera_depth_frame, extrinsics.camera_depth));
+      if (has_camera_imu)
+        transforms.push_back(transform(
+            0, (camera_parent.empty() ? options.base_frame : camera_parent),
+            options.camera_imu_frame, extrinsics.camera_imu));
+      if (has_external_camera) {
+        transforms.push_back(transform(0, options.odom_frame, external_frame,
+                                       extrinsics.external_camera));
+        transforms.push_back(transform(0, options.odom_frame,
+                                       external_depth_frame,
+                                       extrinsics.external_depth));
+      }
       static_tf->sendTransform(transforms);
     } catch (...) {
       context->shutdown("ROS bridge construction failed");
@@ -171,7 +241,9 @@ std::size_t RosBridge::subscriber_count(const std::string& topic) const {
 }
 std::size_t RosBridge::command_publisher_count() const {
   std::lock_guard<std::mutex> lock(impl_->publication_mutex);
-  impl_->require_open(); return impl_->commands->get_publisher_count();
+  impl_->require_open();
+  return impl_->joint_commands ? impl_->joint_commands->get_publisher_count()
+                               : impl_->commands->get_publisher_count();
 }
 void RosBridge::publish_clock(std::uint64_t ns) {
   std::lock_guard<std::mutex> lock(impl_->publication_mutex); impl_->require_open();
@@ -184,7 +256,14 @@ void RosBridge::close() {
   if (impl_->closed) return;
   impl_->closed = true;
   impl_->executor->cancel(); impl_->executor->remove_node(impl_->node);
-  impl_->commands.reset(); impl_->clock.reset(); impl_->lidar.reset(); impl_->points.reset();
+  impl_->commands.reset();
+  impl_->joint_commands.reset();
+  impl_->joints.reset();
+  impl_->external_info.reset();
+  impl_->external_depth_info.reset();
+  impl_->clock.reset();
+  impl_->lidar.reset();
+  impl_->points.reset();
   impl_->imu.reset(); impl_->imu_si.reset(); impl_->odom.reset();
   for (auto& pub : impl_->rgb) pub.reset();
   for (auto& pub : impl_->depth) pub.reset();
@@ -192,5 +271,7 @@ void RosBridge::close() {
   impl_->executor.reset(); impl_->node.reset(); impl_->context->shutdown("ROS bridge closed");
   std::lock_guard<std::mutex> command_lock(impl_->command_mutex);
   impl_->received_at.reset(); impl_->latest_command = {};
+  impl_->latest_joints = {};
+  impl_->joints_received.reset();
 }
 }  // namespace simple_rbt

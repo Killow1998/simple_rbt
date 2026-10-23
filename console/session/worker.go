@@ -151,6 +151,10 @@ func (m *Manager) Start(config map[string]any) error {
 	client := m.Client
 	subscriptions := []string{"view", "odom", "metadata", "status"}
 	sensors, _ := coreConfig["sensors"].(map[string]any)
+	if enabled, _ := sensors["external_camera"].(bool); enabled {
+		subscriptions = append(subscriptions, "external_camera")
+	}
+	subscriptions = append(subscriptions, "joints")
 	rgb, _ := sensors["camera"].(bool)
 	depth, _ := sensors["depth"].(bool)
 	panorama, _ := sensors["panorama"].(bool)

@@ -403,6 +403,27 @@ struct CameraRig::Impl {
         output.perspective.depth.swap(depth_frame.depth);
       }
     }
+    if (config.external_camera) {
+      if (!sensor_context)
+        sensor_context = std::make_unique<RenderContext>(
+            model, config.perspective_width, config.perspective_height,
+            renderer.shadow_size(model->vis.quality.shadowsize));
+      const auto &color = (*config.external_camera)[0],
+                 &depth = (*config.external_camera)[1];
+      check_pose(color);
+      check_pose(depth);
+      const bool split =
+          color.position != depth.position || color.rotation != depth.rotation;
+      render_view(color, config.perspective_width, config.perspective_height,
+                  config.perspective_fov_y_deg, *sensor_context,
+                  output.external, !split, true);
+      if (split) {
+        render_view(depth, config.perspective_width, config.perspective_height,
+                    config.perspective_fov_y_deg, *sensor_context, depth_frame,
+                    true, false);
+        output.external.depth.swap(depth_frame.depth);
+      }
+    }
     if (!config.render_panorama) { output.panorama = {}; return; }
     if (!sensor_context)
       sensor_context = std::make_unique<RenderContext>(

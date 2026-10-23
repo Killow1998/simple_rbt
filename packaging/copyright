@@ -12,6 +12,7 @@ Bundled runtime libraries:
   meshoptimizer: MIT; licenses/meshoptimizer/ records the pinned source.
   nlohmann/json headers: MIT; licenses/nlohmann/LICENSE.MIT.
   Native Go console modules: licenses/console/ contains upstream notices.
+  Franka Emika Panda model: Apache-2.0; licenses/panda/LICENSE.
   RL SAR code/policy provenance: licenses/rl_sar-go2/ and rl_sar-go2w/.
   Legacy MuJoCo-LiDAR provenance: licenses/MuJoCo-LiDAR/.
 

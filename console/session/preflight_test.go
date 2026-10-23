@@ -112,7 +112,7 @@ func TestROSDistroIsCheckedInsideIsolatedContainer(t *testing.T) {
 					if !correct {
 						return []byte("SPROBO_ROS_DISTRO=unsupported\n"), nil
 					}
-					return []byte("SPROBO_ROS_DISTRO=" + distro + "\n{\"configurable_odometry\":true,\"camera_devices\":true}\n"), nil
+					return []byte("SPROBO_ROS_DISTRO=" + distro + "\n{\"configurable_odometry\":true,\"camera_devices\":true,\"joint_control\":true,\"external_camera\":true}\n"), nil
 				})
 				report := c.check(context.Background(), options, map[string]bool{version: true})
 				if calls != 2 || report.ROSReady(version) != correct || !report.Ready || report.ExitCode() != 0 {

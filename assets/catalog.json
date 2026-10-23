@@ -42,6 +42,10 @@
     "turtlebot3_waffle_pi-diff_drive": {
       "file": "models/turtlebot3_waffle_pi-diff_drive.xml",
       "sha256": "8ba2a67c92823963bab95e33da6529837766b87ec497c73f3c8951a595a598d9"
+    },
+    "panda-joint_position": {
+      "file": "models/panda-joint_position.xml",
+      "sha256": "f202ce8082c8632208b0b3e7fb58647d7952d145ee26bc68a90b8adf2b6021d5"
     }
   },
   "controllers": {
@@ -1152,6 +1156,62 @@
         "sensor_mounts": "Existing simple_rbt MID360/camera selectable sites, rigid MID360 assembly; native LDS mesh retained as robot visual/collision geometry.",
         "integration": "MuJoCo implicitfast at 1 ms for the original small wheel inertias and a stable ideal wheel velocity servo; not a measured motor/electronics dynamics model."
       }
+    },
+    "panda-joint_position": {
+      "axes": [
+        {
+          "joint": "joint1",
+          "actuator": "actuator1",
+          "speed": 0.5
+        },
+        {
+          "joint": "joint2",
+          "actuator": "actuator2",
+          "speed": 0.5
+        },
+        {
+          "joint": "joint3",
+          "actuator": "actuator3",
+          "speed": 0.5
+        },
+        {
+          "joint": "joint4",
+          "actuator": "actuator4",
+          "speed": 0.5
+        },
+        {
+          "joint": "joint5",
+          "actuator": "actuator5",
+          "speed": 0.5
+        },
+        {
+          "joint": "joint6",
+          "actuator": "actuator6",
+          "speed": 0.5
+        },
+        {
+          "joint": "joint7",
+          "actuator": "actuator7",
+          "speed": 0.5
+        },
+        {
+          "joint": "finger_joint1",
+          "actuator": "actuator8",
+          "speed": 0.04,
+          "scale": 6375.0
+        }
+      ],
+      "state_joints": [
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7",
+        "finger_joint1",
+        "finger_joint2"
+      ]
     }
   },
   "terrain_presets": {

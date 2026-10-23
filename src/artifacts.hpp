@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <string>
 
 namespace simple_rbt {
@@ -21,7 +22,9 @@ public:
   void trajectory(std::uint64_t stamp, const Pose &, const Vec3 &linear,
                   const Vec3 &angular);
   void close_streams();
-  void camera(std::uint64_t stamp, const OpticalPose &, const OpticalPose &depth, const CameraPair &);
+  void camera(std::uint64_t stamp, const OpticalPose &,
+              const OpticalPose &depth, const CameraPair &,
+              const std::optional<std::array<OpticalPose, 2>> &external = {});
   void lidar(const LidarScan &, const Pose &reference, const PoseHistory &,
              bool rolling, const nlohmann::json &scan_model);
   void summary(const nlohmann::json &value);

@@ -32,12 +32,14 @@ void SessionObserver::requests() {
         server_->set_source("gui");
         source_ = "gui";
         sim_->set_command({});
+        sim_->hold_joints();
         server_->set_running(running_);
         dirty_ = true;
       } else if (op == "pause") {
         running_ = false;
         server_->set_running(false);
         sim_->set_command({});
+        sim_->hold_joints();
         dirty_ = true;
       } else if (op == "source") {
         auto next = r.at("source").get<std::string>();
@@ -110,7 +112,7 @@ void SessionObserver::configure(Simulation &s, Transport *t) {
   if (!server_)
     throw std::runtime_error("Session requires IPC server");
   view_.lookat = s.pose().position;
-  view_.lookat[2] += .07;
+  view_.lookat[2] += s.joint_controls().empty() ? .07 : .45;
   server_->set_source(source_);
   server_->set_running(running_);
   server_->update_extrinsics(transport_extrinsics(

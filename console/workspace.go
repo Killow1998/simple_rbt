@@ -64,6 +64,19 @@ func (r RobotConfig) apply(c *Config) {
 	c.CameraExtrinsics = r.CameraExtrinsics
 	c.CameraHz = r.CameraHz
 }
+func (a *app) defaultRobotPresetName() string {
+	parts := []string{a.optionLabel(a.cfg.Robot)}
+	if a.cfg.Sensors.MID360 {
+		parts = append(parts, "MID360")
+	}
+	if a.cameraDeviceEnabled() {
+		parts = append(parts, strings.ToUpper(a.cfg.CameraModel))
+	}
+	if a.cfg.Sensors.ExternalCamera {
+		parts = append(parts, a.tr("external RGB-D", "第三人称 RGB-D"))
+	}
+	return strings.Join(parts, " · ")
+}
 func workspacePath() string { return filepath.Join(filepath.Dir(profilePath()), "workspace.json") }
 func (a *app) initWorkspace(restore bool) {
 	a.workspace = Workspace{Version: 1, Robots: map[string]RobotPreset{}, Scenes: map[string]Scene{}, RobotDrafts: map[string]RobotPreset{}, SceneDrafts: map[string]Scene{}}
@@ -103,7 +116,7 @@ func (a *app) initWorkspace(restore bool) {
 	} else if r, ok := a.workspace.Robots[a.workspace.RobotID]; ok {
 		a.robotPreset = clone(r)
 	} else {
-		a.robotPreset = RobotPreset{ID: newID(), Name: a.cfg.Robot + " · MID360 + " + a.cfg.CameraModel, RobotConfig: robotConfig(a.cfg)}
+		a.robotPreset = RobotPreset{ID: newID(), Name: a.defaultRobotPresetName(), RobotConfig: robotConfig(a.cfg)}
 		a.workspace.RobotID = a.robotPreset.ID
 	}
 	if a.cfg.Scene != nil {

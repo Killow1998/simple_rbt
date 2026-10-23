@@ -1,9 +1,10 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <mujoco/mujoco.h>
 #include "simple_rbt/types.hpp"
+#include <memory>
+#include <mujoco/mujoco.h>
+#include <optional>
+#include <string>
 
 namespace simple_rbt {
 
@@ -15,6 +16,7 @@ struct CameraConfig {
   int panorama_height = 360;
   int cube_face_size = 256;
   bool render_depth = true, render_panorama = true, render_perspective = true, render_rgb = true;
+  std::optional<std::array<OpticalPose, 2>> external_camera;
 };
 
 // Caller owns model/data and supplies the optical pose (+X right,+Y down,+Z

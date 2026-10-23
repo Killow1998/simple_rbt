@@ -4,7 +4,7 @@
 
 基于 C++17 MuJoCo 核心的机器人仿真器，**SpRobo** 是其原生 [MyGo](https://github.com/egoist/mygo) 启动器和运行操作台，框架与仓库继续叫 `simple_rbt`。选择机器人、地形和传感器，在实时三维画面中调整外参，再选择手动或程序控制。ROS 1 Noetic 与 ROS 2 Humble 是可选的独立 C++ 适配进程。
 
-支持 Go2、Go2W、TurtleBot3 Waffle Pi、Scout Mini、FR-mini、Ridgeback 和 Ranger Mini。纯轮式底盘只使用平地、坡道和连续起伏；Go2、Go2W 还可选择楼梯及阶跃地形。速度跟踪是模拟器辅助功能，不代表实车性能。
+支持 Go2、Go2W、TurtleBot3 Waffle Pi、Scout Mini、FR-mini、Ridgeback、Ranger Mini，以及固定底座的 Franka Emika Panda 机械臂。纯轮式底盘只使用平地、坡道和连续起伏；Go2、Go2W 还可选择楼梯及阶跃地形。速度跟踪是模拟器辅助功能，不代表实车性能。
 
 ## 安装与启动
 
@@ -36,6 +36,10 @@ C++ 无头仿真运行在宿主机，ROS 1、ROS 2 各自运行在独立进程�
 传感器采用官方 MID360、D435 外观，可选 D435i 独立 IMU。内部外参保持刚性；RGB 与深度使用各自光学原点。详见[传感器与键盘说明](docs/runtime.md)。
 
 Go2、Go2W 控制器采用 CPU ONNX 推理，运动控制和 MuJoCo 物理不需要 GPU。CUDA 可选用于加速雷达；相机也可使用 Mesa 软件渲染。完整传感器的吞吐取决于机器性能。
+
+Panda 提供七个关节的位置控制和联动夹爪。腕部第一人称相机与世界固定的第三人称相机
+均输出 RGB、深度和 CameraInfo，默认 320×240、10 Hz。两台相机都支持数值／三维外参
+编辑和自定义名称的预设。详见[机械臂控制与相机话题](docs/runtime.md#fixed-arm-and-two-cameras--固定机械臂与双相机)。
 
 ## 开发
 

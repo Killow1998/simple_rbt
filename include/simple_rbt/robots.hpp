@@ -10,6 +10,7 @@ struct RobotSpec {
   bool allows_lateral, allows_in_place_turn;
   bool continuous_terrain, body_envelope_safety, command_tracking;
   double min_turning_radius;
+  bool joint_control = false;
 };
 const std::vector<RobotSpec> &robot_specs();
 const RobotSpec *find_robot_spec(const std::string &name) noexcept;

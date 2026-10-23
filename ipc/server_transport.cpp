@@ -90,6 +90,24 @@ Vec3 SessionServer::command() const {
   return impl_->command;
 }
 void SessionServer::spin_once(double) {}
+std::optional<simple_rbt::JointCommand> SessionServer::joint_command() const {
+  std::lock_guard<std::mutex> lock(impl_->mutex);
+  if (!impl_->running ||
+      Clock::now() - impl_->received >=
+          std::chrono::duration<double>(impl_->options.command_timeout_s))
+    return {};
+  return impl_->joint_command;
+}
+void SessionServer::publish_joints(std::uint64_t stamp,
+                                   const simple_rbt::JointState &state) {
+  if (subscribed("joints"))
+    publish_packet(encode_joints(stamp, state));
+}
+void SessionServer::publish_external_camera(std::uint64_t stamp,
+                                            const CameraFrame &frame) {
+  if (subscribed("external_camera"))
+    publish_packet(encode_camera(stamp, frame, Kind::ExternalCamera));
+}
 void SessionServer::publish_clock(std::uint64_t ns) {
   publish_packet({Kind::Clock, ns, {}});
 }

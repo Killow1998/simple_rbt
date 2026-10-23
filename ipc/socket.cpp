@@ -140,7 +140,7 @@ bool Socket::read(std::vector<Packet> &packets) {
       const auto length = get(input, offset + 16, 4);
       const auto kind = get(input, offset + 6, 2);
       if (length > max_payload_bytes || kind < 1 ||
-          kind > static_cast<std::uint16_t>(Kind::CameraImu))
+          kind > static_cast<std::uint16_t>(Kind::ExternalCamera))
         return false;
       if (input.size() - offset < header_size + length)
         break;
@@ -199,6 +199,10 @@ std::string channel(const Kind &k) {
     return "odom";
   case Kind::Camera:
     return "camera";
+  case Kind::ExternalCamera:
+    return "external_camera";
+  case Kind::JointState:
+    return "joints";
   case Kind::Panorama:
     return "panorama";
   case Kind::View:

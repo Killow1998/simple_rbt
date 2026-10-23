@@ -32,7 +32,20 @@ OpticalPose ObserverView::pose() {
 }
 Json SessionObserver::metadata() {
   OpticalPose eye = view_.pose();
-  return {{"logging", diagnostics::log().health()}, {"robot", config_.value("robot", std::string("ranger_mini"))},
+  Json mounts = {{"mid360", pose_json(sim_->extrinsics("lidar"))},
+                 {"camera", pose_json(sim_->extrinsics("camera_mount"))}};
+  Json parents = {{"mid360", pose_json(sim_->mount_parent("mid360"))},
+                  {"camera", pose_json(sim_->mount_parent("camera"))}};
+  if (sensors_.value("external_camera", false)) {
+    mounts["external_camera"] =
+        pose_json(sim_->extrinsics("external_camera_mount"));
+    parents["external_camera"] =
+        pose_json(sim_->mount_parent("external_camera"));
+  }
+  return {{"joint_controls", sim_->joint_controls()},
+          {"mount_parents", parents},
+          {"logging", diagnostics::log().health()},
+          {"robot", config_.value("robot", std::string("ranger_mini"))},
           {"running", running_ && !closing_},
           {"session_state", closing_   ? "closed"
                             : running_ ? "running"
@@ -40,12 +53,10 @@ Json SessionObserver::metadata() {
                                        : "config"},
           {"source", source_},
           {"sensors", sensors_},
-          {"mounts",
-           {{"mid360", pose_json(sim_->extrinsics("lidar"))},
-            {"camera", pose_json(sim_->extrinsics("camera_mount"))}}},
+          {"mounts", mounts},
           {"mid360_internal_imu", pose_json(sim_->extrinsics("mid360_imu"))},
           {"mid360_imu_locked", true},
-          {"camera_model", config_.value("camera_model",std::string("d435"))},
+          {"camera_model", config_.value("camera_model", std::string("d435"))},
           {"camera_imu_locked", sim_->has_camera_imu()},
           {"camera_imu_mount", pose_json(sim_->extrinsics("camera_imu"))},
           {"body_imu_mount", pose_json(sim_->extrinsics("imu"))},
@@ -113,7 +124,7 @@ void SessionObserver::tick() {
   double now = monotonic_seconds();
   if (view_.follow) {
     view_.lookat = sim_->pose().position;
-    view_.lookat[2] += .07;
+    view_.lookat[2] += sim_->joint_controls().empty() ? .07 : .45;
   }
   if (view_.enabled && server_->subscribed("view") && (dirty_ || running_) &&
       now - last_view_ >= (running_ ? .1 : 1. / 30.)) {

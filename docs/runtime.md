@@ -131,9 +131,90 @@ The `tracked` mode adds simulator velocity/heading feedback. `native` retains th
 
 `tracked` 模式增加模拟器速度／航向反馈；`native` 只使用底盘自身控制器。指令上限是保守的仿真上限，不保证所有地形上的实际速度。MID360、RGB、深度和全景输出可以分别选择。
 
-A mount pose is relative to the robot base, with quaternion order `[w,x,y,z]`. Numeric Euler controls and projected 3D handles write the same pose. MID360's internal IMU is fixed at `[0.011,0.02329,-0.04412]` m in the LiDAR housing frame, with identical orientation. Moving the device preserves that relationship. The controller's body IMU is a different site and is never moved by sensor configuration. Mount editing is available before the first Start.
+A chassis sensor mount pose is relative to the robot base, with quaternion order `[w,x,y,z]`. Numeric Euler controls and projected 3D handles write the same pose. MID360's internal IMU is fixed at `[0.011,0.02329,-0.04412]` m in the LiDAR housing frame, with identical orientation. Moving the device preserves that relationship. The controller's body IMU is a different site and is never moved by sensor configuration. Mount editing is available before the first Start.
 
-外参相对机器人 base，四元数顺序为 `[w,x,y,z]`。数值欧拉角与三维手柄修改同一 pose。MID360 内部 IMU 在雷达坐标中固定为 `[0.011,0.02329,-0.04412]` m，方向相同。调整设备时保持这一关系。控制器自身的机身 IMU 是另一感测点，不会被传感器配置移动。外参在首次开始之前编辑。
+底盘传感器外参相对机器人 base，四元数顺序为 `[w,x,y,z]`。数值欧拉角与三维手柄修改同一 pose。MID360 内部 IMU 在雷达坐标中固定为 `[0.011,0.02329,-0.04412]` m，方向相同。调整设备时保持这一关系。控制器自身的机身 IMU 是另一感测点，不会被传感器配置移动。外参在首次开始之前编辑。
+
+## Fixed arm and two cameras / 固定机械臂与双相机
+
+Select **Panda · fixed arm** in Robot presets. SpRobo enables a wrist D435 RGB-D
+camera and a world-fixed D435 RGB-D camera. Each camera produces 320×240 RGB and
+metric Z depth at `camera_hz` (10 Hz by default), with separate optical origins and
+CameraInfo. Both render from the same immutable physics snapshot and carry the
+capture timestamp. The third-person sensor is distinct from **Observer**, the
+free inspection view; moving Observer does not change a sensor's extrinsics.
+
+在机器人预设中选择 **Panda · 固定机械臂**，默认启用腕部和第三人称 D435。
+两台相机均输出 320×240 RGB、以米为单位的 Z 深度及各自的 CameraInfo，
+默认 10 Hz。同一采样时刻的两路图像使用同一份物理快照。
+“第三人称相机”是实际传感器；“自由观察”是操作台视图，移动后者不会修改外参。
+
+The model is pinned to MuJoCo Menagerie's
+[Franka Emika Panda](https://github.com/google-deepmind/mujoco_menagerie/tree/cda5236f98383f6fbaa4820c6b18dba892cd087f/franka_emika_panda).
+Original fixed-base geometry, inertias, contacts, seven arm servos and the
+coupled finger tendon are retained. The C++ `joint_position` controller ramps
+arm targets at up to 0.5 rad/s and each finger at 0.04 m/s. It uses CPU physics
+and position servos, without an ONNX policy or CUDA dependency.
+The model's 2 m visualization extent sets a 1 cm near clip in the generated
+scene and keeps shadow precision around the arm workspace. Its centre follows
+a fixed-base scene spawn; model export preserves the same placement.
+
+模型、关节限位、惯量、碰撞和夹爪联动来自固定版本的上游 Panda。
+C++ 控制器使用位置伺服，关节目标变化限速为 0.5 rad/s，单侧夹指为 0.04 m/s。
+该控制器使用 CPU，不需要 GPU。操作台显示角度和夹爪总开口毫米数；
+下面的接口使用弧度和单侧夹指位移米数。当前接口执行关节位置目标。
+
+| ROS topic / 话题 | Message / 消息 | Contract / 约定 |
+| --- | --- | --- |
+| `/panda/joint_position_command` | `sensor_msgs/JointState` | `name` + `position`; partial targets allowed / 可只更新部分关节 |
+| `/panda/joint_states` | `sensor_msgs/JointState` | 7 arm joints + both fingers, 50 Hz / 七关节与两侧夹指的实际状态 |
+| `/panda/wrist_camera/image_raw` | `sensor_msgs/Image` | `rgb8`, `camera_optical_frame` |
+| `/panda/wrist_camera/depth/image_raw` | `sensor_msgs/Image` | `32FC1`, `camera_depth_optical_frame` |
+| `/panda/external_camera/image_raw` | `sensor_msgs/Image` | `rgb8`, `external_camera_optical_frame` |
+| `/panda/external_camera/depth/image_raw` | `sensor_msgs/Image` | `32FC1`, `external_depth_optical_frame` |
+
+Each camera also publishes `camera_info` and `depth/camera_info` under its prefix.
+Joint commands accept `joint1` through `joint7` and `finger_joint1` (0–0.04 m;
+total opening 0–80 mm). The second finger follows its physical tendon constraint.
+Send targets at about 20 Hz. Unknown, duplicated, nonfinite or out-of-range
+targets are rejected as a whole. Timeout (0.5 s), owner disconnect and Stop hold
+the current arm pose. Pause freezes time. Window blur affects manual control only.
+An invalid ROS target does not terminate the adapter; a subsequent valid target
+can recover control.
+
+每个相机前缀下还发布 `camera_info` 和 `depth/camera_info`。
+夹爪命令只需设置 `finger_joint1`，另一侧按物理联动运动。
+建议 20 Hz 更新目标；未知、重复、非有限数或越界关节会使整条指令被拒绝。
+超过 0.5 秒无指令、控制进程断开或点击停止后，机械臂保持当前位置。
+手动控制失焦会停止；程序控制不受窗口焦点影响。暂停冻结仿真时间。
+
+Wrist mounts are relative to `arm_tool`; external-camera mounts are in world
+coordinates (`odom` in ROS TF). The dynamic `base_link → arm_tool` transform is
+published at 50 Hz from the same state as joint feedback. Static transforms
+attach wrist optical frames to `arm_tool` and external optical frames to `odom`.
+Numeric and drag edits use the selected parent frame. Save a named robot preset
+to retain both mounts. Optional D435i IMU output belongs to the wrist camera.
+
+腕部外参相对 `arm_tool`，第三人称相机外参相对世界坐标，ROS TF 中对应 `odom`。
+关节运动会更新 `base_link → arm_tool`，两台相机各自的内部 RGB／深度外参保持刚性。
+数值和拖拽编辑使用相同父坐标系；保存命名预设后，两套外参一起恢复。
+选择 D435i 时，内置 IMU 属于腕部相机。
+
+```bash
+# In Noetic, with ROS 1 selected as the command owner in SpRobo:
+rostopic pub -r 20 /panda/joint_position_command sensor_msgs/JointState \
+  "{name: ['joint1', 'finger_joint1'], position: [0.35, 0.02]}"
+# Equivalent Humble command:
+ros2 topic pub -r 20 /panda/joint_position_command sensor_msgs/msg/JointState \
+  "{name: ['joint1', 'finger_joint1'], position: [0.35, 0.02]}"
+```
+
+Native IPC adds joint commands/state and an external-camera stream while
+retaining existing packet IDs and chassis velocity topics. ROS remains optional;
+all motion and sensor generation stay in the C++ core. `tools/test_manipulator.py`
+checks control ownership, deadlines and both depths against independent physical
+rays. `tools/test_console_manipulator.py` uses real native input; the ROS matrix
+uses `tests/ipc/arm_probe.py` for the arm and the existing chassis probe otherwise.
 
 ### Logs and diagnostics / 日志与诊断
 

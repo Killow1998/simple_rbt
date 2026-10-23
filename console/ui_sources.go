@@ -42,6 +42,7 @@ func (a *app) relinquishManual() {
 	a.pad = joystick{}
 	a.commandMu.Lock()
 	a.manualHeartbeat = false
+	a.armCommand = nil
 	a.command = Vec3{}
 	a.commandMu.Unlock()
 }
@@ -49,6 +50,10 @@ func (a *app) sendManualHeartbeat() {
 	a.commandMu.Lock()
 	defer a.commandMu.Unlock()
 	if a.manualHeartbeat {
-		_ = a.manager.Client.SendCommand([3]float64(a.command))
+		if a.armCommand != nil {
+			_ = a.manager.Client.SendJoints(*a.armCommand)
+		} else {
+			_ = a.manager.Client.SendCommand([3]float64(a.command))
+		}
 	}
 }

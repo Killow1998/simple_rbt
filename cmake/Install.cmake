@@ -1,5 +1,7 @@
 # Installed runtime is independent of the preparation virtualenv and checkout.
 include(GNUInstallDirs)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/.vendor/panda-upstream/franka_emika_panda/LICENSE"
+  DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/sprobo/licenses/panda" COMPONENT Runtime)
 set(SIMPLE_RBT_DATA_DIR "${CMAKE_INSTALL_DATADIR}/simple-rbt")
 # Use one stable, architecture-independent application library directory.
 set(SIMPLE_RBT_LIB_DIR "lib/simple-rbt")
@@ -47,7 +49,9 @@ install(DIRECTORY "${PROJECT_WORKSPACE}/assets/"
 # Install exactly the mesh/texture files named by shipped model XML, rather
 # than a developer's entire .vendor directory. Keep their original paths.
 file(GLOB MODEL_XML_FILES "${PROJECT_WORKSPACE}/assets/models/*.xml")
-set(VENDOR_RUNTIME_FILES)
+set(VENDOR_RUNTIME_FILES
+  ".vendor/panda-upstream/franka_emika_panda/panda.xml"
+  ".vendor/panda-upstream/franka_emika_panda/LICENSE")
 foreach(MODEL IN LISTS MODEL_XML_FILES)
   file(READ "${MODEL}" XML)
   set(MESH_DIR "")

@@ -38,6 +38,7 @@ def build_image(version, image, base_image=None):
 
 
 def run_case(args, robot, output):
+    arm = robot == "panda"
     case = output / robot; case.mkdir()
     session = Path("/tmp") / ("srbt-"+uuid.uuid4().hex[:12]); session.mkdir(mode=0o700)
     container = "simple-rbt-"+args.ros+"-"+uuid.uuid4().hex[:12]
@@ -51,6 +52,10 @@ def run_case(args, robot, output):
               "output": str(case / "native"),
               "ros": {"publish_odom_tf": not args.external_odometry,
                       "odom_topic": "/ground_truth/odom" if args.external_odometry else "/odom"}}
+    if arm:
+        config["sensors"] = {"mid360": False, "camera": not args.no_camera, "depth": not args.no_camera,
+                             "panorama": False, "external_camera": not args.no_camera}
+        config["settle_s"] = 0
     (case / "config.json").write_text(json.dumps(config, indent=2)+"\n")
     core = adapter = probe = None
     with (case / "core.log").open("w") as core_log, (case / "adapter.log").open("w") as adapter_log:
@@ -78,9 +83,11 @@ def run_case(args, robot, output):
             setup = "/opt/ros/"+("noetic" if args.ros == "ros1" else "humble")+"/setup.bash"
             interface = "/opt/simple-rbt/interfaces/"+("setup.bash" if args.ros == "ros1" else "share/livox_ros_driver2/local_setup.bash")
             shell = f'source {setup}; source {interface}; exec python3 /tests/ros_probe.py "$1" /results/probe.json --physical --robot "$2"'
+            if arm:
+                shell = f'source {setup}; source {interface}; exec python3 /tests/arm_probe.py "$1" /results/probe.json'
             if args.no_camera: shell += ' --no-camera'
-            if args.camera_model == 'd435i': shell += ' --camera-imu'
-            if args.external_odometry: shell += ' --external-odometry'
+            if args.camera_model == 'd435i' and not arm: shell += ' --camera-imu'
+            if args.external_odometry and not arm: shell += ' --external-odometry'
             probe = subprocess.Popen(["docker", "exec", container, "bash", "-c", shell, "probe", args.ros, robot],
                                      stdout=adapter_log, stderr=subprocess.STDOUT)
             probe_code = probe.wait(timeout=35)
@@ -121,7 +128,7 @@ def main():
     parser.add_argument("--build-only", action="store_true")
     parser.add_argument("--skip-build", action="store_true")
     parser.add_argument("--robots", nargs="+", choices=all_robots, default=robots,
-                        help="Default: seven production robots; a legacy alias may be requested explicitly")
+                        help="Default: all production robots, including the arm; a legacy alias may be requested explicitly")
     parser.add_argument("--backend", choices=["auto", "cpu", "cuda"], default="auto")
     parser.add_argument("--external-odometry", action="store_true", help="Verify ground-truth topic isolation with dynamic odometry TF disabled")
     parser.add_argument("--camera-model", choices=["d435", "d435i"], default="d435")

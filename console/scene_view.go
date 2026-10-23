@@ -22,7 +22,7 @@ func (a *app) worldDirection(v Vec3) Vec3 {
 	if a.page == "scene" {
 		return v
 	}
-	return rotate(v, a.meta.Base.Quaternion)
+	return rotate(v, a.mountParent().Quaternion)
 }
 func (a *app) editPose() (Pose, bool) {
 	if a.page == "scene" {

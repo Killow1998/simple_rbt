@@ -60,7 +60,7 @@ func validateConfig(cfg Config, catalog Catalog) error {
 		}
 	}
 	for name, pose := range cfg.Mounts {
-		if name != "mid360" && name != "camera" {
+		if name != "mid360" && name != "camera" && name != "external_camera" {
 			return fmt.Errorf("Unknown sensor mount / 未知传感器外参: %s", name)
 		}
 		for _, v := range pose.Position {
