@@ -153,13 +153,16 @@ Keep independently measured values as instance overrides. An unobserved undersid
 must retain an inferred thickness label. Validate the **whole entrance/exit edge**
 against the finite landing boundary; matching centre points can leave corner gaps.
 Preserve measured height differences at joins instead of flattening the cloud to
-make the route pass. A landing can use the union of its bounded observed footprint
-and the adjoining flight edges; a bounding rectangle or convex hull is not an
-equivalent operation.
+make the route pass. A landing can use the union of independently supported finite
+surface footprints. Adjoining flight edges and enclosing walls alone do not
+establish interior floor support or authorize connector strips. Local interpolation
+between repeated plane observations must record its extent and evidence; it is
+different from completing a large occluded region from structural assumptions.
 
 踏步高、深可以共用，梯段宽度和底板厚度仍需分别核实。平台连接要覆盖整条端部边界，
-只对齐中心点可能留下角部缺口。被遮挡的板面可在明确记录依据后建模为推定部分；
-路线走通证明仿真功能可用，不能替代这些区域的几何测量。
+只对齐中心点可能留下角部缺口。未采到点不等于真实空洞，但墙界和楼梯端部也不能证明
+平台内部有支撑。小采样缝可在多次平面观测支持下作有限插值；大片遮挡区域的结构补全
+需要单独确认，并标为推定。路线走通证明仿真功能可用，不能替代几何证据核对。
 
 ## 5. Quadric connection / 与二次曲面形式的关系
 

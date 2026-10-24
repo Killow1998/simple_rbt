@@ -1475,7 +1475,7 @@ faces must be separated before fitting; a single plane is not a valid model of
 both. A successful route is functional acceptance of this mixed reconstruction,
 not a survey certificate for its hidden regions.
 
-Final Go2W + direct Noetic E2E / 最终全链路验收：
+Mixed reconstruction Go2W + direct Noetic E2E / 混合重建的功能验收：
 
 - Four flights up and down, 21/21 waypoints, 260.750 simulation seconds; maximum
   tilt 29.483 degrees; real-time factor 0.9999993. Command input is namespaced
@@ -1503,7 +1503,7 @@ an independent native probe. Use the final connected-route measurement above for
 performance comparisons. Runtime binaries remain the verified development build
 from `751e74e`; no installed desktop replacement or source-data upload is performed.
 
-Canonical local artifacts / 本地交付：
+Mixed reconstruction artifacts / 混合重建记录：
 [cleaned PCD](../output/observed-clean-route-20261024/cleaned.pcd),
 [scene](../output/observed-clean-route-20261024/candidate-connected/scene.json),
 [session](../output/observed-clean-route-20261024/candidate-connected/session.json),
@@ -1513,3 +1513,59 @@ Canonical local artifacts / 本地交付：
 [geometry and retention](../output/observed-clean-route-20261024/connected-geometry-verification.json),
 [prior incomplete-route diagnosis](../output/structured-scene-20261024/candidate/route-support.json).
 Private clouds, trajectories, scripts with private input paths and test bags stay outside Git.
+
+Observed-support correction / 观测支持范围更正（2026-10-24）：
+
+The connected candidate joined full stair endpoints to wall-bounded landing
+interiors without requiring support throughout those finite surfaces. Presenting
+its 21/21 route as completed observed-scene acceptance overstated the result.
+No explicit permission to fill large unknown interiors was found. The mixed
+scene, closed bag and user's current preview remain unchanged as evidence.
+
+The separate observed-only candidate has 1140 nodes and 3048 resolved parts.
+Qualification uses finite surface support and separate training/held-out scans;
+checking all 10,722 acquisition scans in the stair ROI (8,197,016 points) does
+not qualify the missing connections. A read-only replay of the mixed route
+reproduces every saved 20 ms trajectory row byte-for-byte. Of its 14,681 actual
+load-bearing contact samples, 4462 match qualified geometry within 6 cm; only
+285 of 2576 sampled contact times have support under every contact. The strict
+route is not executed through missing support and is **not accepted**.
+
+严格表面未通过支撑检查，不等于真实建筑不通，也不等于缺口完全没有观测。不能把
+稀疏采样格直接当作真实物体边界。下一步是核对有限插值，把同一平面的采样小缝合并；
+大块未知区域继续单独保留。原来的 21/21 仅证明混合场景中运动和传感器链路可用。
+
+[Observed-only scene / 严格观测场景](../output/observed-strict-fullscan-20261024/scene.json),
+[actual-contact coverage / 实际接触覆盖](../output/observed-strict-fullscan-20261024/route-contact-coverage.json),
+[landing evidence / 平台证据](../output/observed-strict-fullscan-20261024/landing-evidence-audit.json).
+
+Continuous-boundary investigation / 连续边界核对（2026-10-24）：
+
+The old finite boundaries follow qualified 25 cm sampling cells. Missing coverage
+therefore appears as physical gaps, although it is not evidence of actual holes.
+`tools/scene/interpolate_gaps.py` now proposes short joins on each existing fitted
+plane. Each added component requires repeated normal-aligned support, separate
+keyframe coverage, the existing 6 cm plane-residual gate and a crossing-ray veto.
+Its 13 cm boundary band limits it to local interpolation; it cannot complete rooms
+from wall outlines. Runtime code remains C++; this is offline preparation.
+
+The comparison candidate reduces 887 wall/floor/ceiling regions to 791 and
+adds 37.2525 m² of supported interpolation. It has 945 nodes and 2807 resolved
+parts. Existing surface coverage, plane poses, stairs and other objects are
+preserved. The native editor imports, renders and saves every object unchanged.
+The mixed reconstruction's native Go2W route still reaches 21/21 waypoints in
+259.146 simulation seconds. This run checks native motion and LiDAR only; it
+does not replace the separate ROS acceptance or establish observed-only support.
+
+This is **not completion of whole architectural contours**: floor regions only
+decrease from 210 to 201. Direct triangulation of plane samples was also tested
+and rejected: it produces more small islands and point-touching rings. Neither
+that experiment nor the small-gap comparison replaces the user's current scene.
+Next, reconstruct room/corridor boundaries using repeated surface observations
+and explicit opening evidence; distinguish sparse sampling from large occluded
+areas before deciding whether structural inference is needed.
+
+小缝合并已验证，但整体地面、墙面轮廓尚未完成。不能把网格未采到点解释为真实缺口，
+也不能用一张大矩形覆盖所有未知区域。原始 PCD 和已有窗口保持不变。
+[Boundary comparison / 边界对照](../output/continuous-surfaces-20261024/boundary-comparison.png),
+[validation / 验证记录](../output/continuous-surfaces-20261024/report.json).
