@@ -90,7 +90,7 @@ func (a *app) initWorkspace(restore bool) {
 			}
 		}
 		for _, scene := range w.SceneDrafts {
-			if scene.Version != 1 || len(scene.Floors) == 0 {
+			if scene.Version != 2 && (scene.Version != 1 || len(scene.Floors) == 0) {
 				valid = false
 			}
 		}
@@ -129,7 +129,7 @@ func (a *app) initWorkspace(restore bool) {
 	} else if s, ok := a.workspace.Scenes[a.workspace.SceneID]; ok {
 		a.sceneDraft = clone(s)
 	}
-	if a.sceneDraft.Version != 1 || len(a.sceneDraft.Floors) == 0 {
+	if a.sceneDraft.Version != 2 && (a.sceneDraft.Version != 1 || len(a.sceneDraft.Floors) == 0) {
 		a.sceneDraft = a.newScene(true)
 	}
 	if a.workspace.Snap.Grid <= 0 {
@@ -138,7 +138,7 @@ func (a *app) initWorkspace(restore bool) {
 	if a.workspace.Snap.Angle <= 0 {
 		a.workspace.Snap.Angle = 15
 	}
-	a.sceneFloor = a.sceneDraft.Floors[0].ID
+	a.sceneFloor = a.sceneDraft.firstFloor()
 	a.sceneLookat = Vec3{4, 0, 1}
 	a.page = "home"
 	a.hiddenFloors = map[string]bool{}
@@ -239,7 +239,7 @@ func (a *app) saveScene(copy bool) {
 	}
 	if copy {
 		a.checkpoint()
-		a.sceneDraft.ID = newID()
+		a.sceneDraft.ID = "scene_" + newID()
 	}
 	a.workspace.Scenes[a.sceneDraft.ID] = clone(a.sceneDraft)
 	a.checkpoint()
@@ -248,6 +248,9 @@ func (a *app) useScene() {
 	if err := validateScene(&a.sceneDraft); err != nil {
 		a.reportError(err)
 		return
+	}
+	if a.sceneDraft.Version == 2 && a.sceneDraft.object(a.cfg.SceneSpawn) == nil {
+		a.cfg.SceneSpawn = ""
 	}
 	a.cfg.Scene = clone(&a.sceneDraft)
 	a.startConfig()

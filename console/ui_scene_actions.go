@@ -24,10 +24,10 @@ func (a *app) alignmentInspector(c *ui.Context, o *SceneObject) {
 	ids := map[string]string{}
 	selected := ""
 	for i, object := range a.sceneDraft.Objects {
-		if object.ID == o.ID {
+		if object.ID == o.ID || (a.sceneDraft.Version == 2 && a.sceneDraft.containsNode(o.ID, object.ID)) {
 			continue
 		}
-		label := object.Name + " · " + a.sceneDraft.Floors[0].Name
+		label := object.Name
 		for _, floor := range a.sceneDraft.Floors {
 			if floor.ID == object.Floor {
 				label = object.Name + " · " + floor.Name

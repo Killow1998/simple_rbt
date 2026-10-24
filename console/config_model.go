@@ -20,6 +20,7 @@ type ROSConfig struct {
 	OdomTopic     string `json:"odom_topic"`
 }
 type Config struct {
+	SceneSpawn       string          `json:"scene_spawn,omitempty"`
 	Scene            *Scene          `json:"scene,omitempty"`
 	CameraModel      string          `json:"camera_model"`
 	CameraExtrinsics map[string]Pose `json:"camera_extrinsics,omitempty"`

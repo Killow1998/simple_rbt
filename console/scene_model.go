@@ -16,10 +16,14 @@ type Floor struct {
 const maxSceneBoxes = 2048
 
 type SceneObject struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Floor string `json:"floor"`
-	Kind  string `json:"kind"`
+	Parent   string         `json:"parent,omitempty"`
+	Semantic string         `json:"semantic,omitempty"`
+	Geometry map[string]any `json:"geometry,omitempty"`
+	Evidence map[string]any `json:"evidence,omitempty"`
+	ID       string         `json:"id"`
+	Name     string         `json:"name"`
+	Floor    string         `json:"floor"`
+	Kind     string         `json:"kind"`
 	Pose
 	Size       Vec3             `json:"size"`
 	Connection *FloorConnection `json:"connection,omitempty"`
@@ -31,12 +35,16 @@ type Spawn struct {
 	Yaw      float64 `json:"yaw_deg"`
 }
 type Scene struct {
-	Version int           `json:"version"`
-	ID      string        `json:"id"`
-	Name    string        `json:"name"`
-	Floors  []Floor       `json:"floors"`
-	Objects []SceneObject `json:"objects"`
-	Spawn   Spawn         `json:"spawn"`
+	Format      string                    `json:"format,omitempty"`
+	Units       map[string]string         `json:"units,omitempty"`
+	Coordinates string                    `json:"coordinate_system,omitempty"`
+	Templates   map[string]map[string]any `json:"geometry_templates,omitempty"`
+	Version     int                       `json:"version"`
+	ID          string                    `json:"id"`
+	Name        string                    `json:"name"`
+	Floors      []Floor                   `json:"floors"`
+	Objects     []SceneObject             `json:"objects"`
+	Spawn       Spawn                     `json:"spawn"`
 }
 
 func (s *Scene) height(id string) float64 {
@@ -55,10 +63,21 @@ func (s *Scene) object(id string) *SceneObject {
 	}
 	return nil
 }
-func (s *Scene) pose(o SceneObject) Pose { p := o.Pose; p.Position[2] += s.height(o.Floor); return p }
+func (s *Scene) pose(o SceneObject) Pose {
+	if s.Version == 2 {
+		return s.structuredPose(o, 0)
+	}
+	p := o.Pose
+	p.Position[2] += s.height(o.Floor)
+	return p
+}
 func validateScene(s *Scene) error {
 	if s == nil {
 		return nil
+	}
+	if s.Version == 2 {
+		_, err := resolveScene(s)
+		return err
 	}
 	fail := fmt.Errorf("Invalid scene: check names, floors, dimensions and transforms / 场景无效：请检查名称、楼层、尺寸及位姿")
 	budget := fmt.Errorf("Scene exceeds the %d physical-box budget / 场景超过 %d 个物理几何体的预算", maxSceneBoxes, maxSceneBoxes)

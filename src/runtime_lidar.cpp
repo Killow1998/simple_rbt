@@ -106,7 +106,7 @@ Json RuntimeLidar::scan_model() const {
              {"robot_self_occlusion", false},
              {"dynamic_environment_supported", false},
              {"backend_implementation",
-              active_backend == "cpu" ? "native_mj_ray" : "native_cuda_aot"},
+              active_backend == "cpu" ? "native_mujoco_ray_bvh" : "native_cuda_aot"},
              {"pose_interpolation", args.lidar_motion == "rolling"
                                         ? "linear_translation_short_arc_slerp"
                                         : "none"},
@@ -120,7 +120,7 @@ Json RuntimeLidar::report() const {
   Json result = {
       {"backend", lidar ? Json(active_backend) : Json(nullptr)},
       {"backend_implementation",
-       lidar ? (active_backend == "cpu" ? "native_mj_ray" : "native_cuda_aot")
+       lidar ? (active_backend == "cpu" ? "native_mujoco_ray_bvh" : "native_cuda_aot")
              : "none"},
       {"rays_per_frame", args.rays},
       {"lidar_frames", lidar_frames},

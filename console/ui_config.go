@@ -192,7 +192,7 @@ func (a *app) loadProfile() {
 	a.robotPreset = RobotPreset{ID: newID(), Name: filepath.Base(paths[0]), RobotConfig: robotConfig(cfg)}
 	if cfg.Scene != nil {
 		a.sceneDraft = clone(*cfg.Scene)
-		a.sceneFloor = a.sceneDraft.Floors[0].ID
+		a.sceneFloor = a.sceneDraft.firstFloor()
 		a.sceneObject = ""
 	}
 	a.startConfig()

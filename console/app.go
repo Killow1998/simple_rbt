@@ -49,6 +49,8 @@ type app struct {
 	externalStamp           uint64
 	auditPrevious           map[string]any
 	diagnostics             diagnosticsView
+	sceneTemplateEdit       bool
+	sceneNewKind            string
 	sceneRevision           int
 	sceneHistory            sceneHistory
 	sceneField, alignTarget string
@@ -112,6 +114,7 @@ type app struct {
 }
 
 func newApp(options session.Options, cfg Config) *app {
+	setSceneWorker(options.WorkerPath)
 	if cfg.Mounts == nil {
 		cfg.Mounts = map[string]Pose{}
 	}

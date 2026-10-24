@@ -173,8 +173,9 @@ void test_cpu() {
   check(std::equal(original_groups.begin(),original_groups.end(),fixture.model->geom_group),"Live model mutated");
   fixture.data->geom_xpos[0]+=.01;
   rejects([&]{lidar.scan(fixture.data,0,4,history,scan);},"Changed static environment accepted");
-  Fixture unsupported("<geom type='sphere' pos='5 2 0' size='.2'/>");
-  rejects([&]{RollingLidar bad(unsupported.model,LidarBackend::Cpu,pattern);},"Unsupported environment silently omitted");
+  Fixture curved("<geom type='sphere' pos='5 2 0' size='.2'/>");
+  RollingLidar curved_lidar(curved.model,LidarBackend::Cpu,pattern);
+  check(curved_lidar.environment_geom_count()==lidar.environment_geom_count()+1,"Curved environment omitted");
   Fixture moving("<body name='obstacle' pos='3 2 0'><freejoint/><geom type='box' size='.2 .2 .2'/></body>");
   rejects([&]{RollingLidar bad(moving.model,LidarBackend::Cpu,pattern);},"Dynamic obstacle accepted");
   std::cout << "CPU rolling/time/wrap/negative-control/static-state tests passed\n";

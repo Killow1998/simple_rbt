@@ -48,9 +48,11 @@ shadow casting uses the complete plane, and reflections/infinite planes retain
 native drawing. Before initializing EGL, the core defaults Mesa's software
 worker pool to at most four threads (`LP_NUM_THREADS`); an explicit environment
 setting takes precedence. Hardware GL drivers do not use this Mesa setting.
-Large CPU LiDAR scans partition independent native `mj_ray` queries across at
-most four workers, join before assembling returns, and retain the original
-sample order, timestamps and values. Small scans remain serial.
+CPU LiDAR uses a static AABB tree to skip distant geometry, then calls MuJoCo
+ray functions for exact primitive/mesh intersections. Large scans use at most
+four workers and join before assembling returns, preserving sample order,
+timestamps and values. Small scans remain serial. Curved structured scenes use
+CPU ray casting; explicit CUDA rejects unsupported geometry.
 
 Sensor camera rendering runs on one dedicated C++ worker with a private model
 and a copied `mjData` snapshot. Physics and IMU/LiDAR scheduling can advance while
@@ -346,6 +348,20 @@ SpRobo 在 `$XDG_CONFIG_HOME/simple-rbt/workspace.json`（通常为
 当前配置。每秒及切页、切会话、正常关闭时检查，数据变化才通过原子重命名写入。
 显式使用 `--config` 会新建机器人预设并保留已有资源库；无法识别的工作区文件
 会报错并保留原文件。
+
+The current editor also creates [v2 structured scenes](scene-representation.md):
+parent groups, nine parameterized primitives, bounded planes with holes and shared
+stair templates. The C++ resolver supplies collision geometry and editor previews.
+A session embeds that document under `scene`; `scene_spawn` selects a named spawn
+when several are present. The v2 budget is 4096 convex parts. Existing v1 scenes
+keep their original geometry and format; they are not converted automatically.
+
+当前编辑器可新建 v2 结构化场景。分组、九种基元、有限平面洞口与共享楼梯模板均由
+同一 C++ 解析器生成几何；多个出生点通过 `scene_spawn` 选择。v2 上限为 4096 个
+凸几何体。已有 v1 场景保持原格式和几何，不会自动改写。
+
+The following box, floor-connection and rectangular-opening fields describe v1.
+以下盒体、楼层连接和矩形洞口字段属于 v1。
 
 A session JSON may contain `scene` with `version: 1`, `id`, `name`, `floors`,
 `objects` and `spawn`. Floors have `id`, `name`, `height`; objects have `id`, `name`,

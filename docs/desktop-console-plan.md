@@ -1390,3 +1390,95 @@ v2 C++ loading, editor integration and runtime E2E remain future implementation.
 本轮完成表征约定和可校验示例；没有宣称新基元已接入运行时。下一步按规范实现
 公共解析、语义校验与几何生成，再逐步接入编辑器。验证记录：
 [schema and example](../output/scene-representation-20261024/validation.json)。
+
+## Structured scene v2 — 2026-10-24 / 结构化场景
+
+The development build now loads and edits the [v2 contract](scene-representation.md).
+One C++ resolver handles parent transforms, bounded planes and holes, nine primitive
+types, shared templates, per-instance overrides, spawn selection and geometry
+budgets. SpRobo reuses its output for preview and picking; save/reopen and history
+preserve the document. Legacy v1 files retain their original geometry. The native
+runtime remains C++; Python is limited to offline reconstruction and verification.
+
+开发版已接入 v2。楼梯是一个编辑对象，内部才展开为碰撞体；底部保留斜面。
+有限地板和墙面保留边界与洞口。编辑器支持共享模板、实例覆盖、位姿、总高、
+坡度、删除、撤销、保存及重开。本轮未替换安装版，也未发布远端版本。
+
+CPU LiDAR now accepts native curved shapes and convex meshes. A static AABB tree
+narrows candidate geometry; exact intersections still use MuJoCo routines.
+Forty thousand randomized rays agree with direct MuJoCo within 1e-10 m. On the
+same 2814-part cloud scene and input, an eight-second unpaced physics/LiDAR run
+improves from 14.933 s to 1.292 s wall time. Both trajectory and LiDAR-world files
+have identical hashes. Resolution, scan rate and ray count are unchanged.
+
+同场景消融表明，旧逐几何射线查询是主要瓶颈。增加空间索引后，同输入轨迹和雷达
+输出保持逐文件一致；没有降低传感器参数。4096 个凸几何体是 v2 的资源保护预算，
+不是所有场景实时运行的保证。显式 CUDA 不支持的几何会报错，auto 可回退 CPU；
+本阶段只验证 CPU。
+
+Validation / 验证：
+
+- Native CTest: 14/14 passed, including v1, all nine v2 primitives, open stair
+  undersides, bounded holes, collisions, IMU, IPC and a Go2W staircase route.
+  Go race checks pass. Native editor E2E verifies template/override edits,
+  delete/undo/redo, save/reopen and real core preview in both languages/themes.
+- A separate Noetic-controlled Go2W run climbs and descends the synthetic
+  two-storey U-stairwell: 8/8 waypoints, 98.562 simulation seconds, RTF 0.999999.
+  Each IMU has 19,712 samples; each LiDAR stream has 985 scans. Native summary,
+  independent IPC observer, buffered ROS receiver and closed bag agree on full
+  counts and timestamps; IMU values and scan point counts agree exactly. This
+  is a synthetic route, not acceptance of the reconstructed real staircase.
+- On the 2814-part observed scene, CPU-only GUI/core/Noetic plus the test receiver
+  measure RTF 1.0053, mean 1.75 logical CPU cores and peak aggregate RSS 1434 MiB
+  over a 16-second stationary window. All processes are restricted to four cores.
+  D435i RGB/depth remain 320×240 at 10 Hz; MID360 remains 20k rays at 10 Hz, with
+  200 Hz IMU. Display-server cost is excluded; receiver cost is included in ROS.
+  Camera topic traffic is checked; the exact bag comparison covers LiDAR/IMU,
+  not camera payloads.
+- The final 2820-part candidate passes separate eight-second stationary contact
+  checks on both levels. Its 22.106-second Noetic out/back/turn run has RTF
+  0.999917, 4421 samples per IMU and 221 scans per LiDAR stream, with the same
+  full-interval accounting. Core peak RSS is 869 MiB; this last figure excludes
+  GUI and ROS. It is motion on a qualified patch, not a cross-storey route.
+
+Real-cloud reconstruction / 真实点云重建：
+
+The offline union retains 2247 qualified patches as 139 fitted-plane groups with
+887 disconnected bounded regions. Their union area is unchanged; no bounding
+rectangle, closing or hull fills unknown space. The candidate contains these
+regions plus three observed two-step strips using one stair template: 1034
+logical nodes, 890 primitives, 2820 physical parts. Shared-profile fitting improves
+when flat underside end surfaces are separated from the inclined slab. Four
+central profiles pass the original 6 cm held-out P95 gate, but full widths,
+endpoints and landing joins remain unqualified. Only independently covered strips
+are activated; other runs retain failed audit results.
+
+当前交付的是观测结构候选。共面片段已合并，断开的观测仍保留为独立边界，不能
+把整层补成一个实心矩形。共享楼梯参数已拟合，但只有三段局部踏步通过有限范围
+检查。真实跨层路径预检只有 4/1064 个采样点具备完整探测支撑；因此没有执行或
+宣称真实上下楼路线通过。预检围绕 IMU 位置进行，缺少真实 base→IMU 外参，
+也不能把它解释为准确的机器人足迹验收。
+
+The source has no dedicated person/dynamic-object removal. The independent
+799-keyframe temporal audit marks 2181 suspect 10 cm voxels, containing 4664 raw
+points, in a separate review mask. Approximate frame-end visibility can confuse
+SLAM registration errors or thin surfaces with motion. Five retained plane
+regions each overlap one suspect voxel; this does not prove a human ghost or its
+complete absence. The original PCD and mapping artifacts are unchanged. Complete
+human removal is **not** certified.
+
+人影尚未被证明清除。动态候选单独标记，不能把平面筛选等同于去人，也不能仅凭
+近似可见性删除原始点云。下一步先核对候选动态点与原始逐点时间，再补齐有观测
+支持的楼梯宽度、端部和平台边界；连接未验收前不进行真实跨层路线验收。
+
+Development binaries: `build/panda-jammy/simple-rbt-sim` and
+`build/panda-jammy/simple-rbt-console`. Canonical local candidate:
+`output/structured-scene-20261024/candidate/{scene.json,session-lower.json,session-upper.json}`.
+Private clouds, trajectories and test bags remain outside Git.
+
+Evidence / 证据：[stage report](../output/structured-scene-20261024/report.json),
+[editor](../output/structured-scene-20261024/editor-e2e-final/report.json),
+[synthetic Noetic route](../output/structured-scene-20261024/ros-synthetic-route/report.json),
+[final candidate motion](../output/structured-scene-20261024/ros-candidate-motion/report.json),
+[real route support failure](../output/structured-scene-20261024/candidate/route-support.json),
+[temporal audit](../output/structured-scene-20261024/temporal-audit/report.json).

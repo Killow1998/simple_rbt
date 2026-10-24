@@ -25,6 +25,16 @@ func (a *app) localizedMessage(message string) string {
 }
 
 var optionLabels = map[string][2]string{
+	"group":                {"Group", "分组"},
+	"box":                  {"Box", "长方体"},
+	"planar_region":        {"Bounded plane", "有限平面板"},
+	"cylinder":             {"Cylinder", "圆柱"},
+	"sphere":               {"Sphere", "球"},
+	"ellipsoid":            {"Ellipsoid", "椭球"},
+	"frustum":              {"Frustum / cone", "圆台／圆锥"},
+	"capsule":              {"Capsule", "胶囊体"},
+	"stair_flight":         {"Stair flight", "一段楼梯"},
+	"spawn":                {"Robot spawn", "机器人出生点"},
 	"panda":                {"Panda · fixed arm", "Panda · 固定机械臂"},
 	"joint_position":       {"Joint position", "关节位置"},
 	"external_camera":      {"External camera", "第三人称相机"},

@@ -33,6 +33,7 @@ Json run_session(const Json &config, const std::filesystem::path &directory,
   RunOptions args;
   args.simulation.project_root = project_root;
   args.simulation.scene = config.value("scene", Json());
+  args.simulation.scene_spawn = config.value("scene_spawn", std::string());
   args.simulation.robot = config.value("robot", std::string("ranger_mini"));
   args.simulation.controller = config.value("controller", std::string("auto"));
   args.simulation.control_mode =

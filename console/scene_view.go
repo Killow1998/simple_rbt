@@ -26,12 +26,12 @@ func (a *app) worldDirection(v Vec3) Vec3 {
 }
 func (a *app) editPose() (Pose, bool) {
 	if a.page == "scene" {
-		if a.sceneObject == "spawn" {
+		if a.sceneDraft.Version != 2 && a.sceneObject == "spawn" {
 			p := a.sceneDraft.Spawn.Position
 			p[2] += a.sceneDraft.height(a.sceneDraft.Spawn.Floor)
 			return Pose{Position: p, Quaternion: fromEuler(Vec3{0, 0, a.sceneDraft.Spawn.Yaw})}, true
 		}
-		if o := a.sceneDraft.object(a.sceneObject); o != nil && !a.hiddenFloors[o.Floor] {
+		if o := a.sceneDraft.object(a.sceneObject); o != nil && !a.hiddenFloors[o.Floor] && (a.sceneDraft.Version != 2 || !a.sceneDraft.hidden(o.ID, a.hiddenFloors)) {
 			return a.sceneDraft.pose(*o), true
 		}
 		return Pose{}, false
@@ -44,13 +44,25 @@ func (a *app) editPoseSet(p Pose) {
 		a.editMount(a.selected, p)
 		return
 	}
-	if a.sceneObject == "spawn" {
+	if a.sceneDraft.Version != 2 && a.sceneObject == "spawn" {
 		p.Position[2] -= a.sceneDraft.height(a.sceneDraft.Spawn.Floor)
 		a.sceneDraft.Spawn.Position = p.Position
 		a.sceneDraft.Spawn.Yaw = toEuler(p.Quaternion)[2]
 		return
 	}
 	if o := a.sceneDraft.object(a.sceneObject); o != nil {
+		if a.sceneDraft.Version == 2 {
+			if parent := a.sceneDraft.object(o.Parent); parent != nil {
+				base := a.sceneDraft.pose(*parent)
+				q := base.Quaternion
+				q[1], q[2], q[3] = -q[1], -q[2], -q[3]
+				p.Position = rotate(sub(p.Position, base.Position), q)
+				p.Quaternion = quatProduct(q, p.Quaternion)
+			}
+			o.Pose = p
+			a.sceneDraft.markManualChange(o.ID)
+			return
+		}
 		p.Position[2] -= a.sceneDraft.height(o.Floor)
 		if o.Connection != nil {
 			p.Position[2] = 0
@@ -60,6 +72,10 @@ func (a *app) editPoseSet(p Pose) {
 	}
 }
 func (a *app) pickScene(p point) {
+	if a.sceneDraft.Version == 2 {
+		a.pickStructured(p)
+		return
+	}
 	eye, ray := a.ray(p)
 	nearest := math.Inf(1)
 	id := ""

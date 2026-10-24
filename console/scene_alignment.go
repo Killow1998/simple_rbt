@@ -32,6 +32,26 @@ func (a *app) snapSelected() {
 func (s *Scene) bounds(id string) (Vec3, Vec3, bool) {
 	low, high := Vec3{math.Inf(1), math.Inf(1), math.Inf(1)}, Vec3{math.Inf(-1), math.Inf(-1), math.Inf(-1)}
 	found := false
+	if s.Version == 2 {
+		geometry, err := resolveScene(s)
+		if err != nil {
+			return low, high, false
+		}
+		for _, part := range geometry.Parts {
+			if !s.containsNode(id, part.ObjectID) {
+				continue
+			}
+			found = true
+			for _, p := range part.Vertices {
+				p = add(part.Position, rotate(p, part.Quaternion))
+				for j := range p {
+					low[j] = math.Min(low[j], p[j])
+					high[j] = math.Max(high[j], p[j])
+				}
+			}
+		}
+		return low, high, found
+	}
 	for _, o := range s.boxes() {
 		if o.ID != id {
 			continue
@@ -78,5 +98,7 @@ func (a *app) alignSceneObject(mode string) {
 		}
 		delta[2] = targetHigh[2] - low[2]
 	}
-	o.Position = add(o.Position, delta)
+	pose := a.sceneDraft.pose(*o)
+	pose.Position = add(pose.Position, delta)
+	a.editPoseSet(pose)
 }

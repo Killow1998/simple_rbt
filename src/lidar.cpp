@@ -1,5 +1,6 @@
 #include "simple_rbt/lidar.hpp"
 #include "lidar_cuda.hpp"
+#include "lidar_scene.hpp"
 #include <algorithm>
 #include <cmath>
 #include <fstream>
@@ -145,9 +146,9 @@ struct RollingLidar::Impl {
   std::vector<detail::RayGeometry> geometries;
   ModelPtr cpu_model;
   DataPtr cpu_data;
+  std::unique_ptr<detail::StaticRayIndex> index;
   detail::CudaRayState* cuda = nullptr;
   std::vector<double> origins, directions, ranges;
-  mjtByte groups[mjNGROUP]{1,0,0,0,0,0};
   Impl(const mjModel* model, LidarBackend backend, CsvPattern& p, double minimum, double maximum)
     : live_model(model), mode(backend), pattern(p), min_range(minimum), max_range(maximum) {}
   ~Impl() { detail::free_cuda_rays(cuda); }
@@ -187,8 +188,8 @@ RollingLidar::RollingLidar(const mjModel* model, LidarBackend mode, CsvPattern& 
   }
   for (int g=0; g<model->ngeom; ++g) {
     if (robot[model->geom_bodyid[g]]) continue;
-    require(model->geom_type[g] == mjGEOM_PLANE || model->geom_type[g] == mjGEOM_BOX,
-            "Native static LiDAR supports every current terrain (plane/box); unsupported environment geom rejected");
+    require(mode == LidarBackend::Cpu || model->geom_type[g] == mjGEOM_PLANE || model->geom_type[g] == mjGEOM_BOX,
+            "CUDA LiDAR supports plane/box scenes; use CPU or auto for structured geometry");
     // mj_ray excludes fully transparent geometry; retain the same visibility.
     const int material = model->geom_matid[g];
     const float alpha = material >= 0 ? model->mat_rgba[4*material+3] : model->geom_rgba[4*g+3];
@@ -200,6 +201,7 @@ RollingLidar::RollingLidar(const mjModel* model, LidarBackend mode, CsvPattern& 
     impl_->ids.push_back(g);
     impl_->geometries.push_back(geom);
   }
+  if (mode == LidarBackend::Cpu) impl_->index=std::make_unique<detail::StaticRayIndex>(impl_->cpu_model.get(),impl_->cpu_data.get(),impl_->ids);
   if (mode == LidarBackend::Cuda) impl_->cuda = detail::make_cuda_rays(impl_->geometries);
   impl_->origins.reserve(60000); impl_->directions.reserve(60000); impl_->ranges.reserve(20000);
 }
@@ -242,9 +244,7 @@ void RollingLidar::scan(const mjData* data, std::uint64_t start, std::size_t cou
         ? std::min(4u, std::max(1u, std::thread::hardware_concurrency())) : 1;
     auto trace = [&](std::size_t first, std::size_t last) {
       for (std::size_t i = first; i < last; ++i)
-        ranges[i] = mj_ray(impl_->cpu_model.get(), impl_->cpu_data.get(),
-                           origins.data() + 3*i, directions.data() + 3*i,
-                           impl_->groups, true, -1, nullptr, nullptr);
+        ranges[i] = impl_->index->ray(origins.data() + 3*i, directions.data() + 3*i, impl_->max_range);
     };
     std::vector<std::future<void>> jobs;
     for (std::size_t worker = 1; worker < workers; ++worker)

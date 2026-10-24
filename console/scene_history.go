@@ -83,6 +83,28 @@ func (a *app) deleteSceneObject() {
 	if a.sceneDraft.object(a.sceneObject) == nil {
 		return
 	}
+	if a.sceneDraft.Version == 2 {
+		remove := map[string]bool{a.sceneObject: true}
+		changed := true
+		for changed {
+			changed = false
+			for _, o := range a.sceneDraft.Objects {
+				if remove[o.Parent] && !remove[o.ID] {
+					remove[o.ID] = true
+					changed = true
+				}
+			}
+		}
+		kept := []SceneObject{}
+		for _, o := range a.sceneDraft.Objects {
+			if !remove[o.ID] {
+				kept = append(kept, o)
+			}
+		}
+		a.sceneDraft.Objects = kept
+		a.sceneObject = ""
+		return
+	}
 	objects := a.sceneDraft.Objects
 	for i, o := range objects {
 		if o.ID == a.sceneObject {

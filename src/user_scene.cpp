@@ -1,4 +1,5 @@
 #include "user_scene.hpp"
+#include "scene_geometry.hpp"
 #include <cmath>
 #include <iomanip>
 #include <map>
@@ -94,6 +95,7 @@ void place_fixed_base(tinyxml2::XMLElement *world, const Json &scene) {
 }
 } // namespace
 void validate_user_scene(const Json &s) {
+  if (s.at("version") == 2) { (void)resolve_structured_scene(s); return; }
   require(s.at("version") == 1, "Unsupported scene version");
   std::set<std::string> ids;
   identity(s, ids);
@@ -132,7 +134,12 @@ void validate_user_scene(const Json &s) {
   double yaw = spawn.at("yaw_deg");
   require(std::isfinite(yaw) && std::abs(yaw) <= 180, "Invalid spawn yaw");
 }
-void append_user_scene(tinyxml2::XMLDocument &doc, const Json &s) {
+void append_user_scene(tinyxml2::XMLDocument &doc, const Json &s, const std::string &spawn) {
+  if (s.at("version") == 2) {
+    structured::append(doc,s);
+    place_fixed_base(doc.RootElement()->FirstChildElement("worldbody"), structured::spawn_document(s,spawn));
+    return;
+  }
   validate_user_scene(s);
   auto heights = floors(s);
   auto *world = doc.RootElement()->FirstChildElement("worldbody");
@@ -160,8 +167,9 @@ void append_user_scene(tinyxml2::XMLDocument &doc, const Json &s) {
     world->InsertEndChild(g);
   }
 }
-void apply_scene_spawn(mjModel *m, mjData *d, const Json &s) {
-  validate_user_scene(s);
+void apply_scene_spawn(mjModel *m, mjData *d, const Json &input, const std::string &spawn) {
+  validate_user_scene(input);
+  const Json s = input.at("version") == 2 ? structured::spawn_document(input,spawn) : input;
   int joint = -1;
   for (int i = 0; i < m->njnt; i++)
     if (m->jnt_type[i] == mjJNT_FREE) {

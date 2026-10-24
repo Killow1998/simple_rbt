@@ -1,4 +1,5 @@
 #include "simple_rbt/event_log.hpp"
+#include "simple_rbt/scene_geometry.hpp"
 #include "simple_rbt/paths.hpp"
 #include "simple_rbt/runtime.hpp"
 #include "simple_rbt/session.hpp"
@@ -47,6 +48,7 @@ Usage: simple-rbt-sim [options]
   --go2-torque-mode configured|upstream --go2-startup crouched|upstream_getup
   --project-root DIRECTORY
   --list-robots                     JSON registry; does not initialize simulation
+  --resolve-scene                   Read v2 JSON from stdin; emit resolved geometry JSON
   --runtime-info                    Loaded SDK, CPU/CUDA build and asset status as JSON
 No Python interpreter, Warp or LLVM is used by this executable.
 )";
@@ -70,6 +72,10 @@ std::uint64_t integer(const std::string &s) {
 } // namespace
 int main(int argc, char **argv) {
   try {
+    if (argc == 2 && std::string(argv[1]) == "--resolve-scene") {
+      Json scene; std::cin >> scene;
+      std::cout << resolve_structured_scene(scene).dump() << '\n'; return 0;
+    }
     for (int i = 1; i < argc; ++i) {
       if (std::string(argv[i]) != "--list-robots")
         continue;

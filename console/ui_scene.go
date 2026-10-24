@@ -6,6 +6,10 @@ import (
 )
 
 func (a *app) sceneSidebar(c *ui.Context) {
+	if a.sceneDraft.Version == 2 {
+		a.structuredSidebar(c)
+		return
+	}
 	c = c.Key(a.sceneRevision)
 	ui.Text(c, a.tr("Scene library", "场景库")).Bold()
 	a.sceneFieldFocus(ui.TextInput(c.Key("scene-name"), &a.sceneDraft.Name).FillWidth().Label(a.tr("Scene name", "场景名称")), "scene-name")
@@ -33,6 +37,14 @@ func (a *app) sceneSidebar(c *ui.Context) {
 			}))
 		}
 	})
+	ui.Button(c, a.tr("New structured scene", "新建结构化场景")).FillWidth().OnClick(a.action("scene.new_structured", func() {
+		a.checkpoint()
+		a.sceneDraft = a.newStructuredScene()
+		a.sceneFloor = "world"
+		a.sceneObject = ""
+		a.hiddenFloors = map[string]bool{}
+		a.checkpoint()
+	}))
 	ui.Text(c, a.tr("Floors & objects", "楼层与物体")).Bold().Margin(12, 0, 4, 0)
 	for _, f := range a.sceneDraft.Floors {
 		f := f
@@ -142,6 +154,10 @@ func (a *app) sceneEditor(c *ui.Context) {
 	})
 }
 func (a *app) sceneInspector(c *ui.Context) {
+	if a.sceneDraft.Version == 2 {
+		a.structuredInspector(c)
+		return
+	}
 	c = c.Key(a.sceneRevision)
 	ui.Text(c, a.tr("Properties", "属性")).Bold()
 	if a.sceneObject == "spawn" {

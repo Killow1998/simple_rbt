@@ -119,7 +119,7 @@ struct Simulation::Impl {
     if (m->nkey)
       mj_resetDataKeyframe(m, d, 0);
     if (!o.scene.is_null())
-      apply_scene_spawn(m, d, o.scene);
+      apply_scene_spawn(m, d, o.scene, o.scene_spawn);
     mj_forward(m, d);
     const Json config = catalog["controllers"].value(o.robot + "-" + controller,
                                                      Json::object());

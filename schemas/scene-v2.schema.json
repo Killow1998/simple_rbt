@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:sprobo:scene:2",
-  "title": "SpRobo structured scene v2 — proposed contract / 结构化场景约定",
-  "description": "Design contract; not yet accepted by the v1 runtime. Semantic geometry checks are required in addition to this schema.",
+  "title": "SpRobo structured scene v2 / 结构化场景约定",
+  "description": "Supported by the C++ core and SpRobo editor. Semantic geometry checks and backend resource budgets are required in addition to this schema.",
   "type": "object",
   "required": ["format", "version", "id", "name", "units", "coordinate_system", "objects"],
   "additionalProperties": false,

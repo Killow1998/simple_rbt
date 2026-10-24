@@ -59,7 +59,8 @@ add_library(simple_rbt_random src/random.cpp)
 target_include_directories(simple_rbt_random PUBLIC include)
 
 add_library(simple_rbt_core
-  src/core.cpp src/scene.cpp src/user_scene.cpp src/scene_connections.cpp src/scene_openings.cpp src/sensor_devices.cpp src/tracking.cpp src/controller.cpp
+  src/core.cpp src/scene.cpp src/user_scene.cpp
+  src/scene_geometry.cpp src/scene_primitives.cpp src/scene_polygon.cpp src/scene_xml.cpp src/scene_connections.cpp src/scene_openings.cpp src/sensor_devices.cpp src/tracking.cpp src/controller.cpp
   src/controller_policy.cpp
   src/controllers/go2.cpp src/controllers/go2w.cpp
   src/controllers/arm.cpp
@@ -70,7 +71,7 @@ target_include_directories(simple_rbt_core PUBLIC include third_party)
 target_compile_options(simple_rbt_core PRIVATE -Wall -Wextra -Wpedantic -ffp-contract=off)
 target_link_libraries(simple_rbt_core PUBLIC mujoco simple_rbt_robots PRIVATE simple_rbt_random onnxruntime tinyxml2::tinyxml2 OpenSSL::Crypto)
 
-add_library(simple_rbt_lidar src/lidar.cpp)
+add_library(simple_rbt_lidar src/lidar.cpp src/lidar_scene.cpp)
 if(SIMPLE_RBT_CUDA)
   target_sources(simple_rbt_lidar PRIVATE src/lidar_cuda.cu)
   target_link_libraries(simple_rbt_lidar PRIVATE CUDA::cudart)

@@ -95,6 +95,9 @@ install(FILES "${PROJECT_WORKSPACE}/packaging/copyright"
   "${PROJECT_WORKSPACE}/packaging/README.md"
   DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/sprobo" COMPONENT Runtime)
 set(LICENSE_DIR "${CMAKE_INSTALL_DATADIR}/doc/sprobo/licenses")
+install(FILES "${PROJECT_WORKSPACE}/third_party/earcut/LICENSE"
+  "${PROJECT_WORKSPACE}/third_party/earcut/manifest.json"
+  DESTINATION "${LICENSE_DIR}/earcut" COMPONENT Runtime)
 install(FILES "${PROJECT_WORKSPACE}/third_party/mujoco_classic/LICENSE"
   "${PROJECT_WORKSPACE}/third_party/mujoco_classic/README.md"
   "${PROJECT_WORKSPACE}/third_party/mujoco_classic/manifest.json"

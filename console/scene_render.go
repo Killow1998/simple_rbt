@@ -19,6 +19,7 @@ type sceneRaster struct {
 type rasterVertex struct{ x, y, invZ float64 }
 
 func (a *app) drawScene(p *ui.Painter, r ui.Rect) {
+ if a.sceneDraft.Version==2 {a.drawStructured(p,r);return}
 	key, _ := json.Marshal([]any{a.sceneDraft, a.sceneObject, a.hiddenFloors, a.viewInfo(), r.W, r.H})
 	cache := &a.scenePreview
 	if cache.key != string(key) {

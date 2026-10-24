@@ -204,7 +204,7 @@ func (a *app) chooseScene(id string, custom map[string]Scene) {
 		a.startConfig()
 	} else if scene, ok := custom[id]; ok {
 		a.sceneDraft = clone(scene)
-		a.sceneFloor = scene.Floors[0].ID
+		a.sceneFloor = scene.firstFloor()
 		a.sceneObject = ""
 		a.useScene()
 	}
@@ -219,7 +219,7 @@ func (a *app) openTerrainScene() {
 		a.sceneDraft = a.terrainScene()
 		a.sceneDraft.ID = id
 	}
-	a.sceneFloor = a.sceneDraft.Floors[0].ID
+	a.sceneFloor = a.sceneDraft.firstFloor()
 	a.sceneObject = ""
 	a.hiddenFloors = map[string]bool{}
 }

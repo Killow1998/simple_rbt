@@ -1,11 +1,12 @@
 # Structured scene representation / 结构化场景表征
 
-**Status: proposed v2 contract, 2026-10-24.** The schema and examples are reviewable
-design artifacts. The installed simulator still accepts scene v1; v2 loading,
-editing and collision generation are not implemented by this document.
+**Status: implemented in the development build, 2026-10-24.** The C++ core and
+SpRobo editor accept v2 alongside v1. Installation is separate. Real-cloud
+reconstruction still requires surface and route qualification; format support
+is not acceptance of an inferred building.
 
-**状态：v2 表征约定。** 本轮固定数据含义、基元边界和扩展规则，提供 Schema 与示例。
-现有程序仍使用 v1，不能将 v2 示例直接作为已支持的运行配置。
+**状态：开发版已接入 C++ core 和 SpRobo 编辑器。** v1 保持兼容，安装版单独更新。
+真实点云场景仍须验收表面、边界和路线，格式支持不等于建筑重建通过。
 
 [Schema](../schemas/scene-v2.schema.json) ·
 [Example / 示例](../schemas/examples/structured-building.scene.json) ·
@@ -29,7 +30,7 @@ separate. 无几何分组也可作为命名出生点；选择标记及增加机�
 
 | Option / 方案 | Decision / 取舍 |
 | --- | --- |
-| Existing v1 boxes / 现有盒体格式 | Preserve as the current runtime format; it cannot express arbitrary boundaries or an open stair underside. 保留兼容入口。 |
+| Existing v1 boxes / 现有盒体格式 | Preserve as a compatible runtime format; it cannot express arbitrary boundaries or an open stair underside. 保留兼容入口。 |
 | Raw MJCF / 直接使用 MJCF | Reuse as a backend output, not the building-authoring contract. 原生几何可复用，建筑参数和来源约定由框架保存。 |
 | Parametric geometry + boundary / 参数基元＋有限边界 | Canonical scene data. 作为新的权威表征。 |
 | General symbolic CSG / 任意符号布尔建模 | Not part of v2. Plane holes and explicit groups cover this stage. 本阶段不引入任意布尔表达式或运行时插件语言。 |
@@ -220,8 +221,10 @@ dimensions or automatic repair of invalid boundaries is allowed.
 
 Runtime limits such as 2048 generated boxes belong to the active backend/profile,
 not the definition of a building or a schema-wide object count. Author-object,
-collision-part and triangle counts must be reported separately. The existing
-v1 guard remains until a new backend budget is measured and implemented.
+collision-part and triangle counts must be reported separately. The v1 budget remains 2048 boxes. The v2 backend allows 4096 convex parts,
+8192 author nodes, 2048 vertices per planar region, 262144 display vertices and
+128 hierarchy levels. The full four-core GUI/Noetic measurement covers 2814
+parts; the limit does not promise real time for every scene.
 
 New primitive types require a schema/version capability update, a local-frame
 definition, one canonical parameter set, bounds/normal/containment behavior,
@@ -232,7 +235,8 @@ or independent verification outside the runtime.
 Implementation acceptance must include a robot crossing a slab/flight join,
 clearance under stairs, rays through real holes, RGB/depth/collision agreement,
 save/reload of shared templates and limits under the full GUI/ROS workload.
-Schema/example validation in this stage is not runtime E2E acceptance.
+Schema validation alone is not runtime E2E acceptance. See the measured
+[implementation status](desktop-console-plan.md#structured-scene-v2--2026-10-24--结构化场景).
 
 Migration from v1 must preserve IDs, physical placement and user names. A v1
 object's floor height becomes a parent transform once. Boxes keep their full
@@ -242,5 +246,44 @@ resolved boxes instead of silently reinterpreting their parameters. A legacy fil
 must not silently acquire an open underside: offer a deliberate conversion to
 the v2 stair model, retaining the old geometry when exact migration is requested.
 
-本阶段不改变安装版或 v1 文件。后续迁移先实现公共解析与语义校验，再接几何生成、
-编辑器和保存流程；通过行为验证后才替换实际运行入口。
+开发版已实现公共解析、几何生成、编辑和保存。安装版与已有 v1 文件不自动改写。
+当前提供两个独立兼容入口，没有自动批量迁移 v1 文件。
+
+## Runtime and editor / 运行与编辑
+
+`simple-rbt-sim --resolve-scene < scene.json` reads a v2 document and emits
+resolved node poses, convex parts and display triangles. It does not initialize
+a robot, a renderer or ROS. The editor uses this same C++ resolver and caches the
+result until the document changes. Invalid edits keep the last valid preview;
+Save/Use reject the invalid document with the core's error.
+
+Session JSON embeds the document under `scene`. An optional `scene_spawn` selects
+a geometry-free group with `semantic: "spawn"`; multiple markers require an
+explicit selection. Robot spawn markers must be upright. With no marker, the
+robot starts at the world origin. Ground clearance is applied once.
+
+In the Scene editor, **New structured scene** creates v2. Select a group or
+primitive to edit its pose. Stair instances can edit an override or the shared
+template; duplicates keep the template reference. Planar boundaries and hole
+vertices are editable. Total stair rise edits step height; incline edits tread
+depth. Neither derived value is stored separately. Delete, undo/redo, scene naming, save and reload retain
+hierarchy, parameters and evidence. Geometry/pose edits change fitted evidence
+to `mixed`; they do not erase its report reference.
+
+场景页可新建 v2、编辑分组位姿与基元参数、共享楼梯模板、修改实例参数、编辑洞口、
+删除、撤销和保存。模板修改作用于全部引用实例，实例覆盖值仍优先。预览、碰撞、
+雷达和深度使用同一解析结果；显示用曲面三角网格不替换原生解析曲面的碰撞或深度。
+
+Bounded planar regions use pinned Earcut triangulation followed by exact convex
+merging. Each step is a convex prism with an inclined underside. Frustums use
+a convex mesh with a radial surface-error bound of 1 mm; unsupported tessellation
+sizes fail explicitly. Other curved primitives use native MuJoCo geometry.
+CPU LiDAR uses a static AABB tree as broad phase and MuJoCo's exact per-geometry
+ray functions. `auto` falls back to CPU for non-box scenes; explicit CUDA reports
+its unsupported geometry instead of dropping it.
+
+Offline preparation helpers are in `tools/scene/`. `merge_observed.py` unions
+qualified patches on each fitted plane without expanding their boundary; it
+requires NumPy, SciPy and Shapely 2.1.2. `audit_temporal.py` reports transient and
+approximate visibility conflicts from keyframe-tagged points. Its mask is a
+review artifact, not proof of human removal; original source files are unchanged.

@@ -82,7 +82,7 @@ std::string build_scene(const SimulationOptions &o, const Json &catalog,
            {"rgba", colors[i]},
            {"group", "1"}});
   } else {
-    append_user_scene(doc, o.scene);
+    append_user_scene(doc, o.scene, o.scene_spawn);
   }
   add_sensor_devices(doc,o);
   auto *visual = root->FirstChildElement("visual");
