@@ -72,9 +72,10 @@ func (a *app) sceneSidebar(c *ui.Context) {
 		a.sceneObject = ""
 	}))
 	ui.Text(c, a.tr("Place object", "放置物体")).Bold().Margin(12, 0, 4, 0)
+	geometryFull := len(a.sceneDraft.boxes()) >= maxSceneBoxes
 	for _, kind := range []string{"floor", "wall", "ramp", "stairs", "obstacle"} {
 		kind := kind
-		ui.Button(c, a.sceneKindLabel(kind)).FillWidth().Disabled(len(a.sceneDraft.Objects) >= 512).OnClick(a.action("scene.add."+kind, func() { a.addSceneObject(kind) }))
+		ui.Button(c, a.sceneKindLabel(kind)).FillWidth().Disabled(geometryFull).OnClick(a.action("scene.add."+kind, func() { a.addSceneObject(kind) }))
 	}
 	ui.Button(c, a.tr("Robot spawn", "机器人出生点")).FillWidth().OnClick(a.action("ui_scene.robot_spawn", func() { a.sceneObject = "spawn" }))
 	ui.Text(c, a.tr("Hidden floors still exist in simulation.", "隐藏楼层仅影响编辑视图，仿真中仍然存在。")).FontSize(12).TextColor(c.Theme().TextMuted)
@@ -188,7 +189,7 @@ func (a *app) sceneInspector(c *ui.Context) {
 		}
 		a.editVector(c, a.tr("Dimensions · m", "尺寸 · 米"), &o.Size, .02, 200)
 	}
-	ui.Button(c, a.tr("Duplicate object", "复制物体")).FillWidth().Disabled(len(a.sceneDraft.Objects) >= 512).OnClick(a.action("ui_scene.duplicate_object", func() {
+	ui.Button(c, a.tr("Duplicate object", "复制物体")).FillWidth().Disabled(len(a.sceneDraft.boxes()) >= maxSceneBoxes).OnClick(a.action("ui_scene.duplicate_object", func() {
 		copy := clone(*o)
 		copy.ID = newID()
 		copy.Name += a.tr(" copy", " 副本")

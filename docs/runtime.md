@@ -352,18 +352,25 @@ A session JSON may contain `scene` with `version: 1`, `id`, `name`, `floors`,
 `floor`, `kind` (`floor`, `wall`, `ramp`, `stairs`, `obstacle`), `position`, WXYZ `quaternion`
 and full `size` in metres. Object Z is relative to its floor elevation. Spawn has
 `floor`, local ground-point `position` and `yaw_deg`; nominal robot clearance is
-added automatically. Limits are 32 floors, 512 authored objects, coordinates ±100 m and box
+added automatically. Limits are 32 floors, 2048 generated physical boxes, coordinates ±100 m and box
 dimensions 0.02–200 m. The C++ core independently validates the scene and replaces
 legacy terrain geometry. Omitting `scene` retains existing session compatibility.
 Use continuous routes for wheel chassis; the editor does not validate navigability.
+
+The geometry budget counts boxes after stairs and openings expand. It is a
+product resource guard, not a MuJoCo or hardware limit or a real-time guarantee.
+Scenes exceeding it are rejected explicitly; geometry is never silently truncated.
 
 会话 JSON 可包含 `scene`：`version: 1`、`id`、`name`、`floors`、`objects` 和
 `spawn`。楼层包含 `id`、`name`、`height`；物体包含 `id`、`name`、`floor`、
 `kind`（`floor`／`wall`／`ramp`／`stairs`／`obstacle`）、`position`、WXYZ `quaternion`
 及米制完整尺寸 `size`。物体 Z 相对楼层标高；出生点包含 `floor`、楼层局部地面点
-`position` 和 `yaw_deg`，机器人标称离地高度自动添加。上限为 32 层、512 个物体，
+`position` 和 `yaw_deg`，机器人标称离地高度自动添加。上限为 32 层、2048 个展开后的物理盒体，
 坐标 ±100 米，物体尺寸 0.02–200 米。C++ 核心独立校验并替换内置地形；省略
 `scene` 时兼容原会话。轮式底盘应布置连续路线，编辑器暂不检查路线可通行性。
+
+几何预算按楼梯、洞口展开后的盒体数量计算。它是产品的资源保护值，不是 MuJoCo
+或硬件上限，也不保证实时。超限会明确报错，不会静默删减场景物体。
 
 A connected ramp or staircase also has `connection: {"to_floor": "upper-id"}`;
 stairs add integer `steps` (1–128). Its pose is the lower-end ground anchor and

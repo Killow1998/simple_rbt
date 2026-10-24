@@ -12,6 +12,9 @@ type Floor struct {
 	Name   string  `json:"name"`
 	Height float64 `json:"height"`
 }
+
+const maxSceneBoxes = 2048
+
 type SceneObject struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
@@ -58,6 +61,10 @@ func validateScene(s *Scene) error {
 		return nil
 	}
 	fail := fmt.Errorf("Invalid scene: check names, floors, dimensions and transforms / 场景无效：请检查名称、楼层、尺寸及位姿")
+	budget := fmt.Errorf("Scene exceeds the %d physical-box budget / 场景超过 %d 个物理几何体的预算", maxSceneBoxes, maxSceneBoxes)
+	if len(s.Objects) > maxSceneBoxes {
+		return budget
+	}
 	ids := map[string]bool{}
 	identity := func(id, name string) bool {
 		if id == "" || len(id) > 80 || ids[id] || strings.TrimSpace(name) == "" || len(name) > 160 {
@@ -66,7 +73,7 @@ func validateScene(s *Scene) error {
 		ids[id] = true
 		return true
 	}
-	if s.Version != 1 || !identity(s.ID, s.Name) || len(s.Floors) < 1 || len(s.Floors) > 32 || len(s.Objects) > 512 {
+	if s.Version != 1 || !identity(s.ID, s.Name) || len(s.Floors) < 1 || len(s.Floors) > 32 {
 		return fail
 	}
 	floors := map[string]bool{}
@@ -100,8 +107,8 @@ func validateScene(s *Scene) error {
 			return fail
 		}
 	}
-	if len(s.boxes()) > 2048 {
-		return fail
+	if len(s.boxes()) > maxSceneBoxes {
+		return budget
 	}
 	if !floors[s.Spawn.Floor] || !finite(s.Spawn.Yaw, 180) {
 		return fail

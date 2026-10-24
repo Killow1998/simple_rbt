@@ -118,9 +118,9 @@ Json scene_boxes(const Json &scene) {
       box(center, dimensions, {1, 0, 0, 0});
       flight(start, turn, size[0] - run, rise - height, steps - first);
     }
-    require(result.size() <= 2048, "Scene exceeds 2048 physical boxes");
+    require(result.size() <= max_scene_boxes, "Scene exceeds 2048 physical boxes");
   }
-  require(result.size() <= 2048, "Scene exceeds 2048 physical boxes");
+  require(result.size() <= max_scene_boxes, "Scene exceeds 2048 physical boxes");
   return result;
 }
 } // namespace simple_rbt

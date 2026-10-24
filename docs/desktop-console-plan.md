@@ -1316,3 +1316,35 @@ Local evidence / 本地证据：
 [installed desktop](../output/panda-integration-20261023/installed-gui/report.json),
 [Noetic](../output/panda-integration-20261023/jammy-ros1/summary.json),
 [Humble](../output/panda-integration-20261023/jammy-ros2/summary.json).
+
+## Observed scene capacity — 2026-10-24 / 实测场景容量
+
+Removed the separate 512-authored-object restriction. The editor and C++ core
+now use the existing budget of 2048 generated physical boxes, including stairs
+and openings. This is a resource guard, not a MuJoCo limit or a real-time
+guarantee. Both entry points explicitly reject authored or expanded overflow.
+
+取消额外的 512 个编辑对象限制，统一按展开后的物理盒体计数。旧数值没有实测地图
+的性能依据；不能据此裁掉合格表面。现有 2048 个盒体预算仍是保护值，不能视为
+硬件上限。超限检查、场景及传感器原生测试、Go 竞态检查均通过。
+
+A local offline candidate retains all 1316 supported surface patches with
+per-object source and residual records. Both levels pass stationary Go2W
+contact and MID360 checks. The native editor loads and saves all patches.
+With software rendering, RGB-D, MID360 and a separate Noetic node, the closed
+16.89-second core run measures RTF 0.99824. GUI, core, ROS and the read-only
+receiver together peak at 1271.4 MiB RSS; mean CPU is 2.86 logical cores.
+Display-server cost is excluded. ROS traffic checks establish delivery, not
+lossless IMU reception; the diagnostic receiver uses a one-message queue.
+
+这只是观测表面候选：没有补齐未知区域，没有通过验收的楼梯踏面，也没有跨层
+可通行性或绝对地图精度结论。4 厘米碰撞厚度是显式近似。楼层静止检查与近实时
+运行不等于全路线验收。真实场景数据保留在本地，不进入公共仓库。
+
+The candidate binaries are in `build/panda-jammy`; this stage does not replace
+the installed desktop. The next step is review of the observed patches and
+missing stair support before any route-based acceptance.
+
+本地证据：[candidate report](../output/observed-scene-20261024/report.json)、
+[native editor and Noetic](../output/observed-scene-20261024/gui-full/report.json)、
+[budget rejection](../output/observed-scene-20261024/budget-verified/report.json)。

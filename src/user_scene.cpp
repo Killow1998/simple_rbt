@@ -106,8 +106,8 @@ void validate_user_scene(const Json &s) {
     require(std::isfinite(h) && std::abs(h) <= 100, "Invalid floor height");
   }
   auto heights = floors(s);
-  require(s.at("objects").is_array() && s.at("objects").size() <= 512,
-          "Scene supports at most 512 objects");
+  require(s.at("objects").is_array() && s.at("objects").size() <= max_scene_boxes,
+          "Scene exceeds its physical geometry budget");
   for (const auto &o : s.at("objects")) {
     identity(o, ids);
     require(heights.count(o.at("floor")), "Unknown object floor");
