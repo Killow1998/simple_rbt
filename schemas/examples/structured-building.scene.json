@@ -1,0 +1,79 @@
+{
+  "format": "sprobo.scene",
+  "version": 2,
+  "id": "structured-building-example",
+  "name": "Structured building example / 结构化建筑示例",
+  "units": {"length": "m", "angle": "rad"},
+  "coordinate_system": "right_handed_z_up",
+  "geometry_templates": {
+    "standard-flight": {
+      "type": "stair_flight", "width_m": 1.2,
+      "step_height_m": 0.15, "tread_depth_m": 0.28,
+      "steps": 10, "slab_thickness_m": 0.16
+    }
+  },
+  "objects": [
+    {
+      "id": "storey-0", "name": "Ground floor / 底层", "kind": "group", "semantic": "storey", "parent": "world",
+      "pose": {"position_m": [0, 0, 0], "quaternion_wxyz": [1, 0, 0, 0]}
+    },
+    {
+      "id": "storey-1", "name": "Upper floor / 上层", "kind": "group", "semantic": "storey", "parent": "world",
+      "pose": {"position_m": [0, 0, 3], "quaternion_wxyz": [1, 0, 0, 0]}
+    },
+    {
+      "id": "spawn-ground", "name": "Ground spawn / 底层出生点", "kind": "group", "semantic": "spawn", "parent": "storey-0",
+      "pose": {"position_m": [3, -2, 0], "quaternion_wxyz": [1, 0, 0, 0]}
+    },
+    {
+      "id": "lower-slab", "name": "Ground slab / 底层楼板", "kind": "primitive", "semantic": "floor", "parent": "storey-0",
+      "pose": {"position_m": [0, 0, -0.1], "quaternion_wxyz": [1, 0, 0, 0]},
+      "geometry": {"type": "box", "length_m": 12, "width_m": 8, "height_m": 0.2},
+      "evidence": {"basis": "manual"}
+    },
+    {
+      "id": "upper-slab", "name": "Slab with stair opening / 带楼梯洞口的楼板", "kind": "primitive", "semantic": "floor", "parent": "storey-1",
+      "pose": {"position_m": [0, 0, 0], "quaternion_wxyz": [1, 0, 0, 0]},
+      "geometry": {
+        "type": "planar_region", "thickness_m": 0.2,
+        "outer_xy_m": [[-6, -4], [6, -4], [6, 4], [-6, 4]],
+        "holes_xy_m": [[[-2, -0.8], [-2, 2.2], [2.2, 2.2], [2.2, -0.8]]]
+      },
+      "evidence": {"basis": "manual"}
+    },
+    {
+      "id": "wall-north", "name": "Straight wall / 直墙", "kind": "primitive", "semantic": "wall", "parent": "storey-0",
+      "pose": {"position_m": [0, 3.9, 1.5], "quaternion_wxyz": [1, 0, 0, 0]},
+      "geometry": {"type": "box", "length_m": 12, "width_m": 0.2, "height_m": 3},
+      "evidence": {"basis": "manual"}
+    },
+    {
+      "id": "round-column", "name": "Round column / 圆柱", "kind": "primitive", "semantic": "column", "parent": "storey-0",
+      "pose": {"position_m": [4, 2, 1.5], "quaternion_wxyz": [1, 0, 0, 0]},
+      "geometry": {"type": "cylinder", "radius_m": 0.25, "height_m": 3},
+      "evidence": {"basis": "manual"}
+    },
+    {
+      "id": "stairwell", "name": "Shared stairwell / 共享规格楼梯间", "kind": "group", "semantic": "stairwell", "parent": "storey-0",
+      "pose": {"position_m": [-2, 0, 0], "quaternion_wxyz": [1, 0, 0, 0]}
+    },
+    {
+      "id": "flight-a", "name": "Lower flight / 下段楼梯", "kind": "primitive", "semantic": "stair_flight", "parent": "stairwell",
+      "pose": {"position_m": [0, 0, 0], "quaternion_wxyz": [1, 0, 0, 0]},
+      "geometry": {"template_id": "standard-flight"},
+      "evidence": {"basis": "manual"}
+    },
+    {
+      "id": "turn-landing", "name": "Turn landing / 转折平台", "kind": "primitive", "semantic": "landing", "parent": "stairwell",
+      "pose": {"position_m": [3.5, 0.7, 1.42], "quaternion_wxyz": [1, 0, 0, 0]},
+      "geometry": {"type": "box", "length_m": 1.4, "width_m": 2.6, "height_m": 0.16},
+      "evidence": {"basis": "manual"}
+    },
+    {
+      "id": "flight-b", "name": "Returning flight / 返回方向楼梯", "kind": "primitive", "semantic": "stair_flight", "parent": "stairwell",
+      "pose": {"position_m": [2.8, 1.4, 1.5], "quaternion_wxyz": [0, 0, 0, 1]},
+      "geometry": {"template_id": "standard-flight", "overrides": {"steps": 10}},
+      "evidence": {"basis": "manual"}
+    }
+  ]
+}

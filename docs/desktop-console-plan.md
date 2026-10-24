@@ -1348,3 +1348,45 @@ missing stair support before any route-based acceptance.
 本地证据：[candidate report](../output/observed-scene-20261024/report.json)、
 [native editor and Noetic](../output/observed-scene-20261024/gui-full/report.json)、
 [budget rejection](../output/observed-scene-20261024/budget-verified/report.json)。
+
+### Follow-up audit and scene contract / 后续核对与表征约定
+
+The fragmented candidate also exposed an extraction issue: validating coverage
+only after merging cells discards supported parts when another part lacks held-out
+coverage. A local diagnostic moves the same coverage checks before merging;
+it recovers supported floor/wall patches without relaxing the final gates.
+It is an extraction ablation, not a replacement runnable building model.
+Observed stair profiles contain treads and inclined undersides. A shared
+parametric fit remains incomplete: some held-out profiles still exceed the
+existing 6 cm P95 gate, and width, endpoints and landing joins are not accepted.
+
+缺口不能统一归为源数据不足。楼梯的台阶和底部斜面在源观测中存在；独立水平片段
+提取没有表达整体结构。后续按 [v2 场景约定](scene-representation.md) 区分参数基元、
+有限边界、共享模板与推定区域；不将内部检查网格直接交付为最终编辑对象。
+
+Closed native/IPC/ROS/bag checks now account for the complete intervals. A
+22.062-second Go2W run on a qualified support patch has 4412 samples from each
+IMU and 220 scans in all four stages, with exact timestamps, IMU values and
+LiDAR point counts. It moves 0.348 m, returns within 0.046 m and turns through
+27.7 degrees. This is covered-patch motion acceptance, not a full route.
+
+An additional simultaneous receiver ablation isolates the earlier diagnostic
+loss: the old queue=1 receiver misses 711/4011 MID360 IMU samples and 692/4011
+camera IMU samples, while IPC, the buffered receiver and the closed bag agree
+exactly for the same run. Both receivers receive all 200 scans. No ROS bridge
+or runtime change was needed for these results.
+
+完整计数核对区分了接收器与 ROS 桥。所有检查保留原频率、图像尺寸和 CPU 路径，
+没有修改 N3M 或安装版。证据见
+[audit report](../output/observed-scene-audit-20261024/report.json)。
+
+The v2 stage delivers a bilingual geometry/pose/boundary contract, JSON Schema,
+and a synthetic two-storey example with a shared stair template. All nine
+primitive definitions and the example pass schema checks; seven malformed
+shape cases are rejected. Example references, transforms, ring orientation and
+stair/platform joins were checked separately. This establishes the data contract;
+v2 C++ loading, editor integration and runtime E2E remain future implementation.
+
+本轮完成表征约定和可校验示例；没有宣称新基元已接入运行时。下一步按规范实现
+公共解析、语义校验与几何生成，再逐步接入编辑器。验证记录：
+[schema and example](../output/scene-representation-20261024/validation.json)。

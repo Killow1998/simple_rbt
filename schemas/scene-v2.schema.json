@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:sprobo:scene:2",
+  "title": "SpRobo structured scene v2 — proposed contract / 结构化场景约定",
+  "description": "Design contract; not yet accepted by the v1 runtime. Semantic geometry checks are required in addition to this schema.",
+  "type": "object",
+  "required": ["format", "version", "id", "name", "units", "coordinate_system", "objects"],
+  "additionalProperties": false,
+  "properties": {
+    "format": {"const": "sprobo.scene"},
+    "version": {"const": 2},
+    "id": {"$ref": "#/$defs/id"},
+    "name": {"type": "string", "minLength": 1},
+    "units": {"const": {"length": "m", "angle": "rad"}},
+    "coordinate_system": {"const": "right_handed_z_up"},
+    "geometry_templates": {
+      "type": "object", "propertyNames": {"$ref": "#/$defs/id"},
+      "additionalProperties": {"$ref": "#/$defs/primitive"}
+    },
+    "objects": {"type": "array", "items": {"$ref": "#/$defs/object"}}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_.:-]*$"},
+    "positive": {"type": "number", "exclusiveMinimum": 0},
+    "nonnegative": {"type": "number", "minimum": 0},
+    "xy": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "number"}},
+    "xyz": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+    "ring": {"type": "array", "minItems": 3, "items": {"$ref": "#/$defs/xy"}},
+    "pose": {
+      "type": "object", "required": ["position_m", "quaternion_wxyz"], "additionalProperties": false,
+      "properties": {
+        "position_m": {"$ref": "#/$defs/xyz"},
+        "quaternion_wxyz": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number"}}
+      }
+    },
+    "evidence": {
+      "type": "object", "required": ["basis"], "additionalProperties": false,
+      "properties": {
+        "basis": {"enum": ["manual", "fitted", "inferred", "mixed"]},
+        "report_ref": {"type": "string", "minLength": 1},
+        "note": {"type": "string"}
+      },
+      "if": {"properties": {"basis": {"enum": ["fitted", "inferred", "mixed"]}}},
+      "then": {"required": ["report_ref"]}
+    },
+    "object": {
+      "type": "object", "required": ["id", "name", "kind", "parent", "pose"], "additionalProperties": false,
+      "properties": {
+        "id": {"allOf": [{"$ref": "#/$defs/id"}, {"not": {"const": "world"}}]},
+        "name": {"type": "string", "minLength": 1},
+        "kind": {"enum": ["group", "primitive"]},
+        "parent": {"$ref": "#/$defs/id"},
+        "pose": {"$ref": "#/$defs/pose"},
+        "semantic": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"},
+        "geometry": {"oneOf": [{"$ref": "#/$defs/primitive"}, {"$ref": "#/$defs/instance"}]},
+        "evidence": {"$ref": "#/$defs/evidence"}
+      },
+      "if": {"properties": {"kind": {"const": "primitive"}}},
+      "then": {"required": ["geometry", "evidence"]},
+      "else": {"not": {"required": ["geometry"]}}
+    },
+    "instance": {
+      "type": "object", "required": ["template_id"], "additionalProperties": false,
+      "properties": {
+        "template_id": {"$ref": "#/$defs/id"},
+        "overrides": {
+          "type": "object", "propertyNames": {"not": {"const": "type"}},
+          "description": "Replace whole parameter fields only. Resolve template and validate against its primitive schema before use."
+        }
+      }
+    },
+    "primitive": {
+      "oneOf": [
+        {"$ref": "#/$defs/box"}, {"$ref": "#/$defs/planar_region"},
+        {"$ref": "#/$defs/cylinder"}, {"$ref": "#/$defs/sphere"},
+        {"$ref": "#/$defs/ellipsoid"}, {"$ref": "#/$defs/frustum"},
+        {"$ref": "#/$defs/capsule"}, {"$ref": "#/$defs/ramp"}, {"$ref": "#/$defs/stair_flight"}
+      ]
+    },
+    "box": {
+      "type": "object", "required": ["type", "length_m", "width_m", "height_m"], "additionalProperties": false,
+      "properties": {
+        "type": {"const": "box"}, "length_m": {"$ref": "#/$defs/positive"},
+        "width_m": {"$ref": "#/$defs/positive"}, "height_m": {"$ref": "#/$defs/positive"}
+      }
+    },
+    "planar_region": {
+      "type": "object", "required": ["type", "outer_xy_m", "holes_xy_m", "thickness_m"], "additionalProperties": false,
+      "properties": {
+        "type": {"const": "planar_region"}, "outer_xy_m": {"$ref": "#/$defs/ring"},
+        "holes_xy_m": {"type": "array", "items": {"$ref": "#/$defs/ring"}},
+        "thickness_m": {"$ref": "#/$defs/positive"}
+      }
+    },
+    "cylinder": {
+      "type": "object", "required": ["type", "radius_m", "height_m"], "additionalProperties": false,
+      "properties": {
+        "type": {"const": "cylinder"}, "radius_m": {"$ref": "#/$defs/positive"}, "height_m": {"$ref": "#/$defs/positive"}
+      }
+    },
+    "sphere": {
+      "type": "object", "required": ["type", "radius_m"], "additionalProperties": false,
+      "properties": {"type": {"const": "sphere"}, "radius_m": {"$ref": "#/$defs/positive"}}
+    },
+    "ellipsoid": {
+      "type": "object", "required": ["type", "radii_m"], "additionalProperties": false,
+      "properties": {
+        "type": {"const": "ellipsoid"},
+        "radii_m": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/positive"}}
+      }
+    },
+    "frustum": {
+      "type": "object", "required": ["type", "bottom_radius_m", "top_radius_m", "height_m"], "additionalProperties": false,
+      "properties": {
+        "type": {"const": "frustum"}, "bottom_radius_m": {"$ref": "#/$defs/nonnegative"},
+        "top_radius_m": {"$ref": "#/$defs/nonnegative"}, "height_m": {"$ref": "#/$defs/positive"}
+      },
+      "anyOf": [
+        {"properties": {"bottom_radius_m": {"exclusiveMinimum": 0}}},
+        {"properties": {"top_radius_m": {"exclusiveMinimum": 0}}}
+      ]
+    },
+    "capsule": {
+      "type": "object", "required": ["type", "radius_m", "cylinder_length_m"], "additionalProperties": false,
+      "properties": {
+        "type": {"const": "capsule"}, "radius_m": {"$ref": "#/$defs/positive"},
+        "cylinder_length_m": {"$ref": "#/$defs/nonnegative"}
+      }
+    },
+    "ramp": {
+      "type": "object", "required": ["type", "width_m", "run_m", "rise_m", "slab_thickness_m"], "additionalProperties": false,
+      "properties": {
+        "type": {"const": "ramp"}, "width_m": {"$ref": "#/$defs/positive"},
+        "run_m": {"$ref": "#/$defs/positive"}, "rise_m": {"$ref": "#/$defs/positive"},
+        "slab_thickness_m": {"$ref": "#/$defs/positive"}
+      }
+    },
+    "stair_flight": {
+      "type": "object", "required": ["type", "width_m", "step_height_m", "tread_depth_m", "steps", "slab_thickness_m"], "additionalProperties": false,
+      "properties": {
+        "type": {"const": "stair_flight"}, "width_m": {"$ref": "#/$defs/positive"},
+        "step_height_m": {"$ref": "#/$defs/positive"}, "tread_depth_m": {"$ref": "#/$defs/positive"},
+        "steps": {"type": "integer", "minimum": 1}, "slab_thickness_m": {"$ref": "#/$defs/positive"}
+      }
+    }
+  }
+}
