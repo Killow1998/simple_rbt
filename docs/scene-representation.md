@@ -148,6 +148,19 @@ flight requires a separate template or an explicit override visible to the user.
 同一楼梯间优先共享规格，观测负责验证一致性。平台标高、方向和连接逐段记录。
 模型补全的台阶标为推定；同规格的先验不等于每一级都已直接观测。
 
+Shared tread/riser dimensions do not imply equal flight widths or slab thicknesses.
+Keep independently measured values as instance overrides. An unobserved underside
+must retain an inferred thickness label. Validate the **whole entrance/exit edge**
+against the finite landing boundary; matching centre points can leave corner gaps.
+Preserve measured height differences at joins instead of flattening the cloud to
+make the route pass. A landing can use the union of its bounded observed footprint
+and the adjoining flight edges; a bounding rectangle or convex hull is not an
+equivalent operation.
+
+踏步高、深可以共用，梯段宽度和底板厚度仍需分别核实。平台连接要覆盖整条端部边界，
+只对齐中心点可能留下角部缺口。被遮挡的板面可在明确记录依据后建模为推定部分；
+路线走通证明仿真功能可用，不能替代这些区域的几何测量。
+
 ## 5. Quadric connection / 与二次曲面形式的关系
 
 With homogeneous local point `p̄=[x,y,z,1]ᵀ`, a symmetric 4×4 matrix Q represents

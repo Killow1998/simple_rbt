@@ -1441,44 +1441,75 @@ Validation / 验证：
   full-interval accounting. Core peak RSS is 869 MiB; this last figure excludes
   GUI and ROS. It is motion on a qualified patch, not a cross-storey route.
 
-Real-cloud reconstruction / 真实点云重建：
+Real-cloud reconstruction / 真实点云重建（2026-10-24 follow-up）：
 
-The offline union retains 2247 qualified patches as 139 fitted-plane groups with
-887 disconnected bounded regions. Their union area is unchanged; no bounding
-rectangle, closing or hull fills unknown space. The candidate contains these
-regions plus three observed two-step strips using one stair template: 1034
-logical nodes, 890 primitives, 2820 physical parts. Shared-profile fitting improves
-when flat underside end surfaces are separated from the inclined slab. Four
-central profiles pass the original 6 cm held-out P95 gate, but full widths,
-endpoints and landing joins remain unqualified. Only independently covered strips
-are activated; other runs retain failed audit results.
+The original 884,960-point PCD remains unchanged. The derived clean copy retains
+833,115 original XYZI records and removes 51,845 confirmed dynamic candidates.
+The kept/removed index sets partition the source exactly, without moving points.
+All source points within the 2247 previously qualified bounded architectural
+surfaces remain; the new stair and landing surface retention checks also remove
+zero structural support points.
 
-当前交付的是观测结构候选。共面片段已合并，断开的观测仍保留为独立边界，不能
-把整层补成一个实心矩形。共享楼梯参数已拟合，但只有三段局部踏步通过有限范围
-检查。真实跨层路径预检只有 4/1064 个采样点具备完整探测支撑；因此没有执行或
-宣称真实上下楼路线通过。预检围绕 IMU 位置进行，缺少真实 base→IMU 外参，
-也不能把它解释为准确的机器人足迹验收。
+清理基于原始逐点时间、多次观测的空域证据和建筑表面保护。10,709 帧通过运动补偿
+投影检查，11 帧因原始射线与前端点云投影偏差过大而排除。偶数帧提出候选，奇数帧
+独立核对；还要求跨时段观测。未通过清理条件的可疑点保留，不能据此宣称完整的
+人体语义分割。原始 PCD、轨迹、映射成果和旧失败证据均保留。
+留出帧共享同一优化轨迹，属于重复观测核对，不是独立测量真值。
 
-The source has no dedicated person/dynamic-object removal. The independent
-799-keyframe temporal audit marks 2181 suspect 10 cm voxels, containing 4664 raw
-points, in a separate review mask. Approximate frame-end visibility can confuse
-SLAM registration errors or thin surfaces with motion. Five retained plane
-regions each overlap one suspect voxel; this does not prove a human ghost or its
-complete absence. The original PCD and mapping artifacts are unchanged. Complete
-human removal is **not** certified.
+The four flights share 13 risers, 0.149743 m step height and 0.280069 m tread
+depth (28.132 degrees). Widths are independently measured as 1.751, 1.619, 1.753
+and 1.618 m. Allowing per-flight slab thickness instead of forcing one common
+thickness reduces all four held-out central profile P95 errors below the original
+6 cm gate: 2.63, 5.40, 3.97 and 5.11 cm. The first underside is unobserved and its
+thickness remains explicitly inferred. Failed shared-thickness fits are retained.
 
-人影尚未被证明清除。动态候选单独标记，不能把平面筛选等同于去人，也不能仅凭
-近似可见性删除原始点云。下一步先核对候选动态点与原始逐点时间，再补齐有观测
-支持的楼梯宽度、端部和平台边界；连接未验收前不进行真实跨层路线验收。
+平台采用有限轮廓，并与整条梯段端部做并集；八处出入口均覆盖完整梯宽。端部高度差
+保留在模型和报告中，范围约 −4.7 至 +9.6 厘米，没有通过移动原始点云或强制齐平来
+掩盖。最终场景有 1041 个节点、2880 个物理分解件。887 个原有观测平面区域保持不变，
+三段局部楼梯替换为四段完整梯段，并增加五个平台和一个路线出生点。
 
-Development binaries: `build/panda-jammy/simple-rbt-sim` and
-`build/panda-jammy/simple-rbt-console`. Canonical local candidate:
-`output/structured-scene-20261024/candidate/{scene.json,session-lower.json,session-upper.json}`.
-Private clouds, trajectories and test bags remain outside Git.
+**Geometric scope:** visible profiles and finite endpoints are measured; occluded
+landing interiors and last-tread areas use a documented structural inference.
+Full direct surface coverage has not passed everywhere. Platform top and lower
+faces must be separated before fitting; a single plane is not a valid model of
+both. A successful route is functional acceptance of this mixed reconstruction,
+not a survey certificate for its hidden regions.
 
-Evidence / 证据：[stage report](../output/structured-scene-20261024/report.json),
-[editor](../output/structured-scene-20261024/editor-e2e-final/report.json),
-[synthetic Noetic route](../output/structured-scene-20261024/ros-synthetic-route/report.json),
-[final candidate motion](../output/structured-scene-20261024/ros-candidate-motion/report.json),
-[real route support failure](../output/structured-scene-20261024/candidate/route-support.json),
-[temporal audit](../output/structured-scene-20261024/temporal-audit/report.json).
+Final Go2W + direct Noetic E2E / 最终全链路验收：
+
+- Four flights up and down, 21/21 waypoints, 260.750 simulation seconds; maximum
+  tilt 29.483 degrees; real-time factor 0.9999993. Command input is namespaced
+  `/go2w/cmd_vel`; the simulator runs on the host and Noetic in its own container.
+- Both IMUs retain 200 Hz and each produces 52,150 samples. CustomMsg and
+  PointCloud2 each contain 2607 scans at 10 Hz / 20,000 rays. RGB and depth each
+  contain 2607 frames at 320 × 240 / 10 Hz.
+- All 33 checks pass over the whole run: native counts, IPC, buffered ROS receiver
+  and the closed bag agree. IMU values and image pixel hashes match; timestamps,
+  scan point counts and ROS message fingerprints are retained. No interval is
+  trimmed to hide loss. This checks motion and sensor transport; FAST_LIO/n3m
+  mapping is a separate downstream validation.
+- The native SpRobo window loads, renders and saves all 1041 nodes. Object
+  geometry, poses, boundaries, evidence and the shared template survive the
+  round trip unchanged. The test uses an isolated workspace; the user workspace
+  is not replaced. Closing the window also stops its owned core process.
+- CPU affinity is 0,2,4,6; graphics use software rendering. Core mean CPU is
+  0.562 cores and peak RSS 872.8 MiB. Separate two-second process sampling gives
+  ROS, receiver and recorder together about 10% of one core on average and
+  451.6 MiB peak RSS. This headless route excludes GUI/display-server cost.
+  The final raw test bag occupies 2.59 GiB; it is evidence, not runtime log usage.
+
+The earlier measured-plane route also passed, but its resource interval overlaps
+an independent native probe. Use the final connected-route measurement above for
+performance comparisons. Runtime binaries remain the verified development build
+from `751e74e`; no installed desktop replacement or source-data upload is performed.
+
+Canonical local artifacts / 本地交付：
+[cleaned PCD](../output/observed-clean-route-20261024/cleaned.pcd),
+[scene](../output/observed-clean-route-20261024/candidate-connected/scene.json),
+[session](../output/observed-clean-route-20261024/candidate-connected/session.json),
+[stage report](../output/observed-clean-route-20261024/report.json),
+[Noetic E2E](../output/observed-clean-route-20261024/ros-connected-route/report.json),
+[native editor](../output/observed-clean-route-20261024/editor-connected-verified/report.json),
+[geometry and retention](../output/observed-clean-route-20261024/connected-geometry-verification.json),
+[prior incomplete-route diagnosis](../output/structured-scene-20261024/candidate/route-support.json).
+Private clouds, trajectories, scripts with private input paths and test bags stay outside Git.
