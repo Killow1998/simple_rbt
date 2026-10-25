@@ -18,14 +18,15 @@ func (a *app) viewportInput(event ui.InputEvent) bool {
 		a.requestView()
 		return true
 	case ui.InputPointerDown:
-		if (event.Button != 0 && event.Button != 1) || !a.insideView(pointer) {
+		if event.Button < 0 || event.Button > 2 || !a.insideView(pointer) || (event.Button == 2 && a.page != "scene") {
 			return false
 		}
 		v.Previous = pointer
 		v.Start = pointer
 		v.Dragging = false
 		v.Orbit = true
-		if event.Button == 1 {
+		v.Pan = a.page == "scene" && (event.Button == 2 || (event.Button == 1 && event.Mods&ui.Shift != 0) || (event.Button == 0 && a.scenePan))
+		if event.Button != 0 || v.Pan {
 			return true
 		}
 		if a.stage != "configure" || (a.page != "scene" && (a.loading || a.viewLoading)) {
@@ -55,7 +56,7 @@ func (a *app) viewportInput(event ui.InputEvent) bool {
 		}
 		return true
 	case ui.InputPointerMove:
-		if event.Button != 0 && event.Button != 1 {
+		if event.Button < 0 || event.Button > 2 {
 			return false
 		}
 		if v.Dragging {
@@ -89,7 +90,7 @@ func (a *app) viewportInput(event ui.InputEvent) bool {
 			a.editPoseSet(pose)
 		} else if v.Orbit {
 			delta := psub(pointer, v.Previous)
-			if a.page == "scene" && event.Mods&ui.Shift != 0 {
+			if v.Pan || (a.page == "scene" && event.Button == 1 && event.Mods&ui.Shift != 0) {
 				_, right, up := a.basis()
 				scale := a.viewport.Distance * 2 * math.Tan(math.Pi/8) / math.Max(1, a.viewport.Height)
 				a.sceneLookat = add(a.sceneLookat, add(mul(right, -delta.X*scale), mul(up, delta.Y*scale)))
@@ -104,6 +105,7 @@ func (a *app) viewportInput(event ui.InputEvent) bool {
 	case ui.InputPointerUp:
 		v.Dragging = false
 		v.Orbit = false
+		v.Pan = false
 		return true
 	}
 	return false

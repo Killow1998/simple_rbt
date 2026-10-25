@@ -27,6 +27,7 @@ type viewport struct {
 	Hovering                     bool
 	Dragging                     bool
 	Orbit                        bool
+	Pan                          bool
 	Current                      handle
 	Initial                      Pose
 	Start, Previous              point

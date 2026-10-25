@@ -1,6 +1,6 @@
 # Structured scene representation / 结构化场景表征
 
-**Status: implemented in the development build, 2026-10-24.** The C++ core and
+**Status: implemented in the development build, 2026-10-25.** The C++ core and
 SpRobo editor accept v2 alongside v1. Installation is separate. Real-cloud
 reconstruction still requires surface and route qualification; format support
 is not acceptance of an inferred building.
@@ -286,6 +286,12 @@ depth. Neither derived value is stored separately. Delete, undo/redo, scene nami
 hierarchy, parameters and evidence. Geometry/pose edits change fitted evidence
 to `mixed`; they do not erase its report reference.
 
+Middle-drag or Shift + right-drag pans the scene view. **Pan view** also enables
+left-drag panning and hides object handles while active. Right-drag orbits and
+the wheel zooms. These view gestures do not edit object poses.
+中键或 Shift＋右键拖动可平移视图。勾选“平移视图”后，也可用左键拖动；
+此时隐藏物体操作轴。右键环绕、滚轮缩放，视图操作不修改物体位姿。
+
 场景页可新建 v2、编辑分组位姿与基元参数、共享楼梯模板、修改实例参数、编辑洞口、
 删除、撤销和保存。模板修改作用于全部引用实例，实例覆盖值仍优先。预览、碰撞、
 雷达和深度使用同一解析结果；显示用曲面三角网格不替换原生解析曲面的碰撞或深度。
@@ -306,16 +312,36 @@ review artifact, not proof of human removal; original source files are unchanged
 
 `complete_surfaces.py --scene SCENE --plan PLAN --output NEW_DIRECTORY` applies
 reviewed structural completion. Its plan supplies finite XY outlines, holes,
-source object IDs and one plane per surface group. It requires NumPy and SciPy. It does
-not infer walls automatically. Added floors and projected entrance landings carry
+source object IDs and one plane per surface group. It requires NumPy and SciPy.
+It does not discover wall boundaries automatically. Added surfaces and projected entrance landings carry
 `basis: "inferred"` and a report reference; the source scene stays unchanged.
 Intermediate stair landings retain their own elevations. Disconnected regions
 can share one plane and floor group without becoming additional storeys.
-The former `complete_floors.py` was renamed to cover both uses; existing floor
-plans still produce exactly the same scene. A ceiling group sets
+A ceiling group sets
 `semantic: "ceiling"`. Its underside faces down and slab thickness extends up,
 so added thickness does not reduce the requested room clearance. Boundary winding
-is adjusted for that orientation. Ceiling plans cannot project stair landings.
+is adjusted for that orientation. Only floor plans can project stair landings.
+
+A wall group sets `semantic: "wall"` and supplies `plane_pose_building`
+(`position_m`, `quaternion_wxyz`). Its finite boundaries are already in that
+plane's local XY coordinates; the shared building yaw transforms the frame to
+world coordinates. Floor/ceiling plans continue to use `plane_z_abc_building`.
+Previous floor and ceiling plans reproduce their scenes unchanged.
+
+Wall completion separates fitted-plane evidence from missing scan coverage.
+Once structural completion is authorized, fill the reviewed wall span from its
+floor to its roof, join corners, and preserve explicit passage openings. A
+stairwell needs an enclosing wall across intermediate heights; dividing it into
+ordinary storey-height strips leaves gaps between floors. Retained higher roof
+regions must also meet the wall top. Wall thickness, unobserved continuations
+and assumed doorway dimensions remain inferred. Verify both collision and
+LiDAR rays, followed by traversal through the retained openings. Rendering a
+solid face alone does not establish an obstacle.
+
+墙面补齐应区分“缺少扫描点”和“真实洞口”。经确认后，已拟合墙面按完整范围
+连接地面、顶面与转角，通道另行保留。楼梯间墙体贯穿中间高度，不能只按两层
+普通房间高度分别生成。补齐跨度、墙厚和推定门洞尺寸均保留依据标签；验收必须
+包括碰撞、雷达射线和通道穿行。
 
 When an operator confirms that a storey has no internal steps, fit its floor as
 one plane and retain differences from the source reconstruction in the report.

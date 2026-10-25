@@ -73,6 +73,9 @@ func (a *app) visibleMount(name string) bool {
 }
 func (a *app) drawGizmo(p *ui.Painter, r ui.Rect) {
 	a.viewport.Handles = nil
+	if a.page == "scene" && a.scenePan {
+		return
+	}
 	bounds := a.viewport.imageRect(a.viewSize())
 	// Clip all overlays, including labels and the camera frustum, to the actual
 	// image, not the surrounding letterbox or the rest of the console.

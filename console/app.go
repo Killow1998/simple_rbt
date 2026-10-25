@@ -63,6 +63,7 @@ type app struct {
 	sceneFloor, sceneObject string
 	hiddenFloors            map[string]bool
 	sceneLookat             Vec3
+	scenePan                bool
 	savedWorkspace          string
 	workspaceBlocked        bool
 	viewLoading             bool

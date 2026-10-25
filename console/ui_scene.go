@@ -128,6 +128,7 @@ func (a *app) sceneEditor(c *ui.Context) {
 	a.sceneActions(c)
 	ui.Row(c).Gap(8).Children(func() {
 		ui.Text(c, a.tr("Scene editor", "场景编辑器")).Bold().Grow(1)
+		ui.Checkbox(c, &a.scenePan, a.tr("Pan view", "平移视图"))
 		a.localizedSelect(c.Key("tool"), &a.tool, []string{"Move / 平移", "Rotate / 旋转"}).Width(130)
 		a.localizedSelect(c.Key("space"), &a.space, []string{"World / 世界", "Local / 设备"}).Width(130)
 		ui.Button(c, a.tr("Focus selection", "聚焦所选")).OnClick(a.action("ui_scene.focus_selection", func() {
@@ -141,7 +142,7 @@ func (a *app) sceneEditor(c *ui.Context) {
 			}
 		}))
 	})
-	ui.Text(c, a.tr("Drag axes · right-drag to orbit · Shift + right-drag to pan · scroll to zoom", "拖动操作轴；右键环绕；Shift＋右键平移视图；滚轮缩放")).FontSize(12).TextColor(c.Theme().TextMuted)
+	ui.Text(c, a.tr("Middle-drag or Shift + right-drag to pan · right-drag to orbit · scroll to zoom · Pan view enables left-drag", "中键或 Shift＋右键平移视图；右键环绕；滚轮缩放；勾选“平移视图”后可用左键拖动")).FontSize(12).TextColor(c.Theme().TextMuted)
 	ui.Row(c).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Gap(12).Children(func() {
 		view := ui.Box(c.Key("scene-viewport")).Grow(1).MinWidth(100).Clip().Background(viewportBackground).Focusable().Label(a.tr("3D scene viewport", "场景三维视图")).HandleInput(a.viewportInput)
 		x, y, over := view.PointerPosition()

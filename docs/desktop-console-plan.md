@@ -1713,3 +1713,67 @@ cd ~/Projects/simple_rbt
   --assets "$PWD/assets" \
   --config "$PWD/output/ceiling-surfaces-20261024/validated/candidate/session-preview.json"
 ```
+
+Continuous walls and view panning / 连续墙体与视图平移（2026-10-25）：
+
+The previous observed wall patches exposed missing scan coverage as physical
+holes. The reviewed completion replaces 261 wall patches in 36 plane groups
+with 29 continuous wall panels. Corridors follow fitted wall spans and reviewed
+floor boundaries; the four stairwell faces extend across intermediate heights.
+Corners meet, tops extend through adjacent retained higher roofs, and actual
+trajectory crossings retain passage openings. The completed scene has 462 nodes
+and 1761 collision parts, down from 701 and 2317. Floors, ceilings, four flights,
+landings, spawn and the shared stair template are exactly unchanged. The source
+PCD hash is unchanged. Wall thickness (0.12 m), hidden continuations, upright
+faces and doorway dimensions are inferred; this is not a surveyed CAD model.
+
+The shared offline `complete_surfaces.py` accepts reviewed wall plane frames and
+finite outlines. Runtime geometry is still parsed by the existing C++ core.
+MuJoCo compiles every part. All 26,377 sampled wall rays hit their intended
+completed faces; the previous wall scene hits 4,750 of those sampled rays.
+All 378 sphere contact probes produce physical contacts. All 29 recorded path
+crossing positions remain open; these include repeated crossings of the same
+passage. The earlier floor and ceiling export plans reproduce identical scenes.
+
+The native viewport previously rejected the middle button; Shift + right-drag
+already worked. Middle-drag now pans, and **Pan view / 平移视图** enables left-drag
+panning while hiding object handles. Actual X11 input verifies that all three
+produce the same view translation, a reverse drag restores the view, and right
+orbit plus wheel zoom still work. Saving through the editor preserves all 462
+nodes, poses, evidence and templates exactly. The installed desktop and Xian's
+already-open window are unchanged; use the development binary below.
+
+Final Go2W + direct Noetic acceptance completes all 21 up/down waypoints and
+33/33 checks over 260.876 simulation seconds at RTF 1.000. Each 200 Hz IMU has
+52,175 samples. LiDAR/PointCloud2 and RGB/depth each have 2608 frames at 10 Hz;
+LiDAR keeps 20,000 rays and images keep 320 × 240 pixels. IPC, the ROS receiver
+and the closed bag match throughout the run. Maximum tilt is 29.45 degrees.
+Core-only mean CPU use is 0.786 cores and peak RSS is 838.4 MiB. These resource
+figures exclude GUI/ROS and do not establish a general performance improvement.
+This verifies physical traversal and sensor delivery, not n3m/FAST_LIO accuracy.
+
+墙体已由扫描碎片改为连续实体，并保留经过核对的通道入口。楼梯间墙面贯穿中间
+高度，顶部连接保留的较高天花板。补齐部分、墙厚和门洞尺寸标为推定；原始点云、
+已有地面、天花板和楼梯不变。中键、Shift＋右键及“平移视图”左键拖动均经实际
+窗口验证。最终 Go2W／Noetic 上下楼 21/21 路点、33/33 数据验收通过。
+
+[Completed scene / 完成场景](../output/solid-walls-20261024/candidate-final/scene.json),
+[wall ray/contact audit / 墙体射线与碰撞](../output/solid-walls-20261024/wall-audit-final.json),
+[Noetic E2E](../output/solid-walls-20261024/ros-final/report.json),
+[native navigation / 实际视图操作](../output/solid-walls-20261024/editor-confirmed/report.json),
+[stage report / 阶段报告](../output/solid-walls-20261024/report.json).
+
+Open the completed wall scene on Jammy / 在 Jammy 打开连续墙体场景：
+
+```bash
+cd ~/Projects/simple_rbt
+./build/panda-jammy/simple-rbt-console \
+  --worker "$PWD/build/panda-jammy/simple-rbt-sim" \
+  --assets "$PWD/assets" \
+  --config "$PWD/output/solid-walls-20261024/candidate-final/session-preview.json"
+```
+
+Use the Scene editor tab. Middle-drag pans; the Pan view checkbox enables
+left-drag. Select **Stairs and landings / 楼梯及平台** and **Focus selection /
+聚焦所选** to inspect the stairwell. Group visibility only changes the editor
+view, so roofs can be hidden for interior inspection without deleting them.

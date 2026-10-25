@@ -65,21 +65,29 @@ def complete(scene_path, plan_path, output):
                         for p in (scene_path, plan_path)}
     for level, specification in plan['levels'].items():
         semantic = specification.get('semantic', 'floor')
-        if semantic not in ('floor', 'ceiling'):
-            raise ValueError('Completion supports floor or ceiling surfaces')
-        if semantic == 'ceiling' and specification.get('landing_ids'):
+        if semantic not in ('floor', 'ceiling', 'wall'):
+            raise ValueError('Completion supports floor, ceiling or wall surfaces')
+        if semantic != 'floor' and specification.get('landing_ids'):
             raise ValueError('Stair entrances can only follow a floor plane')
-        a, b, c = specification['plane_z_abc_building']
-        normal = np.array([-a, -b, 1.])
-        normal /= np.linalg.norm(normal)
-        if semantic == 'ceiling':
-            normal = -normal
-        ex = np.array([1., 0, a])
-        ex /= np.linalg.norm(ex)
-        basis = np.column_stack((ex, np.cross(normal, ex), normal))
-        origin, axes = building @ [0, 0, c], building @ basis
+        if semantic == 'wall':
+            frame = specification['plane_pose_building']
+            origin = building @ frame['position_m']
+            basis = rotation(frame['quaternion_wxyz'])
+        else:
+            a, b, c = specification['plane_z_abc_building']
+            normal = np.array([-a, -b, 1.])
+            normal /= np.linalg.norm(normal)
+            if semantic == 'ceiling':
+                normal = -normal
+            ex = np.array([1., 0, a])
+            ex /= np.linalg.norm(ex)
+            basis = np.column_stack((ex, np.cross(normal, ex), normal))
+            origin = building @ [0, 0, c]
+        axes = building @ basis
 
         def project(ring):
+            if semantic == 'wall':
+                return ring
             xy = np.asarray(ring)
             # Ceiling faces point down; their thickness extends above the room.
             local = (np.c_[xy, a*xy[:, 0]+b*xy[:, 1]] @ basis)[:, :2]
@@ -89,7 +97,9 @@ def complete(scene_path, plan_path, output):
                         note=specification['note'])
         group = level+'-continuous-'+semantic
         assert group not in nodes
-        title = 'floor · inferred / 连续地面 · 推定' if semantic == 'floor' else 'ceiling · inferred / 连续天花板 · 推定'
+        title = {'floor': 'floor · inferred / 连续地面 · 推定',
+                 'ceiling': 'ceiling · inferred / 连续天花板 · 推定',
+                 'wall': 'wall · inferred / 连续墙体 · 推定'}[semantic]
         added.append(dict(id=group, name=specification.get('name', level.title()+' '+title),
                           kind='group', parent=specification['parent'], semantic=semantic,
                           pose=relative(specification['parent'], origin, axes),
