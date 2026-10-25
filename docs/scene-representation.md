@@ -354,6 +354,12 @@ faces from the raw source, including stepped boundaries and internal enclosures;
 do not replace a broad walked space with an assumed narrow corridor. Distinguish
 observed face support from inferred corner caps and floor/ceiling completion.
 
+Keep each fitted wall line when joining it to retained stair or landing geometry.
+Forcing one endpoint onto an old corner rotates the whole wall away from its
+source points. Use a short, explicitly inferred connector when the fitted line
+and retained corner disagree. Removing a false corridor must also remove its
+unsupported floor and ceiling; check all three in the compiled scene.
+
 墙面补齐应区分“缺少扫描点”和“真实洞口”。经确认后，已拟合墙面按完整范围
 连接地面、顶面与转角，通道另行保留。楼梯间墙体贯穿中间高度，不能只按两层
 普通房间高度分别生成。补齐跨度、墙厚和推定门洞尺寸均保留依据标签；验收必须
@@ -365,6 +371,9 @@ observed face support from inferred corner caps and floor/ceiling completion.
 
 原始点云、清理后点云、合格平面片和最终场景须分别核对。平面筛选遗漏不等于点云
 被删除。按原始支撑点恢复有限墙面、折角和内部围墙；宽区域不能压成假定的窄走廊。
+
+墙端连接旧楼梯或平台时，保留拟合出的墙面。不能强移一个端点，使整段墙偏离原始
+点云；需要时用标为推定的短墙连接。移除错误走廊时，同步检查其墙、地面和天花板。
 
 When an operator confirms that a storey has no internal steps, fit its floor as
 one plane and retain differences from the source reconstruction in the report.

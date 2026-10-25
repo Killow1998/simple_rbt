@@ -1,11 +1,14 @@
 # Desktop console and session architecture / 操作台与会话架构
 
-Current stage: fixed-base Panda control and two RGB-D sensors, installed on Jammy
-for local testing. Framework name remains `simple_rbt`; launcher remains SpRobo.
-The public [0.2.1 release](https://github.com/Killow1998/simple_rbt/releases/tag/v0.2.1)
-predates this stage. / 当前阶段：固定底座 Panda 与双 RGB-D 相机已安装到 Jammy，
-供本地测试；框架与启动器名称不变。本阶段尚未发布新的公开发行包。
-Date / 日期：2026-10-23。
+Current stage: source-cloud and trajectory review of the two-storey scene,
+with native editor checks and a complete upper-corridor Go2W + Noetic route on
+Jammy. The current launch command and evidence are at the end of this document.
+Framework name remains `simple_rbt`; launcher remains SpRobo. The installed
+Panda/two-camera stage and the public [0.2.1 release](https://github.com/Killow1998/simple_rbt/releases/tag/v0.2.1)
+are separate from this local scene revision; no new package was published.
+/ 当前阶段：双层场景按原始点云与轨迹核对，完成原生编辑器检查及上层 Go2W／Noetic
+走廊全路线验证。当前启动命令和证据见文末。本次更新本地场景，未发布新安装包。
+Date / 日期：2026-10-25。
 
 ## Product / 产品
 
@@ -1927,9 +1930,87 @@ still needs confirmation. Existing installed binaries were not replaced.
 [Noetic E2E](../output/lower-raw-corridors-20261025/ros-lower-route/report.json),
 [native editor / 原生编辑器](../output/lower-raw-corridors-20261025/editor/report.json).
 
-Open the current reviewed scene / 打开当前核对后场景：
+Open the lower reconstruction revision / 打开下层重建阶段的场景：
 
 ```bash
 cd ~/Projects/simple_rbt
 ./build/panda-jammy/simple-rbt-console --config "$PWD/output/lower-raw-corridors-20261025/candidate/session-preview.json"
 ```
+
+Complete upper-corridor review / 上层走廊完整核对（2026-10-25）：
+
+The combined scene now uses 43 upper wall spans: 40 faces fitted directly to the
+original PCD and three short inferred connectors. It restores the southwest end,
+north bay/lobby boundaries, southeast step/recess, east T stub and northeast
+end. The unsupported north connection is removed together with its floor and
+ceiling. A fitted southeast wall keeps its original line and joins the retained
+stair corner through a short connector; forcing its endpoint onto that corner
+had displaced the entire face. The accepted lower scene, stair/landing objects
+and shared templates are unchanged. Runtime binaries are unchanged.
+
+The upper fits use 63,891 unique original support points. One lies in the earlier
+dynamic-removal mask; proximity alone does not distinguish a static wall point
+from a near-wall dynamic return. The cleaned PCD is unchanged. Original PCD,
+cleaned PCD, trajectory and pbstream hashes all match the previous stage.
+Wall thickness, upright completion, occluded support and sparse bay caps remain
+inferred. Minor recesses are idealized; incompletely observed rooms outside the
+traced corridors are not all reconstructed.
+
+All 4,526 upper non-stair trajectory samples have compiled floor support and a
+completed roof. The 950 sampled raw wall positions all hit the new faces
+(previously 354); this checks source support, not independent holdout accuracy.
+All 11,061 wall rays and 572 contact probes pass. Negative probes confirm the
+removed north walls, floor and roof. Retained observed ceiling patches at the
+central lobby remain up to 6.83 cm below the inferred roof; actual route clearance
+is 2.382–2.450 m. The combined scene contains 557 nodes and 1620 collision parts.
+
+Go2W + direct Noetic completes 325/325 waypoints along the recorded upper route,
+including west and northeast returns and the eastern terminal stub: 354.56 m of
+simulated odometry over 887.978 simulation seconds, RTF 1.000, maximum tilt
+9.81 degrees. All 35 whole-route checks pass. Each IMU has 177,595 samples at
+200 Hz; LiDAR/PointCloud2 and RGB/depth each have 8879 frames at 10 Hz, retaining
+20,000 rays and 320 × 240 images. Native counts match the independent ROS receiver
+and closed bag; complete ROS payload hashes and timestamps match without trimming.
+
+The first harness timed out during offline parsing of the closed 12.9 GB bag,
+before saving its in-memory IPC copy. This is an audit-tool failure, not a passed
+full-route IPC comparison. The closed native summary, receiver and bag survived
+and were checked offline. The harness now saves IPC evidence and closes the
+producer before parsing. A separate six-waypoint, 18.088-second run passes all
+33 native/IPC/ROS/bag checks with exact IMU values and image bytes. Full-route IPC
+bytes remain unavailable. This stage does not add a stair-route or n3m
+localization-accuracy result.
+
+The isolated native editor passes 10/10 render/navigation/save checks, retaining
+all 557 nodes and templates. Native overview images show the combined scene and
+upper-only editor view. Jammy's previous window was closed normally after
+preserving every saved preset and draft. The new window loads “Building · both
+storeys reviewed / 建筑 · 双层核对场景” and its core preview is ready. Jammy remained
+locked; post-unlock desktop interaction still needs Xian's confirmation.
+
+上层已恢复有原始墙点支撑的端墙、凹入区域、东南折角及东北端部，并移除北侧错误
+连接及其悬空地面、顶面。下层与楼梯保持原样。约 355 米 Go2W／Noetic 路线走通，
+整段 ROS 消息与关闭后的 bag 一致。长测的临时 IPC 副本因核对脚本超时未保存，已
+修正保存顺序并补跑独立短测；不将短测写成全程 IPC 验证。未观测完整的外侧房间
+仍不作为完整室内模型。下一步由 Xian 解锁桌面，核对实际建筑布局。
+
+[Combined scene / 双层场景](../output/upper-raw-corridors-20261025/candidate/scene.json),
+[review report / 核对报告](../output/upper-raw-corridors-20261025/report.json),
+[raw-cloud overlay / 原始点云叠图](../output/upper-raw-corridors-20261025/raw-after.png),
+[Noetic full route / Noetic 全路线](../output/upper-raw-corridors-20261025/ros-upper-route/report.json),
+[supplementary IPC check / IPC 补充检查](../output/upper-raw-corridors-20261025/ros-ipc-check/report.json),
+[native editor / 原生编辑器](../output/upper-raw-corridors-20261025/editor/report.json),
+[combined overview / 双层总览](../output/upper-raw-corridors-20261025/overview-final/whole-scene.png),
+[upper-only view / 仅显示上层](../output/upper-raw-corridors-20261025/overview-final/upper-only.png).
+
+Open the current combined scene / 打开当前双层场景：
+
+```bash
+cd ~/Projects/simple_rbt
+./build/panda-jammy/simple-rbt-console --config "$PWD/output/upper-raw-corridors-20261025/candidate/session-preview.json"
+```
+
+Use Scene editor; middle-drag or Shift + right-drag pans, right-drag orbits, and
+the wheel zooms. Hiding “Lower storey” affects the editor view only. Maximize the
+window and zoom out for an overview. / 进入“场景编辑”：中键或 Shift＋右键平移，
+右键旋转，滚轮缩放。隐藏“下层”仅影响编辑视图；最大化窗口后缩小，可查看总览。
