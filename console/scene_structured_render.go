@@ -35,7 +35,7 @@ func (a *app) drawStructured(p *ui.Painter, r ui.Rect) {
 			if cache.bitmap != nil {
 				p.Image(cache.bitmap, r, ui.Contain)
 			}
-			gizmoLabel(p, r, point{12, 24}, a.tr("Invalid geometry — check properties", "几何无效，请检查属性"), gizmoHighlight)
+			gizmoLabel(p, r, point{12, 24}, a.tr("Scene preview failed — see Details", "场景预览失败，请查看详情"), gizmoHighlight)
 			return
 		}
 		cache.key = string(key)

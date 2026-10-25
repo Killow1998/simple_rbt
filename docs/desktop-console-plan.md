@@ -1777,3 +1777,37 @@ Use the Scene editor tab. Middle-drag pans; the Pan view checkbox enables
 left-drag. Select **Stairs and landings / 楼梯及平台** and **Focus selection /
 聚焦所选** to inspect the stairwell. Group visibility only changes the editor
 view, so roofs can be hidden for interior inspection without deleting them.
+
+Launcher recovery on the actual desktop / 实际桌面启动恢复（2026-10-25）：
+
+A copied invocation supplied literal arguments such as `" --worker"` and
+`" --config"`. Go's flag parser stopped at the first positional argument, but
+SpRobo did not reject the remainder. The window therefore restored the older
+workspace and selected an installed core from PATH. That core rejected
+`--resolve-scene`; the editor incorrectly labelled this a geometry failure,
+and startup checks prevented simulation frames.
+
+The launcher now rejects unexpected positional arguments with exit status 2.
+Default discovery prefers a sibling core and its nearby assets before PATH and
+installed data. Explicit options still override discovery. Preview errors no
+longer assert that geometry is invalid, and failed startup checks no longer
+show an indefinite waiting message.
+
+The malformed invocation was reproduced and rejected. Running the development
+launcher from an unrelated working directory selects its matching core/assets.
+The isolated native editor passes all 10 navigation/save checks without explicit
+worker/assets flags. The identified disconnected desktop window was closed
+normally after preserving the workspace, then reopened with the completed scene.
+Live core frames and editor rendering were inspected on Xian's actual display;
+all previous saved presets and drafts remained intact. The recovered development
+window was left running. The installed package and unrelated simulators were
+not changed. Physics, sensor code and scene geometry are unchanged from the
+previous full-route acceptance.
+
+[Desktop recovery / 桌面恢复](../output/launch-recovery-20261025/desktop-recovery.json),
+[actual simulation view / 实际仿真画面](../output/launch-recovery-20261025/recovered-launch.png),
+[actual scene editor / 实际场景页](../output/launch-recovery-20261025/recovered-scene.png),
+[paired native E2E / 配套核心界面验证](../output/launch-recovery-20261025/paired-editor/report.json).
+
+启动参数带入空格时，现在会明确报错，不再静默调用另一套核心。开发版优先使用
+同目录核心及项目资源；当前桌面的新场景画面已恢复，原有预设和草稿完整保留。

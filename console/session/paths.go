@@ -11,12 +11,22 @@ type Options struct{ WorkerPath, DataRoot, AdapterContext, StateDir string }
 func exists(path string) bool { _, err := os.Stat(path); return err == nil }
 func DefaultOptions() Options {
 	result := Options{}
-	if worker, err := exec.LookPath("simple-rbt-sim"); err == nil {
-		result.WorkerPath = worker
-	}
 	executable, _ := os.Executable()
 	working, _ := os.Getwd()
-	roots := []string{"/usr/share/simple-rbt"}
+	roots := []string{}
+	// Keep a launcher and its sibling core/assets together before consulting PATH.
+	if worker := filepath.Join(filepath.Dir(executable), "simple-rbt-sim"); exists(worker) {
+		result.WorkerPath = worker
+		for path := filepath.Dir(executable); path != "/" && path != "."; path = filepath.Dir(path) {
+			roots = append(roots, path)
+		}
+	}
+	if result.WorkerPath == "" {
+		if worker, err := exec.LookPath("simple-rbt-sim"); err == nil {
+			result.WorkerPath = worker
+		}
+	}
+	roots = append(roots, "/usr/share/simple-rbt")
 	for _, start := range []string{working, filepath.Dir(executable)} {
 		for path := start; path != "/" && path != "."; path = filepath.Dir(path) {
 			roots = append(roots, path)

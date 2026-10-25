@@ -53,7 +53,11 @@ func (a *app) media(c *ui.Context) {
 						return
 					}
 					if a.observer == nil {
-						p.Text(r.X+18, r.Y+28, a.tr("Waiting for simulation view", "等待仿真画面"), 14, viewportText)
+						label := a.tr("Waiting for simulation view", "等待仿真画面")
+						if !a.checking && len(a.preflight.Checks) > 0 && !a.preflight.Ready {
+							label = a.tr("Simulation cannot start — see Startup checks", "仿真无法启动，请查看启动检查")
+						}
+						p.Text(r.X+18, r.Y+28, label, 14, viewportText)
 						return
 					}
 					p.Image(a.observer, r, ui.Contain)

@@ -28,6 +28,10 @@ func main() {
 	dependencies := flag.Bool("check-dependencies", false, "Check Ubuntu, framework MuJoCo/assets and optional container ROS; emit JSON without display/GPU")
 	ros := flag.String("ros", "", "Optional container checks: ros1,ros2 (Noetic,Humble); host ROS is not required")
 	flag.Parse()
+	if flag.NArg() != 0 {
+		fmt.Fprintf(os.Stderr, "Unexpected argument %q / 无法识别参数。Option names must not have leading spaces / 选项前不能带空格。Use --help for usage.\n", flag.Arg(0))
+		os.Exit(2)
+	}
 	if *worker != "" {
 		options.WorkerPath = *worker
 	}
