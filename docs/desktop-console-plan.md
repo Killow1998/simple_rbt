@@ -1577,7 +1577,8 @@ as inferred, and confirmed no steps within either main storey. The new candidate
 uses one plane per storey, anchored at its stair entrance. Reviewed wall lines,
 observed floor edges and corridor connections define the finite outlines;
 stairwell openings and large courtyard voids remain. The offline exporter
-`tools/scene/complete_floors.py` consumes that reviewed plan. Runtime code is
+`tools/scene/complete_surfaces.py` (then named `complete_floors.py`) consumes that
+reviewed plan. Runtime code is
 unchanged.
 
 The scene has **two main storeys**, with intermediate stairs and landings in a
@@ -1613,9 +1614,9 @@ about 2.45 m. Two lower-storey regions instead show about 2.70 m, each supported
 by 11 qualified same-keyframe fits. One spans 183 s and the other 302 s of
 acquisition; the second region also contains a lower return. This supports
 retaining a local height difference, but does not establish its architectural
-type or full extent. **Ceiling geometry is not merged in this candidate.** Next,
-bound those regions and merge each continuous ceiling surface separately,
-preserving supported height changes. Walls also retain their prior geometry.
+type or full extent. Ceiling geometry was not merged in that floor-only
+candidate. The subsequent ceiling stage below adds bounded continuous surfaces;
+walls retain their prior geometry.
 
 主体天花板适合连续平面表达；下层局部净高比主体高约 25 厘米，需要保留并核对
 边界。尚不能据此判定为梁、吊顶或高顶房间，也不能用零碎点云直接认定顶面起伏。
@@ -1635,4 +1636,80 @@ cd ~/Projects/simple_rbt
   --worker "$PWD/build/panda-jammy/simple-rbt-sim" \
   --assets "$PWD/assets" \
   --config "$PWD/output/wall-bounded-surfaces-20261024/candidate-final/session-preview.json"
+```
+
+
+Continuous ceilings and Z-drift check / 连续天花板与 Z 漂移核对（2026-10-24）：
+
+The floor-only candidate above remains available. The new ceiling candidate
+normalizes only reviewed roof regions: lower main headroom 2.46 m, lower local
+higher headroom 2.71 m, and upper main headroom 2.45 m. Fourteen finite regions
+share those three planes. Inferred outlines follow the completed floor domains
+and nearby observed ceiling edges; the complete stair envelope stays open.
+The western lower corridor and upper southwest pocket have other or unresolved
+heights and retain their original geometry. This is not a claim that every
+ceiling in the building has one of those three heights.
+
+The scene decreases from 829 to 701 nodes and from 2469 to 2317 collision parts.
+Ceiling regions decrease from 416 to 297, including retained source fragments.
+All non-ceiling nodes and collision parts are exactly unchanged. Lower main
+ceiling thickness is an inferred 0.29 m, extending upward to close the local
+height transition; higher and upper ceiling thicknesses are 0.04 and 0.08 m.
+The original PCD hash is unchanged.
+
+One clipping prototype created micrometre-wide strips that passed the polygon
+parser but failed MuJoCo convex-hull compilation. Preparation now uses a 0.1 mm
+Boolean grid and removes 44 numerical remnants narrower than 0.5 mm, totalling
+0.000665 m². Original ceiling XY coverage is retained within a 1 mm numerical
+buffer. These tolerances describe polygon arithmetic, not measurement accuracy.
+The runtime geometry checks were not weakened. All 2317 meshes compile in
+MuJoCo 3.15; the actual native editor saves all 701 nodes without changing their
+geometry, evidence or shared stair template.
+
+Direct Go2W + Noetic E2E completes all 21 up/down waypoints and passes 33/33
+checks over 261.072 simulation seconds at RTF 1.000. Both IMUs retain 52,214
+samples at 200 Hz; LiDAR, point cloud, RGB and depth each retain 2610 frames
+at 10 Hz through native IPC, ROS receiver and the closed bag. LiDAR retains
+20,000 rays and RGB/depth retain 320 × 240 pixels. Payloads and timestamps match
+exactly across the measured interval. Maximum robot tilt is 29.69 degrees.
+Core-only mean CPU use is 0.790 cores and peak RSS is 850.8 MiB; these are not
+whole-system figures or a performance improvement claim. The closed bag is
+2,948,017,219 bytes. This is functional acceptance of an inferred scene, not
+n3m/FAST_LIO or real-building accuracy acceptance.
+
+The proposed Z-drift explanation was checked with fixed point memberships from
+45 paired floor/ceiling scan samples. The saved local points match the frontend
+`/cloud_registered_body` input exactly. Headroom evaluated in input body, saved
+body, pre-graph odometry, optimized map and an artificial +10 m Z shift differs
+by at most 3.1e-14 m. n3m did apply Z corrections to these keyframes (roughly
+−0.24 to −1.20 m), but a shared rigid pose correction cannot create this local
+headroom difference. A single frontend input scan also contains both roof
+heights and their connecting vertical face over a continuous floor.
+
+This comparison does **not** prove the map has no residual drift. The input is
+already frontend-deskewed; deskew errors, semantic selection and global map
+accuracy remain separate questions. The observed local transition is retained
+as reconstruction evidence, not assigned an unverified architectural name.
+
+主体天花板已按连续平面生成候选，并保留局部高度转折。尚未确认的顶面区域继续
+保留原几何，未统一压平。原始 PCD、地面版场景和严格观测证据保留；安装版及
+Xian 当前窗口不自动替换。运行代码仍为 C++，共用的离线生成器已改名为
+`tools/scene/complete_surfaces.py`，旧地面计划可逐项复现原场景。
+
+[Ceiling scene / 天花板场景](../output/ceiling-surfaces-20261024/validated/candidate/scene.json),
+[geometry audit / 几何核对](../output/ceiling-surfaces-20261024/geometry-audit.json),
+[Noetic E2E](../output/ceiling-surfaces-20261024/ros-route/report.json),
+[stage report / 阶段报告](../output/ceiling-surfaces-20261024/report.json),
+[pose-invariance audit / 位姿对照](../output/ceiling-surfaces-20261024/pose-invariance.json),
+[single input scan / 单帧断面](../output/ceiling-surfaces-20261024/single-scan-cross-section.png),
+[native editor / 实际界面](../output/ceiling-surfaces-20261024/editor-validated/report.json).
+
+Open the ceiling candidate on Jammy / 在 Jammy 打开天花板候选：
+
+```bash
+cd ~/Projects/simple_rbt
+./build/panda-jammy/simple-rbt-console \
+  --worker "$PWD/build/panda-jammy/simple-rbt-sim" \
+  --assets "$PWD/assets" \
+  --config "$PWD/output/ceiling-surfaces-20261024/validated/candidate/session-preview.json"
 ```
