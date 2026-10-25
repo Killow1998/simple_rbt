@@ -1848,14 +1848,14 @@ reopened with the correction after preserving every prior preset and draft.
 Its live core preview is available. The desktop was locked during the final
 check, so post-unlock desktop interaction remains for Xian to confirm.
 
-Remaining scope: the lower-storey audit flags 102 trajectory samples in two
-regions outside the current finite floor footprint. Their boundary/support
-evidence still needs review. The upper correction does not establish whole-
+At this stage, the lower-storey audit flagged 102 trajectory samples in two
+regions outside the finite floor footprint. The lower reconstruction below
+addresses those gaps. The upper correction does not establish whole-
 building topology accuracy or n3m localization performance.
 
 上层错误来自补墙范围：两端墙段被跨过无地面的空白区连接。现在保留实走短走廊
 及转角，收回错误延伸，并将上层出生点移到有地面支撑的轨迹位置。上层轨迹、墙体
-碰撞和 Go2W／Noetic 往返验收通过。下层另有两处地面边界待核对；不把本次结果
+碰撞和 Go2W／Noetic 往返验收通过。当时发现的下层两处地面缺口由后续重建处理；不把本次结果
 称为整栋建筑验收。Jammy 已保留新窗口，锁屏解除后的桌面交互待 Xian 确认。
 
 [Corrected scene / 修正场景](../output/trajectory-corridors-20261025/candidate/scene.json),
@@ -1864,9 +1864,72 @@ building topology accuracy or n3m localization performance.
 [Noetic E2E](../output/trajectory-corridors-20261025/ros-upper-west-motion/report.json),
 [native editor / 实际编辑器](../output/trajectory-corridors-20261025/editor/report.json).
 
-Open the current corridor correction / 打开当前走廊修正版：
+Open the upper-corridor revision / 打开上层走廊修正版：
 
 ```bash
 cd ~/Projects/simple_rbt
 ./build/panda-jammy/simple-rbt-console --config "$PWD/output/trajectory-corridors-20261025/candidate/session-preview.json"
+```
+
+Raw-cloud lower reconstruction / 原始点云下层重建（2026-10-25）：
+
+The missing lower walls are present in the original PCD and retained in the
+cleaned PCD. All 29,321 unique points supporting the reviewed faces survived
+dynamic cleanup. Omission occurred during plane/patch qualification and later
+named-plane completion; the earlier scene contained only 18 lower wall plane
+groups. Global plane extents also joined separate lower east branches and placed
+a transverse wall across the broad southern walking space.
+
+The revised lower layout uses 34 finite wall spans. It restores the central west
+face, the broad southwest enclosure, its internal stepped wall, and the southeast
+recess and terminal stub. It removes the unsupported east connection and the
+false transverse wall. Floor and ceiling support follow the reviewed boundaries
+on their existing planes. Added occluded surfaces, upright extension, thickness,
+corner joins and the sparsely observed internal north cap remain inferred.
+Untraversed rooms visible beyond the main route are not all reconstructed.
+Upper-storey objects, stairs, landings and shared templates remain exactly equal.
+The original PCD, cleaned PCD, trajectory and pbstream hashes are unchanged.
+
+All 4,935 classified lower non-stair trajectory samples now hit compiled floor
+geometry; the previous 102 unsupported samples are resolved. At 606 sampled raw
+wall locations, the previous scene supplies 134 nearby wall hits and the revision
+supplies 606. This checks source support, not independent holdout accuracy.
+All 13,017 completion-face rays and 448 contact probes pass. Probes also confirm
+removal of the false east walls and floor. The final scene has 501 nodes and 1706
+collision parts. Runtime core and launcher binaries are unchanged.
+
+Go2W + direct Noetic completes 165/165 waypoints over the affected southwest,
+central and southeast routes, including the southeast return. Simulated odometry
+distance is 178.11 m over 479.464 simulation seconds at RTF 1.000. All 33 data
+checks pass: each 200 Hz IMU has 95,892 samples; LiDAR/PointCloud2 and RGB/depth
+each have 4794 frames at 10 Hz, retaining 20,000 rays and 320 × 240 images.
+IPC, independent receiver and the closed bag match in counts, timestamps and
+checked payloads. Maximum tilt is 9.11 degrees. Core-only mean CPU is 0.732 cores
+and peak RSS is 845.9 MiB; GUI/ROS are excluded. This is traversal and transport
+acceptance, not localization accuracy or a fresh stair-route result.
+
+The isolated native editor passes 10/10 render/navigation/save checks and retains
+all 501 nodes. Jammy's identified previous window was closed normally, preserving
+all saved presets and drafts. The new window loads the reviewed scene and its
+core preview is available. Jammy remained locked; post-unlock desktop interaction
+still needs confirmation. Existing installed binaries were not replaced.
+
+下层漏墙的点仍在原始及清理后的 PCD 中，遗漏发生在场景提取与补墙阶段。现按
+真实墙点和轨迹恢复南侧宽区域、折角墙及东南端部，移除错误连通。原先两处区域中
+102 个轨迹采样点缺少地面支撑的问题已解决。约 178 米 Go2W／Noetic 路线通过，
+原始数据、上层和楼梯保留。
+补齐的遮挡区域与少量封口仍标为推定。新窗口的场景名为“建筑 · 核对后走廊”。
+
+[Scene / 场景](../output/lower-raw-corridors-20261025/candidate/scene.json),
+[original cloud overlay / 原始点云叠图](../output/lower-raw-corridors-20261025/raw-after.png),
+[raw-face audit / 原始墙点核验](../output/lower-raw-corridors-20261025/raw-face-audit.json),
+[floor support / 地面支撑](../output/lower-raw-corridors-20261025/layout-audit.json),
+[Noetic E2E](../output/lower-raw-corridors-20261025/ros-lower-route/report.json),
+[native editor / 原生编辑器](../output/lower-raw-corridors-20261025/editor/report.json).
+
+Open the current reviewed scene / 打开当前核对后场景：
+
+```bash
+cd ~/Projects/simple_rbt
+./build/panda-jammy/simple-rbt-console --config "$PWD/output/lower-raw-corridors-20261025/candidate/session-preview.json"
 ```
