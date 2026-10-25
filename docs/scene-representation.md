@@ -303,3 +303,23 @@ qualified patches on each fitted plane without expanding their boundary; it
 requires NumPy, SciPy and Shapely 2.1.2. `audit_temporal.py` reports transient and
 approximate visibility conflicts from keyframe-tagged points. Its mask is a
 review artifact, not proof of human removal; original source files are unchanged.
+
+`complete_floors.py --scene SCENE --plan PLAN --output NEW_DIRECTORY` applies
+reviewed structural completion. Its plan supplies finite XY outlines, holes,
+source object IDs and one plane per storey. It requires NumPy and SciPy. It does
+not infer walls automatically. Added floors and projected entrance landings carry
+`basis: "inferred"` and a report reference; the source scene stays unchanged.
+Intermediate stair landings retain their own elevations. Disconnected regions
+can share one plane and floor group without becoming additional storeys.
+
+When an operator confirms that a storey has no internal steps, fit its floor as
+one plane and retain differences from the source reconstruction in the report.
+Those residuals do not measure LiDAR accuracy. Preserve stairwell openings and
+other reviewed voids. Ceiling completion needs its own height and boundary
+evidence: repeated local floor-to-ceiling measurements can distinguish common
+map deformation from a persistent height difference. Do not flatten a supported
+height change merely because it belongs to the same storey.
+
+经确认的结构补齐在离线阶段执行，运行时不自动填洞。每层地面可共用一个平面，
+多个有限轮廓仍属于同一楼层；楼梯平台单独保留。天花板应按连续、同高的区域合并，
+稳定存在的局部高度差应另建平面。原始点云、推定几何和观测验证记录分别保留。

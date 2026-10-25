@@ -1519,7 +1519,8 @@ Observed-support correction / 观测支持范围更正（2026-10-24）：
 The connected candidate joined full stair endpoints to wall-bounded landing
 interiors without requiring support throughout those finite surfaces. Presenting
 its 21/21 route as completed observed-scene acceptance overstated the result.
-No explicit permission to fill large unknown interiors was found. The mixed
+At that correction stage, no explicit permission to fill large unknown interiors
+was found. The mixed
 scene, closed bag and user's current preview remain unchanged as evidence.
 
 The separate observed-only candidate has 1140 nodes and 3048 resolved parts.
@@ -1561,11 +1562,77 @@ This is **not completion of whole architectural contours**: floor regions only
 decrease from 210 to 201. Direct triangulation of plane samples was also tested
 and rejected: it produces more small islands and point-touching rings. Neither
 that experiment nor the small-gap comparison replaces the user's current scene.
-Next, reconstruct room/corridor boundaries using repeated surface observations
-and explicit opening evidence; distinguish sparse sampling from large occluded
-areas before deciding whether structural inference is needed.
+The subsequent authorized floor-completion stage below addresses whole floor
+outlines. The small-gap comparison remains a separate experiment.
 
 小缝合并已验证，但整体地面、墙面轮廓尚未完成。不能把网格未采到点解释为真实缺口，
 也不能用一张大矩形覆盖所有未知区域。原始 PCD 和已有窗口保持不变。
 [Boundary comparison / 边界对照](../output/continuous-surfaces-20261024/boundary-comparison.png),
 [validation / 验证记录](../output/continuous-surfaces-20261024/report.json).
+
+Authorized planar floors / 已授权的平面地面补齐（2026-10-24）：
+
+The operator explicitly authorized completion within wall boundaries, labelled
+as inferred, and confirmed no steps within either main storey. The new candidate
+uses one plane per storey, anchored at its stair entrance. Reviewed wall lines,
+observed floor edges and corridor connections define the finite outlines;
+stairwell openings and large courtyard voids remain. The offline exporter
+`tools/scene/complete_floors.py` consumes that reviewed plan. Runtime code is
+unchanged.
+
+The scene has **two main storeys**, with intermediate stairs and landings in a
+separate group. It replaces 208 main-floor patches with 13 bounded regions
+(nine lower, four upper), all coplanar within their storey. These are outline
+pieces, not 13 levels. The complete candidate has 829 nodes and 2469 collision
+parts, down from 1041 and 2880. All four flights and the three intermediate
+landings are unchanged; the entrance landings follow their corresponding floor
+plane. Added floors and those entrance landings are explicitly inferred.
+
+The source fitted surfaces differ from the new planes: lower/upper residual
+medians are 3.42/3.33 cm, P95 values 32.24/31.06 cm and maxima 48.58/59.59 cm.
+These are reconstruction-model differences, **not measured LiDAR precision**.
+The original PCD hash and the separate observed-only evidence are unchanged.
+Functional traversal of inferred geometry does not establish observed-only
+acceptance or real-building accuracy.
+
+Validation: native Go2W completes all 21 up/down waypoints. Direct Noetic E2E
+passes 33/33 checks over 261.482 simulation seconds at RTF 1.000. Both 200 Hz
+IMUs retain all 52,296 messages; 10 Hz LiDAR, point cloud, RGB and depth each
+retain 2614 frames through core IPC, ROS receiver and the closed bag, including
+exact timestamps and payload checks. RGB/depth remain 320 × 240 and LiDAR
+retains 20,000 rays. Core peak RSS is 856.3 MiB and mean CPU use 0.673 cores;
+these figures exclude the GUI and ROS processes. The final hierarchy-only
+changes leave every resolved physical part exactly equal to the tested scene.
+The actual native editor imports, renders and saves all 829 nodes unchanged.
+
+地面已按两个主要楼层合并并标注推定，跨楼层运动和 Noetic 传感器链路已通过。
+中间平台仍属于楼梯。当前窗口和安装版未替换；这是独立候选场景。
+
+Ceiling follow-up: paired local floor/ceiling fits put most sampled headroom at
+about 2.45 m. Two lower-storey regions instead show about 2.70 m, each supported
+by 11 qualified same-keyframe fits. One spans 183 s and the other 302 s of
+acquisition; the second region also contains a lower return. This supports
+retaining a local height difference, but does not establish its architectural
+type or full extent. **Ceiling geometry is not merged in this candidate.** Next,
+bound those regions and merge each continuous ceiling surface separately,
+preserving supported height changes. Walls also retain their prior geometry.
+
+主体天花板适合连续平面表达；下层局部净高比主体高约 25 厘米，需要保留并核对
+边界。尚不能据此判定为梁、吊顶或高顶房间，也不能用零碎点云直接认定顶面起伏。
+
+[Final scene / 最终场景](../output/wall-bounded-surfaces-20261024/candidate-final/scene.json),
+[stage report / 阶段报告](../output/wall-bounded-surfaces-20261024/report.json),
+[Noetic E2E](../output/wall-bounded-surfaces-20261024/ros-planar/report.json),
+[geometry audit / 几何核对](../output/wall-bounded-surfaces-20261024/geometry-audit.json),
+[native editor / 编辑器](../output/wall-bounded-surfaces-20261024/editor-final/report.json),
+[ceiling evidence / 天花板证据](../output/wall-bounded-surfaces-20261024/raw-headroom-locations-audit.json).
+
+Open this candidate on Jammy / 在 Jammy 打开此候选：
+
+```bash
+cd ~/Projects/simple_rbt
+./build/panda-jammy/simple-rbt-console \
+  --worker "$PWD/build/panda-jammy/simple-rbt-sim" \
+  --assets "$PWD/assets" \
+  --config "$PWD/output/wall-bounded-surfaces-20261024/candidate-final/session-preview.json"
+```
