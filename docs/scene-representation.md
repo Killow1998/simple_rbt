@@ -338,10 +338,23 @@ and assumed doorway dimensions remain inferred. Verify both collision and
 LiDAR rays, followed by traversal through the retained openings. Rendering a
 solid face alone does not establish an obstacle.
 
+Coplanar observations do not establish a connected corridor. Before joining
+wall spans, compare their finite point support, the floor footprint and the
+recorded trajectory for that storey. Validate the trajectory against its source
+bag or optimized pbstream poses. Split disconnected wall runs instead of taking
+one minimum/maximum extent across an unwalked, floorless gap. Absence of a
+trajectory alone does not prove absence of architecture; keep separately
+supported structural inference labelled as such. Check floor support under
+the recorded path and spawn, then traverse the affected corners and passages.
+
 墙面补齐应区分“缺少扫描点”和“真实洞口”。经确认后，已拟合墙面按完整范围
 连接地面、顶面与转角，通道另行保留。楼梯间墙体贯穿中间高度，不能只按两层
 普通房间高度分别生成。补齐跨度、墙厚和推定门洞尺寸均保留依据标签；验收必须
 包括碰撞、雷达射线和通道穿行。
+
+同一平面上的墙段不一定相连。补墙前须核对该层轨迹、有限地面边界及原始墙点的
+分布。没有轨迹、地面和墙点共同支持的空白区域，不能仅按墙面方向连成走廊。
+轨迹应与原始 bag 或 pbstream 位姿核对；轨迹和出生点下方须有地面支撑。
 
 When an operator confirms that a storey has no internal steps, fit its floor as
 one plane and retain differences from the source reconstruction in the report.

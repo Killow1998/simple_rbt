@@ -1811,3 +1811,62 @@ previous full-route acceptance.
 
 启动参数带入空格时，现在会明确报错，不再静默调用另一套核心。开发版优先使用
 同目录核心及项目资源；当前桌面的新场景画面已恢复，原有预设和草稿完整保留。
+
+Recorded corridor extent correction / 实走走廊范围修正（2026-10-25）：
+
+The earlier wall completion joined disconnected, similarly oriented upper-storey
+wall observations across an unwalked gap without floor support. It produced a
+false southwest corridor. Its previous stair E2E and wall contact checks did not
+validate this connection. The corrected scene truncates that bridge, retains the
+walked southwest stub and its west turn, splits the long inner wall into separate
+west/east runs, and retracts unsupported southeast tails. The upper spawn now
+lies on the recorded corridor and completed floor. All floor, ceiling, flight,
+landing and shared-template geometry is unchanged. No floor is invented across
+the rejected connection. The core and launcher binaries are unchanged.
+
+The 10,722-pose optimized source trajectory agrees with all 799 pbstream
+keyframes: maximum matched position difference is 5.79e-9 m. All 4,526 classified
+upper-storey non-stair samples have floor support. Original PCD, pbstream and
+trajectory hashes are unchanged. All 12 probes of the rejected bridge hit the
+old walls and miss them in the correction. The remaining completed walls pass
+24,282/24,282 ray tests and 390/390 contact probes. The candidate contains 464
+nodes and 1754 collision parts; inferred geometry remains labelled.
+
+Go2W + direct Noetic traverses 21/21 waypoints along the recorded upper southwest
+turn and back, with 37/37 acceptance checks over 66.022 simulation seconds at
+RTF 1.000. Each 200 Hz IMU produces 13,204 samples; LiDAR/PointCloud2 and RGB/depth
+each produce 660 frames at 10 Hz. LiDAR retains 20,000 rays and images retain
+320 × 240 pixels. IPC, independent ROS receiver and the closed bag match in
+counts, timestamps and checked payloads. Maximum tilt is 8.58 degrees and the
+return error is 0.120 m. Core-only mean CPU is 0.638 cores and peak RSS is
+784.8 MiB; these figures exclude GUI/ROS and are not a comparative benchmark.
+The four-flight route was not rerun for this wall-only revision.
+
+The isolated native editor passes all 10 rendering, navigation and save checks,
+preserving every node and template. Jammy's identified development window was
+reopened with the correction after preserving every prior preset and draft.
+Its live core preview is available. The desktop was locked during the final
+check, so post-unlock desktop interaction remains for Xian to confirm.
+
+Remaining scope: the lower-storey audit flags 102 trajectory samples in two
+regions outside the current finite floor footprint. Their boundary/support
+evidence still needs review. The upper correction does not establish whole-
+building topology accuracy or n3m localization performance.
+
+上层错误来自补墙范围：两端墙段被跨过无地面的空白区连接。现在保留实走短走廊
+及转角，收回错误延伸，并将上层出生点移到有地面支撑的轨迹位置。上层轨迹、墙体
+碰撞和 Go2W／Noetic 往返验收通过。下层另有两处地面边界待核对；不把本次结果
+称为整栋建筑验收。Jammy 已保留新窗口，锁屏解除后的桌面交互待 Xian 确认。
+
+[Corrected scene / 修正场景](../output/trajectory-corridors-20261025/candidate/scene.json),
+[recorded path overlay / 真实轨迹叠图](../output/trajectory-corridors-20261025/layout-after.png),
+[rejected bridge / 错误连接核验](../output/trajectory-corridors-20261025/rejected-bridge-audit.json),
+[Noetic E2E](../output/trajectory-corridors-20261025/ros-upper-west-motion/report.json),
+[native editor / 实际编辑器](../output/trajectory-corridors-20261025/editor/report.json).
+
+Open the current corridor correction / 打开当前走廊修正版：
+
+```bash
+cd ~/Projects/simple_rbt
+./build/panda-jammy/simple-rbt-console --config "$PWD/output/trajectory-corridors-20261025/candidate/session-preview.json"
+```
