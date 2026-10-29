@@ -25,22 +25,21 @@ RuntimeCameras::RuntimeCameras(Simulation &sim, const RunOptions &options)
                                              sim.camera_pose("camera_depth"));
   }
 }
-void RuntimeCameras::advance(Simulation &sim, Transport *bridge,
-                             RunObserver *observer) {
+void RuntimeCameras::advance(Simulation &sim, Transport *bridge) {
   const auto stamp = sim.stamp_ns();
   if (cameras && stamp >= next_camera) {
-    finish(bridge, observer);
+    finish(bridge);
     cameras->submit(sim.data(), sim.camera_pose(),
                     sim.camera_pose("camera_depth"));
     pending_stamp = stamp;
     next_camera += camera_period;
   }
 }
-void RuntimeCameras::publish_ready(Transport *bridge, RunObserver *observer) {
+void RuntimeCameras::publish_ready(Transport *bridge) {
   if (pending_stamp && cameras->ready())
-    finish(bridge, observer);
+    finish(bridge);
 }
-void RuntimeCameras::finish(Transport *bridge, RunObserver *observer) {
+void RuntimeCameras::finish(Transport *bridge) {
   if (pending_stamp) {
     cameras->wait();
     const auto stamp = pending_stamp;
@@ -69,8 +68,6 @@ void RuntimeCameras::finish(Transport *bridge, RunObserver *observer) {
       if (args.panorama_enabled)
         bridge->publish_camera(stamp, frames.panorama, true);
     }
-    if (observer)
-      observer->on_camera(stamp, frames);
     camera_times.push_back(cameras->seconds() + monotonic_seconds() - began);
     camera_frames++;
     pending_stamp = 0;

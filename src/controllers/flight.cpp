@@ -18,7 +18,8 @@ class Flight final : public Controller {
   int body;
   std::array<int, 4> motors{}, sites{};
   FlightCommand input;
-  std::string mode = "grounded", previous_action = "hold";
+  std::string mode = "grounded";
+  FlightAction previous_action = FlightAction::Hold;
   Vec3 target{}, integral{}, desired_velocity{};
   double heading = 0., ground = 0., landed_for = 0.;
   bool horizontal_hold = true, vertical_hold = true, saturated = false;
@@ -111,8 +112,6 @@ public:
     hold();
   }
   void set_flight(const FlightCommand &c) override {
-    if (!supported_flight_command(c))
-      throw std::invalid_argument("Invalid flight command");
     input = c;
     for (int i = 0; i < 3; ++i)
       input.velocity[i] =
@@ -137,11 +136,11 @@ public:
     const double dt = m->opt.timestep;
     const Vec3 p = position();
     const auto *r = d->xmat + 9 * body;
-    if (input.action == "disarm") {
+    if (input.action == FlightAction::Disarm) {
       transition("disarmed");
       hold();
     }
-    if (input.action == "takeoff" && previous_action != "takeoff" &&
+    if (input.action == FlightAction::Takeoff && previous_action != FlightAction::Takeoff &&
         (mode == "grounded" || mode == "disarmed")) {
       Vec3 origin = p;
       origin[2] += .05;
@@ -162,11 +161,11 @@ public:
         transition(clear ? "takeoff" : "takeoff_blocked");
       }
     }
-    if (input.action == "hold" && previous_action != "hold" && !stopped()) {
+    if (input.action == FlightAction::Hold && previous_action != FlightAction::Hold && !stopped()) {
       hold();
       transition("hover");
     }
-    if (input.action == "land" && previous_action != "land" && !stopped()) {
+    if (input.action == FlightAction::Land && previous_action != FlightAction::Land && !stopped()) {
       hold();
       transition("landing");
     }
@@ -183,7 +182,7 @@ public:
     double motion[6];
     mj_objectVelocity(m, d, mjOBJ_BODY, body, motion, 0);
     const Vec3 velocity{motion[3], motion[4], motion[5]};
-    if (input.action == "velocity") {
+    if (input.action == FlightAction::Velocity) {
       const bool xy = input.velocity[0] == 0. && input.velocity[1] == 0.;
       const bool z = input.velocity[2] == 0.;
       if (xy && !horizontal_hold) {
@@ -257,7 +256,7 @@ public:
     for (int i = 0; i < 3; ++i)
       rate[i] = clamp(
           6. * local_error[i] +
-              r[6 + i] * (input.action == "velocity" ? input.yaw_rate : 0.),
+              r[6 + i] * (input.action == FlightAction::Velocity ? input.yaw_rate : 0.),
           -3., 3.);
     double rotation[9], tensor[9]{};
     mju_quat2Mat(rotation, m->body_iquat + 4 * body);

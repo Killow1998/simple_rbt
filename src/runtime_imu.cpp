@@ -9,11 +9,10 @@ RuntimeImus::RuntimeImus(const Simulation &sim)
                                sim.pose("camera_imu").quaternion);
 }
 void RuntimeImus::advance(const Simulation &sim, bool mid360_enabled,
-                          Transport *bridge, ArtifactWriter &artifacts,
-                          RunObserver *observer) {
+                          Transport *bridge, ArtifactWriter &artifacts) {
   imu_sampler.advance(
       sim.imu(), sim.pose("mid360_imu").quaternion,
-      [&](const ImuSample &sample, std::array<std::uint64_t, 2> source) {
+      [&](const ImuSample &sample, auto) {
         if (sample.stamp_ns != sim.stamp_ns())
           ++interpolated;
         if (diagnostics::log().tracing())
@@ -24,8 +23,6 @@ void RuntimeImus::advance(const Simulation &sim, bool mid360_enabled,
         if (bridge && mid360_enabled)
           bridge->publish_imu(sample);
         artifacts.imu(sample);
-        if (observer)
-          observer->on_imu(sample, source);
         ++imu_samples;
         last_stamp = sample.stamp_ns;
       });

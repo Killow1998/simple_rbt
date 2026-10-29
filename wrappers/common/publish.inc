@@ -1,17 +1,15 @@
 // Shared wire conversion; included after the selected wrapper's Impl.
 void RosBridge::publish_status(const std::string& json) {
-  std::lock_guard<std::mutex> lock(impl_->publication_mutex); impl_->require_open();
   messages::String message; message.data = json; send(impl_->status, message);
 }
 void RosBridge::publish_imu(const ImuSample& sample) {
-  finite(sample.angular_velocity); finite(sample.specific_force);
   Vec3 gyro{}, acceleration_g{};
   for (int axis = 0; axis < 3; ++axis) {
     gyro[axis] = wire_float32(sample.angular_velocity[axis]);
     acceleration_g[axis] = wire_float32(sample.specific_force[axis] / kG0);
   }
   finite(gyro); finite(acceleration_g);
-  std::lock_guard<std::mutex> lock(impl_->publication_mutex); impl_->require_open();
+
   messages::Imu raw;
   raw.header = header(sample.stamp_ns, impl_->options.lidar_frame);
   xyz(raw.angular_velocity, gyro); xyz(raw.linear_acceleration, acceleration_g);
@@ -24,9 +22,6 @@ void RosBridge::publish_imu(const ImuSample& sample) {
   send(impl_->imu_si, si);
 }
 void RosBridge::publish_camera_imu(const ImuSample& sample) {
-  finite(sample.angular_velocity); finite(sample.specific_force);
-  std::lock_guard<std::mutex> lock(impl_->publication_mutex); impl_->require_open();
-  if (!impl_->has_camera_imu) throw std::invalid_argument("D435i IMU extrinsics are required");
   messages::Imu message;
   message.header=header(sample.stamp_ns,impl_->options.camera_imu_frame);
   xyz(message.angular_velocity,sample.angular_velocity);
@@ -35,14 +30,7 @@ void RosBridge::publish_camera_imu(const ImuSample& sample) {
   send(impl_->camera_imu,message);
 }
 void RosBridge::publish_scan(const LidarScan& scan) {
-  std::lock_guard<std::mutex> lock(impl_->publication_mutex); impl_->require_open();
   const auto count = scan.xyz.size();
-  if (scan.offsets_ns.size() != count || scan.lines.size() != count)
-    throw std::invalid_argument("scan offsets and lines must match xyz count");
-  if (count > std::numeric_limits<std::uint32_t>::max() / 26)
-    throw std::invalid_argument("scan exceeds ROS pointcloud row_step range");
-  for (const auto& xyz_value : scan.xyz) for (float value : xyz_value)
-    if (!std::isfinite(value)) throw std::invalid_argument("scan xyz must be finite");
   messages::Custom custom;
   custom.header = header(scan.stamp_ns, impl_->options.lidar_frame);
   custom.timebase = scan.stamp_ns; custom.point_num = static_cast<std::uint32_t>(count);
@@ -80,8 +68,6 @@ void RosBridge::publish_scan(const LidarScan& scan) {
 }
 void RosBridge::publish_odometry(std::uint64_t ns, const Pose& pose,
                                  const Vec3& linear_velocity, const Vec3& angular_velocity) {
-  valid_pose(pose); finite(linear_velocity); finite(angular_velocity);
-  std::lock_guard<std::mutex> lock(impl_->publication_mutex); impl_->require_open();
   messages::Odometry message;
   message.header = header(ns, impl_->options.odom_frame); message.child_frame_id = impl_->options.base_frame;
   xyz(message.pose.pose.position, pose.position); quaternion(message.pose.pose.orientation, pose.quaternion);
@@ -100,19 +86,6 @@ void RosBridge::publish_external_camera(std::uint64_t ns,
 void RosBridge::publish_image(std::uint64_t ns, const CameraFrame &frame,
                               int kind) {
   const bool panorama = kind == 1, external = kind == 2;
-  if (frame.width <= 0 || frame.height <= 0 || frame.width > std::numeric_limits<int>::max() / 4)
-    throw std::invalid_argument("camera width and height must be positive and fit ROS row stride");
-  const std::size_t count = static_cast<std::size_t>(frame.width) * frame.height;
-  if ((frame.rgb.size() != count * 3 && !frame.rgb.empty()) ||
-      (frame.depth.size() != count && !frame.depth.empty()) ||
-      (frame.rgb.empty() && frame.depth.empty()))
-    throw std::invalid_argument("camera RGB/depth sizes must match width and height");
-  if (frame.radial_depth != panorama)
-    throw std::invalid_argument("camera radial_depth must match panorama kind");
-  std::lock_guard<std::mutex> lock(impl_->publication_mutex); impl_->require_open();
-  if (external ? !impl_->has_external_camera : !impl_->has_camera)
-    throw std::invalid_argument(
-        "camera extrinsics are required to publish camera images");
   const std::string color_frame =
       external ? impl_->external_frame : impl_->options.camera_frame;
   const std::string depth_frame = external ? impl_->external_depth_frame
@@ -160,7 +133,6 @@ void RosBridge::publish_image(std::uint64_t ns, const CameraFrame &frame,
   }
 }
 std::optional<JointCommand> RosBridge::joint_command() const {
-  std::lock_guard<std::mutex> lock(impl_->command_mutex);
   if (!impl_->joints_received ||
       SteadyClock::now() - *impl_->joints_received >=
           std::chrono::duration<double>(impl_->options.command_timeout_s))
@@ -168,12 +140,7 @@ std::optional<JointCommand> RosBridge::joint_command() const {
   return impl_->latest_joints;
 }
 void RosBridge::publish_joints(std::uint64_t ns, const JointState &state) {
-  std::lock_guard<std::mutex> lock(impl_->publication_mutex);
-  impl_->require_open();
-  if (state.name.size() != state.position.size() ||
-      state.name.size() != state.velocity.size() ||
-      state.name.size() != state.effort.size())
-    throw std::invalid_argument("Inconsistent joint state");
+
   messages::Joints message;
   message.header = header(ns, impl_->options.base_frame);
   message.name = state.name;
@@ -182,7 +149,6 @@ void RosBridge::publish_joints(std::uint64_t ns, const JointState &state) {
   message.effort = state.effort;
   send(impl_->joints, message);
   if (!impl_->camera_parent.empty()) {
-    valid_pose(state.tool_pose);
     impl_->publish_transform(transform(ns, impl_->options.base_frame,
                                        impl_->camera_parent, state.tool_pose));
   }

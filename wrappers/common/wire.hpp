@@ -75,16 +75,6 @@ inline void finite(const Vec3& v) {
   if (!std::all_of(v.begin(), v.end(), [](double x) { return std::isfinite(x); }))
     throw std::invalid_argument("vector must contain three finite values");
 }
-inline void valid_pose(const Pose& pose) {
-  finite(pose.position);
-  double norm2 = 0.;
-  for (double x : pose.quaternion) {
-    if (!std::isfinite(x)) throw std::invalid_argument("quaternion must be finite");
-    norm2 += x * x;
-  }
-  if (std::abs(std::sqrt(norm2) - 1.) > 1.e-5)
-    throw std::invalid_argument("WXYZ quaternion must have unit norm");
-}
 inline messages::Time stamp(std::uint64_t ns) {
   if (ns / kBillion > static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max()))
     throw std::invalid_argument("simulation timestamp is outside ROS Time range");

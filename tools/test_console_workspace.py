@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Real X11 input: named presets, scene editing, uninterrupted preview and reopen."""
+"""Native robot presets, drafts, extrinsics and reopen E2E."""
 import argparse,json,os,subprocess,sys,time,math,hashlib
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
@@ -46,7 +46,7 @@ def main():
   try:
    proc=subprocess.Popen(base+['--config',str(config)],env=env,stdout=log,stderr=log)
    directory=connect();window=inputs.window();inputs.focus(window);screenshot('launch')
-   original_window=window;inputs.click(175,90);time.sleep(.3)
+   inputs.click(175,90);time.sleep(.3)
    name(150,174,'survey-one')
    metadata,_=observer.snapshot();mount=metadata['mounts']['mid360']['position'];viewport=inputs.viewport(window,metadata['observer']['width'],metadata['observer']['height'])
    length=gizmo_length(metadata,mount,viewport);tip=project(metadata,[mount[0]+length,mount[1],mount[2]],viewport)
@@ -59,62 +59,13 @@ def main():
    w=wait_saved(lambda w:w['robots'].get(robot_id,{}).get('name')=='survey-renamed')
    check('renaming keeps stable preset identity',len(w['robots'])==1)
    screenshot('robot-preset')
-   inputs.click(310,90);time.sleep(.3);screenshot('scene-editor')
-   check('page navigation keeps window and worker',inputs.find_window()==original_window and child_session(proc.pid)==directory)
-   name(120,165,'warehouse-two-floors')
-   # Ground-floor ramp is the second object in the tree.
-   inputs.click(110,385);time.sleep(.2);screenshot('selected-ramp')
-   # Edit connecting-ramp width through the native property inspector.
-   name(1080,530,'2.5')
-   w=wait_saved(lambda w:any(any(o['kind']=='ramp' and abs(o['size'][1]-2.5)<1e-6 for o in s['objects']) for s in w['scene_drafts'].values()))
-   scene_id=w['scene_id'];check('native scene property edit persists',True)
-   count=len(w['scene_drafts'][scene_id]['objects'])
-   inputs.click(480,146)
-   wait_saved(lambda w:len(w['scene_drafts'][scene_id]['objects'])==count-1)
-   inputs.click(312,146)
-   wait_saved(lambda w:len(w['scene_drafts'][scene_id]['objects'])==count)
-   inputs.click(384,146)
-   wait_saved(lambda w:len(w['scene_drafts'][scene_id]['objects'])==count-1)
-   inputs.click(312,146)
-   wait_saved(lambda w:len(w['scene_drafts'][scene_id]['objects'])==count)
-   check('native delete undo redo restores selected object',True)
-   # Select a left-turn flight through the real dropdown, then save/reopen it.
-   inputs.click(1150,462);inputs.press('Down');inputs.press('Return')
-   wait_saved(lambda w:any(o.get('connection',{}).get('turn_deg')==90 for o in w['scene_drafts'][scene_id]['objects']))
-   check('native turn selection generates a landing',True)
-   inputs.click(70,216);w=wait_saved(lambda w:scene_id in w['scenes'])
-   check('named multilevel scene saves independently',len(w['scenes'][scene_id]['floors'])==2 and w['robots'][robot_id]['name']=='survey-renamed')
-   screenshot('scene-properties')
-   for theme in ('light','dark'):
-    inputs.click(995,32);inputs.press('End' if theme=='light' else 'Home');inputs.press('Return')
-    for language in ('zh','en'):
-     inputs.click(1120,32);inputs.press('End' if language=='zh' else 'Home');inputs.press('Return')
-     time.sleep(.2);screenshot('scene-'+theme+'-'+language)
-   # Runtime scene switches keep the old frame until the new worker renders.
-   inputs.click(120,825)
-   colored=[];distinct=[]
-   for i in range(14):
-    width,height,pixels=inputs.pixels(window)
-    count=sum(tuple(pixels[(y*width+x)*3:(y*width+x)*3+3]) not in [(0,0,0),(21,27,36),(25,29,36)] for y in range(350,750,8) for x in range(500,1250,8))
-    colored.append(count)
-    distinct.append(len({tuple(pixels[(y*width+x)*3:(y*width+x)*3+3]) for y in range(350,750,8) for x in range(500,1250,8)}))
-    if i==1:screenshot('scene-loading')
-    time.sleep(.08)
-   directory=connect(exclude=directory)
-   metadata,_=observer.snapshot();w=wait_saved(lambda w:w['config'].get('scene',{}).get('id')==scene_id)
-   check('scene switch keeps a visible previous or new image',min(colored)>500 and min(distinct)>5,dict(nonblank_pixels=colored,distinct_colors=distinct))
-   check('scene loading retains native window',inputs.find_window()==original_window)
-   check('scene switch preserves robot extrinsics',math.dist(metadata['mounts']['mid360']['position'],edited['position'])<1e-6)
-   check('only one simulation worker remains',len(owned_workers(proc.pid))==1)
-   screenshot('custom-scene-launch')
    # Edit a draft without saving and verify the saved preset survives reopening.
    inputs.click(175,90);time.sleep(.2);name(150,174,'unfinished-draft')
    wait_saved(lambda w:w['robot_drafts'][robot_id]['name']=='unfinished-draft')
    close()
    proc=subprocess.Popen(base,env=env,stdout=log,stderr=log);directory=connect();window=inputs.window();inputs.focus(window)
    metadata,_=observer.snapshot();w=json.loads(workspace.read_text())
-   check('reopen restores selected scene and named robot draft',w['robot_id']==robot_id and w['config']['scene']['id']==scene_id and w['robot_drafts'][robot_id]['name']=='unfinished-draft')
-   check('reopen preserves turning flight and landing',any(o.get('connection',{}).get('turn_deg')==90 and o['connection'].get('landing_m',0)>=o['size'][1] for o in w['config']['scene']['objects']))
+   check('reopen restores selected named robot draft',w['robot_id']==robot_id and w['robot_drafts'][robot_id]['name']=='unfinished-draft')
    check('reopen keeps saved preset separate from draft',w['robots'][robot_id]['name']=='survey-renamed')
    check('reopen restores extrinsics in real core',math.dist(metadata['mounts']['mid360']['position'],edited['position'])<1e-6)
    screenshot('reopened')

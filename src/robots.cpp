@@ -1,3 +1,4 @@
+#include "simple_rbt/commands.hpp"
 #include "simple_rbt/robots.hpp"
 #include <cmath>
 #include <stdexcept>
@@ -82,13 +83,22 @@ bool supported_command(const std::string &name, const Vec3 &command) noexcept {
   return spec->allows_in_place_turn || std::abs(command[0]) > 1e-9 ||
          command[2] == 0.;
 }
+const char *flight_action_name(FlightAction action) {
+  static constexpr const char *names[]{"hold", "velocity", "takeoff", "land", "disarm"};
+  return names[static_cast<unsigned>(action)];
+}
+std::optional<FlightAction> parse_flight_action(std::string_view name) {
+  for (auto action : {FlightAction::Hold, FlightAction::Velocity,
+                      FlightAction::Takeoff, FlightAction::Land, FlightAction::Disarm})
+    if (name == flight_action_name(action)) return action;
+  return {};
+}
 bool supported_flight_command(const FlightCommand &c) noexcept {
   for (double v : c.velocity)
     if (!std::isfinite(v)) return false;
   if (!std::isfinite(c.yaw_rate) || !std::isfinite(c.takeoff_height) ||
       c.takeoff_height < .25 || c.takeoff_height > 5.) return false;
-  if(c.action!="velocity" && (c.velocity!=Vec3{} || c.yaw_rate!=0.))return false;
-  return c.action == "hold" || c.action == "velocity" ||
-         c.action == "takeoff" || c.action == "land" || c.action == "disarm";
+  return c.action == FlightAction::Velocity ||
+         (c.velocity == Vec3{} && c.yaw_rate == 0.);
 }
 } // namespace simple_rbt

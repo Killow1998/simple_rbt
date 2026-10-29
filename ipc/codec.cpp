@@ -1,4 +1,5 @@
 #include "simple_rbt/ipc.hpp"
+#include "validation.hpp"
 #include <algorithm>
 #include <cstring>
 #include <limits>
@@ -9,6 +10,7 @@ namespace simple_rbt::ipc {
 namespace {
 struct Writer {
   std::vector<std::uint8_t> data;
+  explicit Writer(std::size_t size) { data.reserve(size); }
   template <class T> void value(T v) {
     static_assert(std::is_trivially_copyable_v<T>);
     std::uint8_t bits[sizeof(T)];
@@ -27,8 +29,6 @@ struct Reader {
   const std::vector<std::uint8_t> &data;
   std::size_t offset = 0;
   template <class T> T value() {
-    if (offset + sizeof(T) > data.size())
-      throw std::invalid_argument("truncated IPC payload");
     std::uint8_t bits[sizeof(T)];
     std::memcpy(bits, data.data() + offset, sizeof(T));
     offset += sizeof(T);
@@ -42,10 +42,6 @@ struct Reader {
   template <class T, std::size_t N> void array(std::array<T, N> &v) {
     for (T &x : v)
       x = value<T>();
-  }
-  void done() const {
-    if (offset != data.size())
-      throw std::invalid_argument("trailing IPC payload");
   }
 };
 void pose(Writer &w, const Pose &p) {
@@ -71,28 +67,26 @@ Json decode_json(const Packet &p) {
   return Json::parse(p.payload.begin(), p.payload.end());
 }
 Packet encode_imu(const ImuSample &s) {
-  Writer w;
+  Writer w(6 * sizeof(double));
   w.array(s.angular_velocity);
   w.array(s.specific_force);
   return {Kind::Imu, s.stamp_ns, std::move(w.data)};
 }
 ImuSample decode_imu(const Packet &p) {
+  if (p.payload.size() != 6 * sizeof(double))
+    throw std::invalid_argument("Invalid IMU payload length");
   Reader r{p.payload};
   ImuSample s;
   s.stamp_ns = p.stamp_ns;
   r.array(s.angular_velocity);
   r.array(s.specific_force);
-  r.done();
+  finite_vector(s.angular_velocity);
+  finite_vector(s.specific_force);
   return s;
 }
 Packet encode_scan(const LidarScan &s) {
   const auto n = s.xyz.size();
-  if (s.offsets_ns.size() != n || s.lines.size() != n ||
-      (!s.ray_indices.empty() && s.ray_indices.size() != n))
-    throw std::invalid_argument("IPC scan columns differ");
-  if (n > (max_payload_bytes - 17) / 25)
-    throw std::invalid_argument("IPC scan too large");
-  Writer w;
+  Writer w(17 + n * (s.ray_indices.empty() ? 17 : 25));
   w.value<std::uint64_t>(s.rays_cast);
   w.value<std::uint64_t>(n);
   w.value<std::uint8_t>(!s.ray_indices.empty());
@@ -106,6 +100,7 @@ Packet encode_scan(const LidarScan &s) {
   return {Kind::Lidar, s.stamp_ns, std::move(w.data)};
 }
 LidarScan decode_scan(const Packet &p) {
+  if (p.payload.size() < 17) throw std::invalid_argument("Truncated scan header");
   Reader r{p.payload};
   LidarScan s;
   s.stamp_ns = p.stamp_ns;
@@ -122,39 +117,38 @@ LidarScan decode_scan(const Packet &p) {
     s.ray_indices.resize(n);
   for (std::size_t i = 0; i < n; ++i) {
     r.array(s.xyz[i]);
+    for (float value : s.xyz[i])
+      if (!std::isfinite(value)) throw std::invalid_argument("scan xyz must be finite");
     s.offsets_ns[i] = r.value<std::uint32_t>();
     s.lines[i] = r.value<std::uint8_t>();
     if (indices)
       s.ray_indices[i] = r.value<std::uint64_t>();
   }
-  r.done();
   return s;
 }
 Packet encode_odometry(std::uint64_t ns, const Pose &p, const Vec3 &linear,
                        const Vec3 &angular) {
-  Writer w;
+  Writer w(13 * sizeof(double));
   pose(w, p);
   w.array(linear);
   w.array(angular);
   return {Kind::Odometry, ns, std::move(w.data)};
 }
 Odometry decode_odometry(const Packet &p) {
+  if (p.payload.size() != 13 * sizeof(double))
+    throw std::invalid_argument("Invalid odometry payload length");
   Reader r{p.payload};
   Odometry o;
   pose(r, o.pose);
   r.array(o.linear);
   r.array(o.angular);
-  r.done();
+  unit_pose(o.pose);
+  finite_vector(o.linear);
+  finite_vector(o.angular);
   return o;
 }
 Packet encode_camera(std::uint64_t ns, const CameraFrame &f, Kind kind) {
-  const auto pixels = static_cast<std::size_t>(f.width) * f.height;
-  if (f.width <= 0 || f.height <= 0 || pixels > (max_payload_bytes - 25) / 7 ||
-      (f.rgb.size() != pixels * 3 && !f.rgb.empty()) ||
-      (f.depth.size() != pixels && !f.depth.empty()) ||
-      (f.rgb.empty() && (kind == Kind::View || f.depth.empty())))
-    throw std::invalid_argument("invalid IPC camera dimensions or channels");
-  Writer w;
+  Writer w(25 + f.rgb.size() + f.depth.size() * sizeof(float));
   w.value<std::uint32_t>(f.width);
   w.value<std::uint32_t>(f.height);
   w.value<std::uint8_t>(f.radial_depth);
@@ -166,6 +160,7 @@ Packet encode_camera(std::uint64_t ns, const CameraFrame &f, Kind kind) {
   return {kind, ns, std::move(w.data)};
 }
 CameraFrame decode_camera(const Packet &p) {
+  if (p.payload.size() < 25) throw std::invalid_argument("Truncated camera header");
   Reader r{p.payload};
   CameraFrame f;
   f.width = r.value<std::uint32_t>();
@@ -173,7 +168,7 @@ CameraFrame decode_camera(const Packet &p) {
   const auto radial = r.value<std::uint8_t>();
   const auto rgb = r.value<std::uint64_t>(), depth = r.value<std::uint64_t>();
   const auto pixels = static_cast<std::uint64_t>(f.width) * f.height;
-  if (f.width <= 0 || f.height <= 0 || radial > 1 ||
+  if (f.width <= 0 || f.height <= 0 || radial != (p.kind == Kind::Panorama) ||
       pixels > (max_payload_bytes - 25) / 7 ||
       (rgb != pixels * 3 && rgb != 0) || (depth != pixels && depth != 0) ||
       (rgb == 0 && (p.kind == Kind::View || depth == 0)) ||
@@ -186,7 +181,6 @@ CameraFrame decode_camera(const Packet &p) {
   f.depth.resize(depth);
   for (float &x : f.depth)
     x = r.value<float>();
-  r.done();
   return f;
 }
 Json extrinsics_json(const Extrinsics &e) {
@@ -219,6 +213,11 @@ Extrinsics decode_extrinsics(const Json &j) {
     e.external_camera = from_pose(j.at("external_camera"));
     e.external_depth = from_pose(j.at("external_depth"));
   }
+  unit_pose(e.lidar); unit_pose(e.imu);
+  if (e.has_camera) unit_pose(e.camera);
+  if (e.has_camera && e.separate_camera_frames) unit_pose(e.camera_depth);
+  if (e.has_camera_imu) unit_pose(e.camera_imu);
+  if (e.has_external_camera) { unit_pose(e.external_camera); unit_pose(e.external_depth); }
   return e;
 }
 } // namespace simple_rbt::ipc

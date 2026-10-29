@@ -6,7 +6,6 @@
 namespace simple_rbt::session_detail {
 Pose parse_pose(const Json &);
 Json pose_json(const Pose &);
-Extrinsics transport_extrinsics(Simulation &, bool camera);
 struct ObserverView {
   double azimuth = -135., elevation = 25., distance = 1.8, fov = 45.;
   Vec3 lookat{}, up{};
@@ -15,7 +14,7 @@ struct ObserverView {
   OpticalPose pose();
 };
 class SessionObserver final : public RunObserver {
-  const Json config_;
+  const RunOptions &options_;
   Simulation *sim_ = nullptr;
   ipc::SessionServer *server_ = nullptr;
   bool running_ = false, started_ = false, closing_ = false, dirty_ = true;
@@ -28,7 +27,6 @@ class SessionObserver final : public RunObserver {
          simulation_time_ = 0;
   Json resources_ = {
       {"cpu_percent_one_core", 0.}, {"rss_mib", 0.}, {"real_time_factor", 0.}};
-  Json sensors_;
   volatile std::sig_atomic_t &interrupted_;
   Json metadata();
   void publish_metadata(double now);
@@ -36,7 +34,8 @@ class SessionObserver final : public RunObserver {
   void tick();
 
 public:
-  SessionObserver(Json, volatile std::sig_atomic_t &interrupted);
+  SessionObserver(const RunOptions &, std::string source, bool running,
+                  volatile std::sig_atomic_t &interrupted);
   void configure(Simulation &, Transport *) override;
   bool before_step(Simulation &, Transport *) override;
   bool should_stop(Simulation &) override;

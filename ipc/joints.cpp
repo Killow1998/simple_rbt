@@ -1,4 +1,5 @@
 #include "simple_rbt/ipc.hpp"
+#include "validation.hpp"
 #include <cmath>
 #include <set>
 namespace simple_rbt::ipc {
@@ -46,6 +47,7 @@ simple_rbt::JointState decode_joints(const Packet &p) {
     throw std::invalid_argument("Inconsistent joint state arrays");
   s.tool_pose.position = j.at("tool_pose").at("position").get<Vec3>();
   s.tool_pose.quaternion = j.at("tool_pose").at("quaternion").get<Quat>();
+  unit_pose(s.tool_pose);
   return s;
 }
 } // namespace simple_rbt::ipc

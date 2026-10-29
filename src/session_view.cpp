@@ -36,7 +36,7 @@ Json SessionObserver::metadata() {
                  {"camera", pose_json(sim_->extrinsics("camera_mount"))}};
   Json parents = {{"mid360", pose_json(sim_->mount_parent("mid360"))},
                   {"camera", pose_json(sim_->mount_parent("camera"))}};
-  if (sensors_.value("external_camera", false)) {
+  if (options_.simulation.external_camera_enabled) {
     mounts["external_camera"] =
         pose_json(sim_->extrinsics("external_camera_mount"));
     parents["external_camera"] =
@@ -46,20 +46,24 @@ Json SessionObserver::metadata() {
           {"flight", sim_->flight_status()},
           {"mount_parents", parents},
           {"logging", diagnostics::log().health()},
-          {"robot", config_.value("robot", std::string("ranger_mini"))},
+          {"robot", options_.simulation.robot},
           {"running", running_ && !closing_},
           {"session_state", closing_   ? "closed"
                             : running_ ? "running"
                             : started_ ? "paused"
                                        : "config"},
           {"source", source_},
-          {"sensors", sensors_},
+          {"sensors", {{"mid360", options_.mid360_enabled},
+                       {"camera", options_.camera_enabled},
+                       {"depth", options_.depth_enabled},
+                       {"panorama", options_.panorama_enabled},
+                       {"external_camera", options_.simulation.external_camera_enabled}}},
           {"mounts", mounts},
           {"mid360_internal_imu", pose_json(sim_->extrinsics("mid360_imu"))},
           {"mid360_imu_locked", true},
           {"lidar_model", sim_->lidar_device().name},
           {"lidar_imu_offset", sim_->lidar_device().imu_offset},
-          {"camera_model", config_.value("camera_model", std::string("d435"))},
+          {"camera_model", options_.simulation.camera_model},
           {"camera_imu_locked", sim_->has_camera_imu()},
           {"camera_imu_mount", pose_json(sim_->extrinsics("camera_imu"))},
           {"body_imu_mount", pose_json(sim_->extrinsics("imu"))},

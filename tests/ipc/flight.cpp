@@ -29,7 +29,7 @@ int main() {
     check(program.connect(dir, "program", {}), "program connection");
     wait();
     FlightCommand takeoff;
-    takeoff.action = "takeoff";
+    takeoff.action = FlightAction::Takeoff;
     gui.send_packet(encode_flight_command(takeoff));
     wait();
     SimulationOptions setup;
@@ -45,13 +45,13 @@ int main() {
     advance(8);
     check(sim.pose().position[2] > .9, "IPC takeoff");
     FlightCommand move;
-    move.action = "velocity";
+    move.action = FlightAction::Velocity;
     move.velocity = {.5, 0, 0};
     gui.send_packet(encode_flight_command(move));
     wait();
     advance(3);
     std::this_thread::sleep_for(std::chrono::milliseconds(180));
-    check(server.flight_command().action == "hold",
+    check(server.flight_command().action == FlightAction::Hold,
           "timeout did not request hold");
     advance(4);
     const auto held = sim.pose().position;
@@ -62,14 +62,14 @@ int main() {
     program.send_packet(encode_flight_command(move));
     wait();
     FlightCommand cut;
-    cut.action = "disarm";
+    cut.action = FlightAction::Disarm;
     gui.send_packet(encode_flight_command(cut));
     wait();
-    check(server.flight_command().action == "velocity",
+    check(server.flight_command().action == FlightAction::Velocity,
           "GUI focus/motor cut overrode program owner");
     program.close();
     wait();
-    check(server.flight_command().action == "hold", "disconnect did not hold");
+    check(server.flight_command().action == FlightAction::Hold, "disconnect did not hold");
     server.set_source("gui");
     gui.send_packet(json_packet(
         Kind::FlightCommand,
@@ -78,7 +78,7 @@ int main() {
     bool rejected = false;
     for (const auto &p : gui.poll())
       rejected |= p.kind == Kind::Error;
-    check(rejected && server.flight_command().action == "hold",
+    check(rejected && server.flight_command().action == FlightAction::Hold,
           "ambiguous frame was accepted");
     for (int variant = 0; variant < 2; ++variant) {
       auto invalid = decode_json(encode_flight_command(move));
@@ -91,12 +91,12 @@ int main() {
       bool refused = false;
       for (const auto &packet : gui.poll())
         refused |= packet.kind == Kind::Error;
-      check(refused && server.flight_command().action == "hold",
+      check(refused && server.flight_command().action == FlightAction::Hold,
             "unsupported flight axis was ignored");
     }
     gui.send_command({1, 0, 0});
     wait();
-    check(server.flight_command().action == "hold",
+    check(server.flight_command().action == FlightAction::Hold,
           "legacy planar command entered flight");
     server.set_running(false);
     check(server.command_status()["state"] == "paused", "pause state missing");

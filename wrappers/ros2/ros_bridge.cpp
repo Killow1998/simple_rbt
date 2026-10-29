@@ -20,7 +20,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
-#include <mutex>
 #include <regex>
 #include <set>
 #include <stdexcept>
@@ -45,7 +44,6 @@ std::size_t domain(const RosOptions& options) {
 struct RosBridge::Impl {
   RosOptions options;
   std::string command_topic, node_namespace;
-  mutable std::mutex publication_mutex, command_mutex;
   Vec3 latest_command{};
   FlightCommand latest_flight;
   bool command_rejected = false;
@@ -95,18 +93,12 @@ struct RosBridge::Impl {
     if (!std::isfinite(options.perspective_fov_y_deg) || options.perspective_fov_y_deg <= 0. ||
         options.perspective_fov_y_deg >= 180.)
       throw std::invalid_argument("perspective field of view must lie between 0 and 180 degrees");
-    valid_pose(extrinsics.lidar); valid_pose(extrinsics.imu);
-    if (has_camera) valid_pose(extrinsics.camera);
-    if (has_camera && separate_camera_frames) valid_pose(extrinsics.camera_depth);
-    if (has_camera_imu) valid_pose(extrinsics.camera_imu);
     std::vector<std::string> frames{options.odom_frame, options.base_frame, options.lidar_frame, options.imu_frame};
     if (has_camera) frames.push_back(options.camera_frame);
     if (has_camera && separate_camera_frames) frames.push_back(options.camera_depth_frame);
     if (has_camera_imu) frames.push_back(options.camera_imu_frame);
     if (!camera_parent.empty()) frames.push_back(camera_parent);
     if (has_external_camera) {
-      valid_pose(extrinsics.external_camera);
-      valid_pose(extrinsics.external_depth);
       frames.push_back(external_frame);
       frames.push_back(external_depth_frame);
     }
@@ -164,7 +156,6 @@ struct RosBridge::Impl {
         joint_commands = node->create_subscription<messages::Joints>(
             "joint_position_command", 10,
             [this](messages::Joints::ConstSharedPtr message) {
-              std::lock_guard<std::mutex> lock(command_mutex);
               latest_joints = {message->name, message->position, false};
               joints_received = SteadyClock::now();
             });
@@ -173,7 +164,6 @@ struct RosBridge::Impl {
         commands = node->create_subscription<geometry_msgs::msg::Twist>(
             "cmd_vel", 10,
             [this](geometry_msgs::msg::Twist::ConstSharedPtr message) {
-              std::lock_guard<std::mutex> lock(command_mutex);
               if (velocity_command(options.robot_name, *message, latest_command, latest_flight)) {
               command_rejected = false;
                 received_at = SteadyClock::now();
@@ -188,10 +178,11 @@ struct RosBridge::Impl {
         node->declare_parameter<double>("takeoff_height",1.);
         flight_actions=node->create_subscription<messages::String>("flight_action",10,
           [this](messages::String::ConstSharedPtr message) {
-            FlightCommand request;request.action=message->data;
+            const auto action = parse_flight_action(message->data);
+          FlightCommand request;request.action=action.value_or(FlightAction::Hold);
             request.takeoff_height=node->get_parameter("takeoff_height").as_double();
-            std::lock_guard<std::mutex> lock(command_mutex);
-            const bool valid=supported_flight_command(request);
+
+            const bool valid=action && supported_flight_command(request);
           if(!valid && !command_rejected) RCLCPP_WARN(node->get_logger(), "Unsupported flight action or takeoff height");
           command_rejected=!valid;latest_flight=valid?request:FlightCommand{};
             received_at=SteadyClock::now();
@@ -229,54 +220,29 @@ struct RosBridge::Impl {
     }
   }
   void publish_transform(const messages::Transform& value) { tf->sendTransform(value); }
-  void require_open() const {
-    if (closed || !context->is_valid()) throw std::runtime_error("ROS bridge is closed");
-  }
 };
 
 RosBridge::RosBridge(RosOptions options, const Extrinsics& extrinsics)
     : impl_(std::make_unique<Impl>(std::move(options), extrinsics)) {}
 RosBridge::~RosBridge() { try { close(); } catch (...) {} }
-const RosOptions& RosBridge::options() const { return impl_->options; }
-const char* RosBridge::backend() const { return "ros2"; }
-const std::string& RosBridge::command_topic() const { return impl_->command_topic; }
-const std::string& RosBridge::node_namespace() const { return impl_->node_namespace; }
 Vec3 RosBridge::command() const {
-  std::lock_guard<std::mutex> lock(impl_->command_mutex);
   if (!impl_->received_at || std::chrono::duration<double>(SteadyClock::now() - *impl_->received_at).count() >= impl_->options.command_timeout_s)
     return {};
   return impl_->latest_command;
 }
 FlightCommand RosBridge::flight_command() const {
-  std::lock_guard<std::mutex> lock(impl_->command_mutex);
   if(!impl_->received_at || SteadyClock::now()-*impl_->received_at >=
       std::chrono::duration<double>(impl_->options.command_timeout_s))return {};
   return impl_->latest_flight;
 }
-void RosBridge::spin_once(double timeout_s) {
-  if (!std::isfinite(timeout_s) || timeout_s < 0.) throw std::invalid_argument("spin timeout must be nonnegative and finite");
-  std::lock_guard<std::mutex> lock(impl_->publication_mutex);
-  if (!impl_->closed && impl_->context->is_valid())
-    impl_->executor->spin_once(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::duration<double>(timeout_s)));
-}
-std::size_t RosBridge::subscriber_count(const std::string& topic) const {
-  std::lock_guard<std::mutex> lock(impl_->publication_mutex);
-  impl_->require_open(); return impl_->node->count_subscribers(topic);
-}
-std::size_t RosBridge::command_publisher_count() const {
-  std::lock_guard<std::mutex> lock(impl_->publication_mutex);
-  impl_->require_open();
-  return impl_->joint_commands ? impl_->joint_commands->get_publisher_count()
-                               : impl_->commands->get_publisher_count();
+void RosBridge::spin_once() {
+  impl_->executor->spin_once(std::chrono::nanoseconds(0));
 }
 void RosBridge::publish_clock(std::uint64_t ns) {
-  std::lock_guard<std::mutex> lock(impl_->publication_mutex); impl_->require_open();
   rosgraph_msgs::msg::Clock message; message.clock = stamp(ns); impl_->clock->publish(message);
 }
 #include "../common/publish.inc"
 void RosBridge::close() {
-  if (!impl_) return;
-  std::lock_guard<std::mutex> lock(impl_->publication_mutex);
   if (impl_->closed) return;
   impl_->closed = true;
   impl_->executor->cancel(); impl_->executor->remove_node(impl_->node);
@@ -294,9 +260,6 @@ void RosBridge::close() {
   for (auto& pub : impl_->depth) pub.reset();
   impl_->camera_imu.reset(); impl_->depth_info.reset(); impl_->camera_info.reset(); impl_->status.reset(); impl_->tf.reset(); impl_->static_tf.reset();
   impl_->executor.reset(); impl_->node.reset(); impl_->context->shutdown("ROS bridge closed");
-  std::lock_guard<std::mutex> command_lock(impl_->command_mutex);
-  impl_->received_at.reset(); impl_->latest_command = {};
-  impl_->latest_joints = {};
-  impl_->joints_received.reset();
+
 }
 }  // namespace simple_rbt

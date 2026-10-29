@@ -111,14 +111,18 @@ def main():
             inputs.number(180, 174, "bench")
             inputs.click(180, 346)
             inputs.press("Escape")
-            for _ in range(10):
+            for _ in range(11):
                 inputs.tab()
             inputs.type_number("0.06000")
             observer.wait(lambda m, v: abs(m["mounts"]["camera"]["position"][0]-.06) < 1e-7)
             check("wrist_numeric_mount", True)
             drag_mount("camera")
             scroll_top()
-            inputs.click(180, 754)
+            inputs.click(180, 346)
+            inputs.press("Escape")
+            for _ in range(10):
+                inputs.tab()
+            inputs.press("Return")
             inputs.press("End")
             inputs.press("Return")
             inputs.tab()

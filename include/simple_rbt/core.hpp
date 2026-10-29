@@ -30,6 +30,7 @@ struct SimulationOptions {
   Pose camera_color_offset{{0.,.015,0.}}, camera_depth_offset{},
        camera_imu_offset{{-.01174,-.00552,.0051}};
 };
+struct FlightCommand;
 class Simulation {
 public:
   explicit Simulation(const SimulationOptions &);

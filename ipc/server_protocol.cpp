@@ -82,7 +82,7 @@ void SessionServer::Impl::handle(Peer &p, const Packet &packet) {
         throw std::invalid_argument("Robot has no flight interface");
       const auto next=decode_flight_command(packet);
       if(flight.action!=next.action || flight.velocity!=next.velocity || flight.yaw_rate!=next.yaw_rate)
-        diagnostics::log().event("flight.command",{{"action",next.action},{"velocity",next.velocity},{"yaw_rate",next.yaw_rate},{"role",p.role}});
+        diagnostics::log().event("flight.command",{{"action",flight_action_name(next.action)},{"velocity",next.velocity},{"yaw_rate",next.yaw_rate},{"role",p.role}});
       flight=next;received=Clock::now();command_client=p.id;
     } catch(const std::exception &error) {
       clear_command();queue(p,json_packet(Kind::Error,{{"message",error.what()}}),true);

@@ -37,9 +37,6 @@ func (a *app) consume() {
 				continue
 			}
 			pixels := framePixels(frame)
-			if pixels == nil {
-				continue
-			}
 			if packet.Kind == session.KindExternalCamera {
 				if a.externalCamera == nil {
 					a.externalCamera = ui.NewBitmap(pixels)
@@ -87,30 +84,24 @@ func (a *app) consume() {
 	}
 }
 func framePixels(frame session.CameraFrame) *image.RGBA {
-	if frame.Width <= 0 || frame.Height <= 0 {
-		return nil
-	}
 	out := image.NewRGBA(image.Rect(0, 0, frame.Width, frame.Height))
 	pixels := frame.Width * frame.Height
-	if len(frame.RGB) == pixels*3 {
+	if len(frame.RGB) > 0 {
 		for i := 0; i < pixels; i++ {
 			copy(out.Pix[i*4:i*4+3], frame.RGB[i*3:i*3+3])
 			out.Pix[i*4+3] = 255
 		}
 		return out
 	}
-	if len(frame.Depth) == pixels {
-		for i, d := range frame.Depth {
-			intensity := byte(0)
-			if !math.IsInf(float64(d), 0) && !math.IsNaN(float64(d)) && d > 0 {
-				intensity = byte(255 * clamp(1-float64(d)/20, 0, 1))
-			}
-			out.Pix[i*4] = intensity
-			out.Pix[i*4+1] = intensity
-			out.Pix[i*4+2] = intensity
-			out.Pix[i*4+3] = 255
+	for i, d := range frame.Depth {
+		intensity := byte(0)
+		if !math.IsInf(float64(d), 0) && !math.IsNaN(float64(d)) && d > 0 {
+			intensity = byte(255 * clamp(1-float64(d)/20, 0, 1))
 		}
-		return out
+		out.Pix[i*4] = intensity
+		out.Pix[i*4+1] = intensity
+		out.Pix[i*4+2] = intensity
+		out.Pix[i*4+3] = 255
 	}
-	return nil
+	return out
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "simple_rbt/transport.hpp"
+#include "simple_rbt/transport_options.hpp"
 #include <filesystem>
 #include <memory>
 #include <nlohmann/json.hpp>
@@ -83,7 +84,6 @@ public:
   std::optional<simple_rbt::JointCommand> joint_command() const override;
   void publish_joints(std::uint64_t, const simple_rbt::JointState &) override;
   void publish_external_camera(std::uint64_t, const CameraFrame &) override;
-  void spin_once(double timeout_s = 0.) override;
   void publish_clock(std::uint64_t) override;
   void publish_imu(const ImuSample &) override;
   void publish_camera_imu(const ImuSample &) override;
@@ -93,12 +93,6 @@ public:
   void publish_camera(std::uint64_t, const CameraFrame &,
                       bool panorama = false) override;
   void publish_status(const std::string &) override;
-  std::size_t subscriber_count(const std::string &) const override;
-  std::size_t command_publisher_count() const override;
-  const std::string &command_topic() const override;
-  const std::string &node_namespace() const override;
-  const TransportOptions &options() const override;
-  const char *backend() const override { return "ipc"; }
   void close() override;
 
 private:

@@ -1,5 +1,7 @@
 #pragma once
-#include "simple_rbt/transport.hpp"
+#include "simple_rbt/commands.hpp"
+#include "simple_rbt/transport_options.hpp"
+#include "simple_rbt/types.hpp"
 #include <cstddef>
 #include <memory>
 #include <optional>
@@ -12,13 +14,12 @@ struct RosOptions : TransportOptions {
 
 // Required single ROS name; unknown valid names retain generic planar commands.
 std::string robot_command_topic(const std::string& robot_name);
-bool robot_command_supported(const std::string& robot_name, const Vec3& command);
 
 // ROS is confined to the implementation. Input Pose quaternions are WXYZ.
 // Sampling/physics time belongs to the caller; deadman uses monotonic wall time.
-// Every publication completes its copy before return, and concurrent calls are
-// serialized. Image inputs are contiguous top-to-bottom RGB8 / float32 depth.
-class RosBridge final : public Transport {
+// The adapter event loop owns callbacks, publication and teardown.
+// Inputs have already passed IPC decoding; publications copy them before return.
+class RosBridge final {
  public:
   RosBridge(RosOptions options, const Extrinsics& extrinsics);
   ~RosBridge();
@@ -26,11 +27,11 @@ class RosBridge final : public Transport {
   RosBridge& operator=(const RosBridge&) = delete;
 
   Vec3 command() const;
-  FlightCommand flight_command() const override;
-  std::optional<JointCommand> joint_command() const override;
-  void publish_joints(std::uint64_t, const JointState &) override;
-  void publish_external_camera(std::uint64_t, const CameraFrame &) override;
-  void spin_once(double timeout_s = 0.);
+  FlightCommand flight_command() const;
+  std::optional<JointCommand> joint_command() const;
+  void publish_joints(std::uint64_t, const JointState &);
+  void publish_external_camera(std::uint64_t, const CameraFrame &);
+  void spin_once();
   void publish_clock(std::uint64_t stamp_ns);
   void publish_imu(const ImuSample& sample);
   void publish_camera_imu(const ImuSample& sample);
@@ -41,12 +42,6 @@ class RosBridge final : public Transport {
   // CameraInfo is emitted for panorama. Infinity remains a no-hit value.
   void publish_camera(std::uint64_t stamp_ns, const CameraFrame& frame, bool panorama = false);
   void publish_status(const std::string& json);
-  std::size_t subscriber_count(const std::string& topic) const;
-  std::size_t command_publisher_count() const;
-  const std::string& command_topic() const;
-  const std::string& node_namespace() const;
-  const RosOptions& options() const;
-  const char* backend() const override;
   void close();
 
  private:

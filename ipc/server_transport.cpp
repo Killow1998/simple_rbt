@@ -89,7 +89,6 @@ Vec3 SessionServer::command() const {
     return {};
   return impl_->command;
 }
-void SessionServer::spin_once(double) {}
 simple_rbt::FlightCommand SessionServer::flight_command() const {
   std::lock_guard<std::mutex> lock(impl_->mutex);
   if(!impl_->running || Clock::now()-impl_->received >=
@@ -145,26 +144,6 @@ void SessionServer::publish_camera(std::uint64_t ns, const CameraFrame &f,
 }
 void SessionServer::publish_status(const std::string &text) {
   publish_json(Kind::Status, Json::parse(text));
-}
-std::size_t SessionServer::subscriber_count(const std::string &topic) const {
-  return subscribed(topic.find("camera") != std::string::npos  ? "camera"
-                    : topic.find("livox") != std::string::npos ? "lidar"
-                                                               : "all")
-             ? 1
-             : 0;
-}
-std::size_t SessionServer::command_publisher_count() const {
-  std::lock_guard<std::mutex> lock(impl_->mutex);
-  std::size_t count = 0;
-  for (const auto &p : impl_->peers)
-    if (!p.data && p.role == impl_->source)
-      ++count;
-  return count;
-}
-const std::string &SessionServer::command_topic() const { return impl_->topic; }
-const std::string &SessionServer::node_namespace() const { return impl_->ns; }
-const TransportOptions &SessionServer::options() const {
-  return impl_->options;
 }
 void SessionServer::close() {
   if (impl_)

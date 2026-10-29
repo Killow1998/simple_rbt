@@ -1,3 +1,4 @@
+#include "simple_rbt/commands.hpp"
 #include "simple_rbt/core.hpp"
 #include <cmath>
 #include <iostream>
@@ -83,7 +84,7 @@ int main() {
     o.robot = "skydio_x2";
     o.scene_spawn = "spawn";
     FlightCommand takeoff;
-    takeoff.action = "takeoff";
+    takeoff.action = FlightAction::Takeoff;
     o.scene = room(3., 3.);
     Simulation upper(o);
     std::cerr << "upper initial " << upper.pose().position[2] << "\n";
@@ -121,7 +122,7 @@ int main() {
           "offset payload cannot hover");
     check_export(loaded);
     FlightCommand move;
-    move.action = "velocity";
+    move.action = FlightAction::Velocity;
     move.velocity = {.8, 0, 0};
     bool rotor_contact = false;
     double max_x = 0;

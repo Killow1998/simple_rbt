@@ -105,6 +105,7 @@ int main(int argc, char **argv) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     std::unique_ptr<RosBridge> bridge;
+    const RobotSpec *spec = nullptr;
     ipc::Json configuration;
     unsigned last_mask=15;
     auto modules=[&](const ipc::Json &settings) {
@@ -125,12 +126,14 @@ int main(int argc, char **argv) {
                                   {"extrinsics", hello.at("extrinsics")}};
           if (configuration != next) {
             bridge.reset();
+            const auto settings = options(next.at("options"));
             bridge = std::make_unique<RosBridge>(
-                options(next.at("options")),
+                settings,
                 ipc::decode_extrinsics(next.at("extrinsics")));
+            spec = find_robot_spec(settings.robot_name);
             configuration = next;
             std::cerr << role << " node connected to independent core for "
-                      << bridge->options().robot_name << std::endl;
+                      << settings.robot_name << std::endl;
           }
           continue;
         }
@@ -201,7 +204,6 @@ int main(int argc, char **argv) {
         bridge->spin_once();
       const auto now = std::chrono::steady_clock::now();
       if (bridge && now - sent >= std::chrono::milliseconds(20)) {
-        const auto *spec = find_robot_spec(bridge->options().robot_name);
         if (spec && spec->joint_control)
           client.send_packet(ipc::encode_joint_command(
               bridge->joint_command().value_or(JointCommand{{}, {}, true})));
@@ -217,8 +219,7 @@ int main(int argc, char **argv) {
       std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
     events->event("ipc.disconnected",{{"packets",count},{"requested_stop",bool(stop)}});
-    const auto *closing_spec=bridge?find_robot_spec(bridge->options().robot_name):nullptr;
-    if(closing_spec && closing_spec->flight_control)
+    if(bridge && spec && spec->flight_control)
       client.send_packet(ipc::encode_flight_command({}));
     else
       client.send_command({});

@@ -1,14 +1,14 @@
 # Desktop console and session architecture / 操作台与会话架构
 
-Current stage: source-cloud and trajectory review of the two-storey scene,
-with native editor checks and a complete upper-corridor Go2W + Noetic route on
-Jammy. The current launch command and evidence are at the end of this document.
-Framework name remains `simple_rbt`; launcher remains SpRobo. The installed
-Panda/two-camera stage and the public [0.2.1 release](https://github.com/Killow1998/simple_rbt/releases/tag/v0.2.1)
-are separate from this local scene revision; no new package was published.
-/ 当前阶段：双层场景按原始点云与轨迹核对，完成原生编辑器检查及上层 Go2W／Noetic
-走廊全路线验证。当前启动命令和证据见文末。本次更新本地场景，未发布新安装包。
-Date / 日期：2026-10-25。
+Current stage: internal code cleanup with the existing feature boundary held.
+Physics, sensor output, both ROS adapters, native UI and two 140-second mapping
+routes passed CPU acceptance. See the 2026-10-28 cleanup record at the end.
+Framework remains `simple_rbt`; desktop remains SpRobo. The earlier installation
+record below identifies the installed flight/tutorial candidate.
+
+当前阶段：代码精简与职责解耦，保持现有功能边界。物理、传感器、双 ROS、原生界面
+及两条 140 秒建图路线均通过 CPU 验收。证据见文末本轮记录；此前安装状态见交付记录。
+Date / 日期：2026-10-28。
 
 ## Product / 产品
 
@@ -2213,3 +2213,48 @@ Jammy 已安装本次 CPU 版本，Noetic／Humble 适配器已同步。安装�
 X11 绘制回执等待导致的首帧停滞，14 项原生界面测试再次通过。正式安装版已打开
 原有 Go2W 与双层建筑场景。工作区仅补充默认雷达型号，场景、预设和外参保留。
 后续桌面验收应同时检查真实合成器下的无操作启动，不能只依赖 Xvfb 截图。
+
+### Internal cleanup acceptance — 2026-10-28 / 代码收尾验收
+
+Removed six unused observer callbacks, legacy transport introspection and the
+single-thread ROS adapter's command/publication locks. IPC decoding owns wire
+validation; internal publication uses decoded values. Flight actions use an enum.
+The observer references typed run options instead of copying scene JSON. Model
+export and EGL lifecycle now have separate implementation files. The 350 ms
+shutdown drain sleeps instead of polling a no-op function.
+
+移除六个空观察回调、遗留传输查询接口和单线程 ROS 路径上的锁。IPC 入口统一校验，
+内部使用解码后的数据；飞行动作使用枚举。观察器引用类型化配置，模型导出与 EGL
+生命周期独立。退出阶段保留 350 毫秒发送收尾时间，使用休眠替代空转。
+
+Task-relative runtime/tool/test changes total **246 fewer source lines**;
+`core.cpp` shrank from 431 to 378 lines and `cameras.cpp` from 464 to 368.
+The comparison starts at the dirty working tree captured before this refactor,
+so it does not count earlier flight/tutorial work as new cleanup.
+
+本轮运行代码、工具与测试合计净减 **246 行**；物理核心由 431 行减至 378 行，
+相机主体由 464 行减至 368 行。统计以本轮开始时的工作区为基线，不包含此前功能开发。
+
+- 9 robots / 16 control cases: 33 physics, IMU and model files byte-identical.
+- Two full sensor cases: 30 RGB/depth/panorama/LiDAR/IMU artifacts byte-identical.
+- Native CTest 19/19; Go packages passed; five native UI suites 83/83 checks.
+- Noetic and Humble: Go2W, Panda and quadrotor control/sensors passed (175 checks).
+- Go2W + Noetic FAST_LIO, 140 s: 6/6 waypoints, max error 0.01133 m / 0.07406°.
+- Quadrotor + Humble FAST_LIVO2, 140 s: 7/7 waypoints and landing, max error
+  0.02427 m / 0.42619°. Both routes retained real-time factor ≈ 1.00 and original gates.
+
+两组 140 秒闭环保持原验收门槛。传感器分辨率、频率和阴影保持原值。本轮验证范围为
+CPU 与软件 EGL，不据此新增 GPU 性能结论。
+
+Native input tests exposed old selector/tab assumptions; the frozen old binaries
+failed at the same points. Selectors were updated, fake UI state tests removed,
+and duplicate legacy scene editing removed from the preset runner. Dedicated
+v2 scene E2E, numeric checks, real-socket ownership and persistence tests remain.
+原生输入测试中的旧控件定位问题已在冻结旧版上复现并修正。界面内部状态测试和
+预设测试中重复的旧场景流程已清理；v2 场景、数值、套接字与持久化验收保留。
+
+[Acceptance manifest / 验收清单](../output/refactor-20261028/stage.json) ·
+[Physics comparison / 物理对照](../output/refactor-20261028/physics-comparison.json) ·
+[Source reduction / 代码统计](../output/refactor-20261028/source-size.json).
+Current ownership and verification boundaries are maintained in
+[runtime.md](runtime.md#internal-ownership--内部职责).

@@ -1,4 +1,5 @@
 #pragma once
+#include "simple_rbt/commands.hpp"
 #include "simple_rbt/robots.hpp"
 #include <cmath>
 namespace simple_rbt::wire {
@@ -16,7 +17,7 @@ bool velocity_command(const std::string &robot, const Twist &message,
   const auto *spec = find_robot_spec(robot);
   if (spec && spec->flight_control) {
     flight = {};
-    flight.action = "velocity";
+    flight.action = FlightAction::Velocity;
     flight.velocity = {values[0], values[1], values[2]};
     flight.yaw_rate = values[5];
     ground = {};

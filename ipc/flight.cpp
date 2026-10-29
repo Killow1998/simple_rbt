@@ -2,13 +2,11 @@
 #include "simple_rbt/robots.hpp"
 namespace simple_rbt::ipc {
 Packet encode_flight_command(const simple_rbt::FlightCommand &c) {
-  if (!supported_flight_command(c))
-    throw std::invalid_argument("Invalid flight command");
   return json_packet(Kind::FlightCommand,
                      {{"frame", "world_enu"},
                       {"velocity", c.velocity},
                       {"yaw_rate", c.yaw_rate},
-                      {"action", c.action},
+                      {"action", flight_action_name(c.action)},
                       {"takeoff_height", c.takeoff_height}});
 }
 simple_rbt::FlightCommand decode_flight_command(const Packet &p) {
@@ -27,7 +25,9 @@ simple_rbt::FlightCommand decode_flight_command(const Packet &p) {
   simple_rbt::FlightCommand c;
   c.velocity = j.at("velocity").get<Vec3>();
   c.yaw_rate = j.at("yaw_rate");
-  c.action = j.at("action");
+  const auto action = parse_flight_action(j.at("action").get<std::string>());
+  if (!action) throw std::invalid_argument("Unknown flight action");
+  c.action = *action;
   c.takeoff_height = j.value("takeoff_height", 1.);
   if (!supported_flight_command(c))
     throw std::invalid_argument("Invalid flight command");

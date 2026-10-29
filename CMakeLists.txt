@@ -59,7 +59,7 @@ add_library(simple_rbt_random src/random.cpp)
 target_include_directories(simple_rbt_random PUBLIC include)
 
 add_library(simple_rbt_core
-  src/core.cpp src/scene.cpp src/user_scene.cpp
+  src/core.cpp src/model_export.cpp src/scene.cpp src/user_scene.cpp
   src/scene_geometry.cpp src/scene_primitives.cpp src/scene_polygon.cpp src/scene_xml.cpp src/scene_connections.cpp src/scene_openings.cpp src/sensor_devices.cpp src/tracking.cpp src/controller.cpp
   src/controller_policy.cpp
   src/controllers/go2.cpp src/controllers/go2w.cpp
@@ -86,7 +86,7 @@ target_link_libraries(simple_rbt_lidar PUBLIC mujoco PRIVATE Threads::Threads)
 
 add_library(simple_rbt_meshoptimizer STATIC
   third_party/meshoptimizer/allocator.cpp third_party/meshoptimizer/simplifier.cpp)
-add_library(simple_rbt_cameras src/cameras.cpp src/camera_render.cpp
+add_library(simple_rbt_cameras src/cameras.cpp src/camera_context.cpp src/camera_render.cpp
   src/camera_mesh.cpp src/camera_mesh_data.cpp src/camera_lighting.cpp
   src/camera_planes.cpp)
 target_include_directories(simple_rbt_cameras PUBLIC include PRIVATE third_party)

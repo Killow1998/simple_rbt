@@ -1,9 +1,7 @@
 #include "simple_rbt/core.hpp"
 #include "controller.hpp"
 #include "simple_rbt/paths.hpp"
-#include <tinyxml2.h>
-#include <sstream>
-#include <iomanip>
+#include "model_export.hpp"
 #include "scene.hpp"
 #include "user_scene.hpp"
 #include "tracking.hpp"
@@ -215,8 +213,6 @@ void Simulation::set_joints(const JointCommand &command) {
   p_->control->set_joints(command);
 }
 void Simulation::set_flight(const FlightCommand &command) {
-  if (!supported_flight_command(command))
-    throw std::invalid_argument("Invalid flight command");
   p_->control->set_flight(command);
 }
 Json Simulation::flight_status() const { return p_->control->flight_status(); }
@@ -377,55 +373,6 @@ Json Simulation::tracker_metadata() const {
                          "hardware estimator"}};
 }
 std::string Simulation::xml() const {
-  tinyxml2::XMLDocument doc; doc.Parse(p_->scene_xml.c_str());
-  auto numbers=[](const double* v,int count){std::ostringstream out;out<<std::setprecision(17);for(int i=0;i<count;++i){if(i)out<<' ';out<<v[i];}return out.str();};
-  auto visit=[&](auto&& self,tinyxml2::XMLElement* e)->void {
-    if(p_->spec.flight_control && std::string(e->Name())=="body" && e->FirstChildElement("freejoint")) {
-      const int body=mj_name2id(p_->m,mjOBJ_BODY,e->Attribute("name"));
-      auto *inertial=e->FirstChildElement("inertial");
-      if(!inertial){inertial=doc.NewElement("inertial");e->InsertFirstChild(inertial);}
-      inertial->DeleteAttribute("fullinertia");
-      inertial->SetAttribute("mass",numbers(p_->m->body_mass+body,1).c_str());
-      inertial->SetAttribute("pos",numbers(p_->m->body_ipos+3*body,3).c_str());
-      inertial->SetAttribute("quat",numbers(p_->m->body_iquat+4*body,4).c_str());
-      inertial->SetAttribute("diaginertia",numbers(p_->m->body_inertia+3*body,3).c_str());
-    }
-    if(std::string(e->Name())=="site") {
-      const char* name=e->Attribute("name");
-      if (name &&
-          (std::string(name) == "lidar" || std::string(name) == "mid360_imu" ||
-           (std::string(name).rfind("camera_", 0) == 0 ||
-            std::string(name).rfind("external_camera_", 0) == 0))) {
-        int i=p_->site_id(name);e->SetAttribute("pos",numbers(p_->m->site_pos+3*i,3).c_str());e->SetAttribute("quat",numbers(p_->m->site_quat+4*i,4).c_str());
-      }
-    }
-    if(std::string(e->Name())=="geom") {
-      const char* name=e->Attribute("name");
-      if(name && std::string(name).rfind("payload_",0)==0) {
-        const int g=mj_name2id(p_->m,mjOBJ_GEOM,name);
-        e->SetAttribute("pos",numbers(p_->m->geom_pos+3*g,3).c_str());
-        e->SetAttribute("quat",numbers(p_->m->geom_quat+4*g,4).c_str());
-        e->SetAttribute("contype",p_->m->geom_contype[g]);
-        e->SetAttribute("conaffinity",p_->m->geom_conaffinity[g]);
-      }
-      if (name &&
-          (std::string(name).rfind("visual_device_", 0) == 0 ||
-           std::string(name).rfind("visual_external_device_", 0) == 0)) {
-        const auto mount = extrinsics(
-            std::string(name).rfind("visual_external_device_", 0) == 0
-                ? "external_camera_mount"
-            : std::string(name).rfind("visual_device_d435", 0) == 0
-                ? "camera_mount"
-                : "lidar");
-        e->SetAttribute("pos",numbers(mount.position.data(),3).c_str());
-        e->SetAttribute("quat",numbers(mount.quaternion.data(),4).c_str());
-        const int id=mj_name2id(p_->m,mjOBJ_GEOM,name);
-        double rgba[4];for(int i=0;i<4;++i) rgba[i]=p_->m->geom_rgba[4*id+i];
-        e->SetAttribute("rgba",numbers(rgba,4).c_str());
-      }
-    }
-    for(auto* child=e->FirstChildElement();child;child=child->NextSiblingElement())self(self,child);
-  };
-  visit(visit,doc.RootElement());tinyxml2::XMLPrinter out;doc.Print(&out);return out.CStr();
+  return export_model(p_->scene_xml, p_->m, p_->spec.flight_control);
 }
 } // namespace simple_rbt

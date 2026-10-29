@@ -14,9 +14,6 @@ Pose parse_pose(const Json &json) {
 Json pose_json(const Pose &p) {
   return {{"position", p.position}, {"quaternion", p.quaternion}};
 }
-Extrinsics transport_extrinsics(Simulation &sim, bool camera) {
-  return sensor_extrinsics(sim,camera);
-}
 } // namespace simple_rbt::session_detail
 namespace simple_rbt {
 namespace {
@@ -99,7 +96,8 @@ Json run_session(const Json &config, const std::filesystem::path &directory,
   if (!std::regex_match(options.odom_topic,
                        std::regex("/([A-Za-z_][A-Za-z0-9_]*)(/[A-Za-z_][A-Za-z0-9_]*)*")))
     throw std::invalid_argument("ros.odom_topic must be an absolute topic, e.g. /ground_truth/odom");
-  session_detail::SessionObserver observer(config, interrupted);
+  session_detail::SessionObserver observer(args, config.value("source", std::string("gui")),
+                                          config.value("start_immediately", false), interrupted);
   auto old_int = std::signal(SIGINT, interrupt),
        old_term = std::signal(SIGTERM, interrupt);
   interrupted = 0;

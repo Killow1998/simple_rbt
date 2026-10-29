@@ -1,6 +1,6 @@
 #pragma once
 #include "imu_sampler.hpp"
-#include "simple_rbt/runtime.hpp"
+#include "simple_rbt/core.hpp"
 #include "simple_rbt/transport.hpp"
 #include <optional>
 namespace simple_rbt {
@@ -9,7 +9,7 @@ class RuntimeImus {
 public:
   explicit RuntimeImus(const Simulation &);
   void advance(const Simulation &, bool mid360_enabled, Transport *,
-               ArtifactWriter &, RunObserver *);
+               ArtifactWriter &);
   Json report() const;
   std::uint64_t count() const { return imu_samples; }
 

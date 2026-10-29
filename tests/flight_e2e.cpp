@@ -1,3 +1,4 @@
+#include "simple_rbt/commands.hpp"
 #include "simple_rbt/core.hpp"
 #include <cmath>
 #include <iostream>
@@ -31,7 +32,7 @@ int main() {
     run(s, {}, 1.);
     const auto ground = s.pose();
     FlightCommand takeoff;
-    takeoff.action = "takeoff";
+    takeoff.action = FlightAction::Takeoff;
     run(s, takeoff, 8.);
     std::cout << "takeoff " << s.flight_status() << " pose "
               << s.pose().position[2] << std::endl;
@@ -46,7 +47,7 @@ int main() {
     }
     require(max_drift < .08, "60 second hover drift");
     FlightCommand command;
-    command.action = "velocity";
+    command.action = FlightAction::Velocity;
     command.velocity = {.5, 0, 0};
     run(s, command, 4.);
     run(s, {}, 5.);
@@ -65,7 +66,7 @@ int main() {
                                   1 - 2 * (q[2] * q[2] + q[3] * q[3]));
     require(std::abs(yaw - 1.5) < .15, "heading-rate tracking");
     command = {};
-    command.action = "land";
+    command.action = FlightAction::Land;
     run(s, command, 12.);
     require(s.flight_status().at("state") == "grounded",
             "landing did not stop rotors");
@@ -77,7 +78,7 @@ int main() {
     run(s, takeoff, 6.);
     const auto height = s.pose().position[2];
     FlightCommand cut;
-    cut.action = "disarm";
+    cut.action = FlightAction::Disarm;
     run(s, cut, .005);
     auto rotors_stopped = [&]() {
       const auto status = s.flight_status();

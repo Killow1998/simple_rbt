@@ -19,5 +19,4 @@ const RobotSpec &robot_spec(const std::string &name);
 // Unknown ROS names retain the generic holonomic command contract. Simulation
 // construction separately requires a registered robot and catalog model.
 bool supported_command(const std::string &name, const Vec3 &) noexcept;
-bool supported_flight_command(const FlightCommand &) noexcept;
 } // namespace simple_rbt

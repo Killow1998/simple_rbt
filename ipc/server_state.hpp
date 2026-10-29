@@ -20,7 +20,7 @@ struct SessionServer::Impl {
   std::filesystem::path path;
   TransportOptions options;
   Extrinsics extrinsics;
-  std::string topic, ns, source = "gui";
+  std::string source = "gui";
   Json metadata = Json::object();
   mutable std::mutex mutex;
   std::vector<Peer> peers;

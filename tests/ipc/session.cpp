@@ -2,6 +2,7 @@
 #include <chrono>
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <thread>
 #include <unistd.h>
@@ -15,6 +16,46 @@ static void wait() {
   std::this_thread::sleep_for(std::chrono::milliseconds(25));
 }
 int main() {
+  // Exercise the wire boundary, including every truncated fixed/header payload.
+  const auto rejected = [](const Packet &packet) {
+    try {
+      switch (packet.kind) {
+      case Kind::Imu: decode_imu(packet); break;
+      case Kind::Lidar: decode_scan(packet); break;
+      case Kind::Odometry: decode_odometry(packet); break;
+      case Kind::Camera: decode_camera(packet); break;
+      default: throw std::logic_error("Unexpected test packet");
+      }
+    } catch (const std::invalid_argument &) { return true; }
+    return false;
+  };
+  CameraFrame small;
+  small.width = small.height = 2;
+  small.rgb.assign(12, 0);
+  small.depth.assign(4, 1.f);
+  LidarScan point;
+  point.xyz = {{{1, 2, 3}}}; point.lines = {0}; point.offsets_ns = {0};
+  for (auto packet : {encode_imu({}), encode_scan(point),
+                      encode_odometry(0, {}, {}, {}), encode_camera(0, small)}) {
+    require(!rejected(packet), "valid wire payload rejected");
+    for (std::size_t n = 0; n < packet.payload.size(); ++n) {
+      auto short_packet = packet;
+      short_packet.payload.resize(n);
+      require(rejected(short_packet), "truncated wire payload accepted");
+    }
+    packet.payload.push_back(0);
+    require(rejected(packet), "trailing wire payload accepted");
+  }
+  ImuSample invalid_imu;
+  invalid_imu.specific_force[0] = std::numeric_limits<double>::quiet_NaN();
+  require(rejected(encode_imu(invalid_imu)), "nonfinite IMU accepted");
+  point.xyz[0][0] = std::numeric_limits<float>::infinity();
+  require(rejected(encode_scan(point)), "nonfinite scan accepted");
+  Pose invalid_pose; invalid_pose.quaternion = {};
+  require(rejected(encode_odometry(0, invalid_pose, {}, {})), "nonunit pose accepted");
+  small.radial_depth = true;
+  require(rejected(encode_camera(0, small)), "wrong camera depth convention accepted");
+
   auto path = std::filesystem::temp_directory_path() /
               ("simple-rbt-ipc-test-" + std::to_string(::getpid()));
   TransportOptions o;

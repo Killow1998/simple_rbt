@@ -153,8 +153,8 @@ def main():
             inputs.click(180,346);inputs.press("Escape")
             # The Robot selector retains focus after Enter. Walk the real
             # keyboard order: three other selectors, five sensor checkboxes,
-            # camera model, the sensor selector, then X. Font metrics cannot change this order.
-            for _ in range(11):
+            # LiDAR and camera models, the sensor selector, then X.
+            for _ in range(12):
                 inputs.press("Tab")
             inputs.type_number("0.03000")
             metadata, _ = observer.wait(lambda m, v: abs(m.get("mounts", {}).get("mid360", {}).get("position", [99])[0]-.03)<1e-6)

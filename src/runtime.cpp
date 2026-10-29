@@ -88,8 +88,6 @@ Json run_simulation(const RunOptions &options, RunObserver *observer,
   if (args.viewer)
     viewer = std::make_unique<Viewer>(sim.model(), sim.data());
   artifacts.open_streams();
-  if (observer)
-    observer->before_loop(sim, bridge.get());
   RuntimeImus imus(sim);
   Pose initial = sim.pose();
   double min_height = initial.position[2], max_tilt = 0;
@@ -106,7 +104,7 @@ Json run_simulation(const RunOptions &options, RunObserver *observer,
   Json last_flight_state;
   double last_sensor_log = monotonic_seconds();
   for (std::size_t step = 0; args.indefinite || step < steps;) {
-    cameras.publish_ready(bridge.get(), observer);
+    cameras.publish_ready(bridge.get());
     if (observer && observer->should_stop(sim))
       break;
     double before = monotonic_seconds();
@@ -118,8 +116,6 @@ Json run_simulation(const RunOptions &options, RunObserver *observer,
 
     if (viewer && !viewer->running())
       break;
-    if (bridge)
-      bridge->spin_once();
     if (sim.startup_complete() && !policy_origin)
       policy_origin = sim.data()->time;
     bool ready =
@@ -150,13 +146,11 @@ Json run_simulation(const RunOptions &options, RunObserver *observer,
     max_tilt =
         std::max(max_tilt, std::acos(std::min(1., std::max(-1., upright))) *
                                180 / 3.14159265358979323846);
-    if (observer)
-      observer->on_step(sim, monotonic_seconds());
     if (bridge)
       bridge->publish_clock(stamp);
     if (joint_control && bridge && stamp % 20000000 == 0)
       bridge->publish_joints(stamp, sim.joints());
-    imus.advance(sim, args.mid360_enabled, bridge.get(), artifacts, observer);
+    imus.advance(sim, args.mid360_enabled, bridge.get(), artifacts);
     if (stamp % 100000000 == 0) {
       if (flight_control) {
         const auto status = sim.flight_status();
@@ -167,15 +161,13 @@ Json run_simulation(const RunOptions &options, RunObserver *observer,
           last_flight_state = state;
         }
       }
-      lidar.scan(sim, bridge.get(), observer);
+      lidar.scan(sim, bridge.get());
       auto lin = sim.linear_velocity(), ang = sim.angular_velocity();
       if (bridge)
         bridge->publish_odometry(stamp, base, lin, ang);
-      if (observer)
-        observer->on_odometry(stamp, base, lin, ang);
       artifacts.trajectory(stamp, base, lin, ang);
     }
-    cameras.advance(sim, bridge.get(), observer);
+    cameras.advance(sim, bridge.get());
     if (monotonic_seconds() - last_sensor_log >= 5) {
       diagnostics::log().event("sensors.summary",
                                {{"imu_samples", imus.count()},
@@ -196,7 +188,7 @@ Json run_simulation(const RunOptions &options, RunObserver *observer,
       break;
     ++step;
   }
-  cameras.finish(bridge.get(), observer);
+  cameras.finish(bridge.get());
   double wall = monotonic_seconds() - start;
   Json usage = loop_meter.report();
   Pose final = sim.pose();
@@ -223,20 +215,15 @@ Json run_simulation(const RunOptions &options, RunObserver *observer,
       {"min_base_height_m", min_height},
       {"max_tilt_deg", max_tilt},
       {"final_applied_command_m_s_rad_s", sim.command()},
-      {"ros_command_topic",
-       bridge ? Json(bridge->command_topic()) : Json(nullptr)},
-      {"ros_sensor_contract",
-       bridge ? Json{{"robot_name", bridge->options().robot_name},
-                     {"node_namespace", bridge->node_namespace()},
-                     {"command_topic", bridge->command_topic()}}
-              : Json(nullptr)},
+      {"ros_command_topic", nullptr},
+      {"ros_sensor_contract", nullptr},
       {"sensor_profile", args.sensors},
-      {"ros2", bridge && std::string(bridge->backend()) == "ros2"},
-      {"ros1", bridge && std::string(bridge->backend()) == "ros1"},
+      {"ros2", false},
+      {"ros1", false},
       {"resources_loop", usage},
       {"resources_run", run_meter.report()},
       {"timing_scope",
-       "physics, configured sensors, DDS and pacing; excludes "
+       "physics, configured sensors, IPC and pacing; excludes "
        "model/device/renderer initialization and final artifact saving"},
       {"viewer", bool(viewer)}};
   summary.update(lidar.report());
@@ -255,9 +242,7 @@ Json run_simulation(const RunOptions &options, RunObserver *observer,
   }
   artifacts.summary(summary);
   if (bridge) {
-    double deadline = monotonic_seconds() + .35;
-    while (monotonic_seconds() < deadline)
-      bridge->spin_once(.005);
+    std::this_thread::sleep_for(std::chrono::milliseconds(350));
     bridge->close();
   }
   std::cout << summary.dump(2) << '\n';

@@ -7,15 +7,10 @@
 namespace simple_rbt::ipc {
 SessionServer::Impl::Impl(const std::filesystem::path &p, TransportOptions o,
                           const Extrinsics &e)
-    : path(p), options(std::move(o)), extrinsics(e),
-      topic("/" + options.robot_name + "/cmd_vel"),
-      ns("/" + options.robot_name) {
+    : path(p), options(std::move(o)), extrinsics(e) {
   if (options.robot_name.empty() || !std::isfinite(options.command_timeout_s) ||
       options.command_timeout_s <= 0.)
     throw std::invalid_argument("invalid IPC transport options");
-  if (const auto *spec = find_robot_spec(options.robot_name);
-      spec && spec->joint_control)
-    topic = ns + "/joint_position_command";
   std::filesystem::create_directories(path);
   ::chmod(path.c_str(), 0700);
   control_listener = detail::listener(path / "control.sock");

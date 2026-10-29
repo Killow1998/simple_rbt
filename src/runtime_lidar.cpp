@@ -44,18 +44,12 @@ void RuntimeLidar::record_pose(const Simulation &sim) {
   if (lidar && args.lidar_motion == "rolling")
     history.add(sim.stamp_ns(), sim.pose("lidar"));
 }
-void RuntimeLidar::scan(Simulation &sim, Transport *bridge,
-                        RunObserver *observer) {
+void RuntimeLidar::scan(Simulation &sim, Transport *bridge) {
   const auto stamp = sim.stamp_ns();
   if (lidar) {
     double began = monotonic_seconds();
-    std::array<std::uint64_t, 2> bounds{};
-    std::uint64_t interval = 0;
     if (args.lidar_motion == "rolling") {
       lidar->scan(sim.data(), stamp - 100000000, args.rays, history, last_scan);
-      bounds = history.bounds();
-      interval = history.maximum_interval(
-          last_scan.stamp_ns, last_scan.stamp_ns + pattern->offset_ns(args.rays - 1));
     } else {
       PoseHistory scratch;
       auto pose = sim.pose("lidar");
@@ -64,7 +58,6 @@ void RuntimeLidar::scan(Simulation &sim, Transport *bridge,
       scratch.add(stamp + 100000000, pose);
       lidar->scan(sim.data(), stamp, args.rays, scratch, last_scan);
       std::fill(last_scan.offsets_ns.begin(), last_scan.offsets_ns.end(), 0);
-      bounds = scratch.bounds();
     }
     const auto frame_points = pattern->spec().point_rate / 10;
     if (args.rays < frame_points)
@@ -91,8 +84,6 @@ void RuntimeLidar::scan(Simulation &sim, Transport *bridge,
     max_points = std::max(max_points, last_scan.xyz.size());
     if (bridge)
       bridge->publish_scan(last_scan);
-    if (observer)
-      observer->on_scan(last_scan, bounds, interval);
   }
 }
 Json RuntimeLidar::scan_model() const {

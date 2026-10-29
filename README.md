@@ -53,6 +53,13 @@ calibration from the active sensor mounts. Optional images require separate
 preparation; the qualified FAST-LIVO2 source revision is currently supplied locally.
 See [mapping tutorials](docs/tutorials.md).
 
+Avia is selected with `--lidar-model avia` or the **LiDAR device** field in Robot
+presets. [Go2W + Avia + D435i](examples/go2w-avia-d435i.json) is an explicit
+co-mounted example for `simple-rbt-console --config`; pass the repository's
+`assets` directory to `--assets`. It places the optical centres 9.6 cm apart
+with parallel forward axes. Existing mounts are not moved automatically.
+See [sensor contracts and limits](docs/runtime.md#avia-scan-and-mount--avia-扫描与安装).
+
 ## Development
 
 Run from the repository root:
@@ -103,10 +110,3 @@ python3 tools/profile_console.py --display :114 --seconds 20 --ros --output outp
 
 Live sensor and GUI checks run on a host with graphics access. Fresh-container package checks cover installation, asset/library closure, CPU physics and removal. Dated reports identify the exact tested version and conditions.
 See the [completed console acceptance and resource measurements](docs/desktop-console-plan.md).
-
-Avia is selected with `--lidar-model avia` or the **LiDAR device** field in Robot
-presets. [Go2W + Avia + D435i](examples/go2w-avia-d435i.json) is an explicit
-co-mounted example for `simple-rbt-console --config`; pass the repository's
-`assets` directory to `--assets`. It places the optical centres 9.6 cm apart
-with parallel forward axes. Existing mounts are not moved automatically.
-See [sensor contracts and limits](docs/runtime.md#avia-scan-and-mount--avia-扫描与安装).

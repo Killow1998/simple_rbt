@@ -1,4 +1,5 @@
 #pragma once
+#include "simple_rbt/commands.hpp"
 #include "simple_rbt/core.hpp"
 namespace simple_rbt {
 struct ControlState {

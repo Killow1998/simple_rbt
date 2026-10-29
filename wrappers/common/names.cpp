@@ -11,7 +11,4 @@ std::string robot_command_topic(const std::string& robot_name) {
   return "/" + robot_name +
          (spec && spec->joint_control ? "/joint_position_command" : "/cmd_vel");
 }
-bool robot_command_supported(const std::string& robot_name, const Vec3& command) {
-  return supported_command(robot_name, command);
-}
 } // namespace simple_rbt

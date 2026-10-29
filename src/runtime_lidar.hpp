@@ -1,6 +1,6 @@
 #pragma once
 #include "simple_rbt/lidar.hpp"
-#include "simple_rbt/runtime.hpp"
+#include "simple_rbt/run_options.hpp"
 #include "simple_rbt/transport.hpp"
 namespace simple_rbt {
 class ArtifactWriter;
@@ -8,7 +8,7 @@ class RuntimeLidar {
 public:
   RuntimeLidar(Simulation &, const RunOptions &, Transport *);
   void record_pose(const Simulation &);
-  void scan(Simulation &, Transport *, RunObserver *);
+  void scan(Simulation &, Transport *);
   Json report() const;
   Json scan_model() const;
   void save(ArtifactWriter &) const;

@@ -26,6 +26,51 @@ native frontend container. See [flight controls](flight.md) and
 四旋翼使用独立的世界 ENU 飞行指令。建图教程使用独立标定工具和前端进程，核心
 保持 ROS 无关；详见[飞行操控](flight.md)与[建图教程](tutorials.md)。
 
+## Internal ownership / 内部职责
+
+Configuration is parsed into `RunOptions` at the CLI/session entry. The session
+observer reads that configuration by reference; it owns pause, view and lifecycle
+state, without retaining another scene JSON. Its four hooks are configuration,
+before-step polling, stop detection and completion. Sensor sampling and
+publication belong to the sensor modules.
+
+配置在 CLI／会话入口解析为 `RunOptions`。会话观察器引用同一份配置，只管理暂停、
+观察视角和生命周期。四个回调分别处理初始化、步进前轮询、停止和完成。
+传感器采样与发布由各传感器模块负责。
+
+IPC decoders check packet length, channel shape and existing numeric constraints
+before constructing values. Encoders and ROS publication trust those values.
+Flight action strings become `FlightAction` at the IPC or ROS input boundary.
+ROS-specific representation checks, such as float32 conversion and ROS Time,
+remain at conversion. No protocol fields, topic names or command semantics change.
+
+IPC 解码器统一检查长度、通道形状及已有数值约束，再构造数据对象；编码与 ROS
+发布直接使用这些对象。飞行动作字符串在 IPC 或 ROS 入口转为 `FlightAction`。
+float32 和 ROS Time 的表示限制仍在格式转换处处理。协议字段、话题名和控制语义保持一致。
+
+Each ROS adapter's event loop owns callbacks, publication and teardown. It does
+not inherit the core `Transport` interface or maintain publication/command locks.
+The IPC server and camera worker retain synchronization for their actual threads.
+EGL ownership and cleanup live in `src/camera_context.*`; `src/cameras.cpp` owns
+image rendering. `src/model_export.cpp` exports current model state without
+stepping physics. Run options are independent of observer and transport interfaces.
+
+每个 ROS 适配器由同一事件循环执行回调、发布和退出，不继承核心的 `Transport`
+接口，也不设置发布锁或指令锁。IPC 服务与相机工作线程保留实际跨线程同步。
+EGL 生命周期归 `src/camera_context.*`；图像渲染归 `src/cameras.cpp`；模型导出归
+`src/model_export.cpp`。运行配置不依赖观察器和传输接口。
+
+Verify a changed module through its existing component target first: controller
+and scene CTests for physics, `camera_snapshot` / `camera_render_consistency` for
+rendering, IPC CTests for codecs, and the native window runners for GUI behavior.
+Changes to a shared wire contract also require both ROS adapter E2Es. Native
+window checks own appearance, language and keyboard coverage; numeric, persistence
+and real-socket tests remain separate.
+
+模块修改先运行对应组件检查：物理使用控制器与场景 CTest，相机使用快照和渲染
+对照，编解码使用 IPC CTest，界面使用原生窗口 E2E。共享协议变化再运行双 ROS
+集成测试。配色、语言和键盘由原生窗口验证；数值、持久化和真实套接字测试独立保留。
+
 ## Software camera rendering / 软件相机渲染
 
 Perspective RGB/depth remains 320×240, panorama RGB/radial depth remains
@@ -619,14 +664,14 @@ source; asset preparation verifies their pinned inputs. Python tools have these 
 | `bootstrap_rl_sar_assets.py`, `bootstrap_turtlebot3_assets.py`, `turtlebot3_model.py` | Verify pinned sources and convert Waffle Pi URDF / 核验固定来源、转换 Waffle Pi URDF |
 | `prepare_visual_assets.py`, `export_go2w_policy.py` | Offline mesh/policy preparation / 离线网格与策略准备 |
 | `setup-gui.py`, `package_deb.py` | Locked GUI dependencies and packaging / 固定 GUI 依赖与打包 |
-| `test_console_native.py`, `test_console_workspace.py`, `tests/console/` | Window input, motion, named resources and reopen E2E / 窗口输入、运动、命名资源及重开验收 |
+| `test_console_native.py`, `test_console_workspace.py`, `test_console_structured.py`, `tests/console/` | Window input, motion, named resources and reopen E2E / 窗口输入、运动、命名资源及重开验收 |
 | `test_ros_session.py`, `tests/ipc/ros_probe.py` | One ROS 1/ROS 2 runner observing the C++ core / 双 ROS 共用入口，观测 C++ 核心 |
 | `profile_console.py` | CPU/RAM measurements using the same passive session helpers / 复用被动会话工具测量 CPU／RAM |
 
 These tools do not provide another simulator implementation. CTest remains the
-owner of native core/sensor/IPC checks; the two E2E runners own observable desktop
+owner of native core/sensor/IPC checks; the E2E runners own observable desktop
 and middleware behavior. / 这些工具不实现第二套仿真器；原生核心、传感器与 IPC 由
-CTest 验证，桌面与中间件的可观察行为由两个 E2E 入口验证。
+CTest 验证，桌面与中间件的可观察行为由 E2E 入口验证。
 
 ## Program control / 程序控制
 
