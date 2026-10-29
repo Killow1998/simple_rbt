@@ -29,6 +29,17 @@
           "after_sha256": "d0aaa95d0975d36a90b449d1c50cc31426f6229140d395f9c12cbdd638fcae93"
         }
       ]
+    },
+    {
+      "file": "patches/x11-frame-ack.patch",
+      "sha256": "e3d1e6f3e9132408bba173d3d536db756b114eb84016e83075811333c0e766ee",
+      "sources": [
+        {
+          "path": "internal/linux/surface.go",
+          "before_sha256": "253b5459a4d88916f583e7aa1b3cbc4936490dadf3aa1c5a5e8d19b87553e134",
+          "after_sha256": "d95661463b4b7ab953f91b9bb0a38555797761590acec4be7d6b52471ff1d3c2"
+        }
+      ]
     }
   ]
 }

@@ -1,0 +1,32 @@
+--- a/internal/linux/surface.go
++++ b/internal/linux/surface.go
+@@ -67,6 +67,7 @@
+ 	gtkGLAreaSetError           func(a, gerr ptr)
+ 	gdkWindowPeekChildren       func(w ptr) ptr
+ 	gdkWindowGetUserData        func(w ptr, data *ptr)
++	gdkX11SetFrameSync          func(w ptr, enabled bool)
+ 
+ 	cbSurfaceDraw, cbSurfaceSize, cbSurfaceRealize, cbSurfaceButton ptr
+ 	cbSurfaceMotion, cbSurfaceLeave, cbSurfaceScroll, cbSurfaceKey  ptr
+@@ -79,6 +80,9 @@
+ func loadSurface() {
+ 	surfaceOnce.Do(func() {
+ 		t, d, c := libGTK, libGDK, libCairo
++		if theBackend.onX11 {
++			mustBind(d, &gdkX11SetFrameSync, "gdk_x11_window_set_frame_sync_enabled")
++		}
+ 		mustBind(t, &gtkDrawingAreaNew, "gtk_drawing_area_new")
+ 		mustBind(t, &gtkWidgetSetCanFocus, "gtk_widget_set_can_focus")
+ 		mustBind(t, &gtkWidgetAddEvents, "gtk_widget_add_events")
+@@ -688,6 +692,11 @@
+ 	})
+ 	cbSurfaceRealize = purego.NewCallback(func(widget, data ptr) {
+ 		if s := b().surfaceOf(data); s != nil {
++			if gdkX11SetFrameSync != nil {
++				// A missing compositor frame acknowledgement otherwise freezes GTK's
++				// clock. Keep its local frame pacing without that external wait.
++				gdkX11SetFrameSync(gtkWidgetGetWindow(s.w.win), false)
++			}
+ 			gtkIMContextSetClientWindow(s.im, s.eventWindow())
+ 			if s.cursor != platform.CursorDefault {
+ 				s.SetCursor(s.cursor) // on the area that took another's place
