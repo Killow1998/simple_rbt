@@ -90,9 +90,9 @@ T_mid360_imu translation = [0.011, 0.02329, -0.04412] m
 T_mid360_imu rotation = identity
 ```
 
-There is one editable MID360 assembly. Its internal IMU follows every translation/rotation and has no independent editor. Model sites, sampling origins and adapter TF use the same composition. The native controller body IMU is separate. Camera installation orientation is distinct from the fixed ROS optical-frame convention.
+There is one editable LiDAR assembly, selected as MID360 or Avia. Its internal IMU follows every translation/rotation and has no independent editor. Model sites, sampling origins and adapter TF use the same composition. The native controller body IMU is separate. Camera installation orientation is distinct from the fixed ROS optical-frame convention.
 
-MID360 只有一个可编辑总成。内部 IMU 随整体平移／旋转，没有独立编辑入口。模型感测点、采样原点和适配器 TF 使用同一组合；原生控制器的机身 IMU 独立。相机安装方向与固定的 ROS 光学坐标约定分开。
+MID360 或 Avia 共用一个可编辑雷达总成。内部 IMU 随整体平移／旋转，没有独立编辑入口。模型感测点、采样原点和适配器 TF 使用同一组合；原生控制器的机身 IMU 独立。相机安装方向与固定的 ROS 光学坐标约定分开。
 
 ## Sensor gizmos / 传感器操作轴
 
@@ -2014,3 +2014,202 @@ Use Scene editor; middle-drag or Shift + right-drag pans, right-drag orbits, and
 the wheel zooms. Hiding “Lower storey” affects the editor view only. Maximize the
 window and zoom out for an overview. / 进入“场景编辑”：中键或 Shift＋右键平移，
 右键旋转，滚轮缩放。隐藏“下层”仅影响编辑视图；最大化窗口后缩小，可查看总览。
+
+
+### Avia CPU development candidate — 2026-10-27
+
+Avia 的官方 CAD、非重复单回波轨迹、240 kHz / 24,000 rays、六线与 200 Hz
+内部 IMU 已接入原生核心、CLI、控制台和机器人预设。型号参数集中在
+`include/simple_rbt/lidar_model.hpp`；内部 IMU 杆臂由核心传给 UI，避免两套常量。
+[运行契约](runtime.md#avia-scan-and-mount--avia-扫描与安装)记录支持范围与模型限制。
+[Go2W/Avia/D435i 示例](../examples/go2w-avia-d435i.json)使用约 9.6 cm 的平行光轴安装，
+修正了先前默认预览约 31 cm 间距与试验安装不一致的问题。
+
+候选位于 `build/livo2-avia-make`，Release + ccache、CPU-only，未安装或发布。
+最终 CTest 16/16，Go 三包通过；原生 X11 预览确认型号和外参，预设保存重开通过。
+官方 STEP 独立重建匹配两份派生网格哈希；MID360 七项原生点/时序/IMU/位姿输出
+与旧 binary 逐字节相同。旧三份模拟器与 MID360/RealSense 资源清单未改。
+[身份与回归证据](../output/avia-livo2-20261027/candidate_identity.json)、
+[原生安装预览](../output/avia-livo2-20261027/avia-d435i-mount.png)、
+[扫描方向与线号](../output/avia-livo2-20261027/scan_patterns.png)。
+
+六份原生录制、十次四核 Noetic 回放用于 FAST-LIVO2 → N3M 对照。
+N3M 工作区 `docs/evidence/fast_livo2_sprobo_20261027.md` 保存算法数值及精度限制。
+传感器生成与消息接入通过不等于定位通过：Avia 在单平面/弱视觉约束片段仍未通过。
+该结果需要进一步区分几何退化、有效图像特征和前端恢复；不能只归因于 FOV 或盲区。
+本轮没有改估计器门槛，也没有验证新 Avia CUDA 或 ROS 2 端到端实时链路。
+
+
+### Quadrotor and algorithm tutorials — requirements, 2026-10-28
+
+Implemented in the CPU candidate. Xian approved a physical four-rotor vehicle and a
+small native C++ cascaded controller. Ground-vehicle commands retain their
+existing contract. Flight uses world-ENU linear velocity (m/s) and heading rate
+(rad/s); manual keys are converted from horizontal heading coordinates. Roll and
+pitch are controller outputs. Unsupported command components must be rejected.
+
+The flight model applies four bounded rotor thrusts and reaction torques;
+position is never prescribed. Zero commands, manual focus loss and command
+expiry request position/yaw hold. Takeoff, land, physics pause and motor cut are
+separate actions. Program control retains ownership across GUI focus changes.
+Takeoff height is relative to local support. Sensor payload masses and mount
+positions contribute to mass/inertia. Physics, controller and sensor schedules
+remain independent. The initial stabilizer uses simulator state; estimators only
+receive LiDAR, IMU and camera measurements, with truth reserved for scoring.
+
+Reuse a pinned Menagerie Skydio X2 model with explicit modifications and licence.
+Qualify hover, vertical/horizontal response, turns, landing, timeout/ownership,
+ceiling/wall collision, mount consistency and CPU-only realtime sensor transport.
+Keep resolution/rates fixed and report simulator, adapter and frontend resources.
+
+Tutorials first use Go2W + Noetic: sensor/TF/clock checks, FAST-LIO, then
+FAST-LIVO2 on matched inputs. Humble uses its own native wrapper. Keep algorithms
+in independent processes, launched from portable versioned configurations.
+Separate stable mapping examples from known Avia/N3M continuation/reload failures.
+Add flight mapping only after flight qualification. Preserve the existing Avia
+candidate, original installations, all source scans and the accepted building.
+
+首期已实现物理四旋翼、简约 C++ 控制器、完整传感器和独立算法教程。以下记录实际验收，
+不代表真机、重定位或原 Avia/N3M 地图恢复问题已通过。使用说明见 [飞行操控](flight.md)
+和[建图教程](tutorials.md)。
+
+
+#### CPU candidate acceptance / CPU 候选验收
+
+Evidence root: `output/flight-tutorial-20261028/`. Existing pending Avia edits were
+preserved before this stage. No accepted building data or original PCD was changed.
+The installed desktop and production ROS image tags were not replaced.
+
+- Native physics/IPC: 19/19 regression checks passed; the final flight-only checks
+  passed after motor-cut/fault handling was tightened. Sixty-second hover maximum
+  drift was 0.000578 m. Upper-floor takeoff reached Z 3.99925 m from a 3 m support;
+  a low ceiling blocked takeoff; offset payload mass reached 1.900 kg and remained
+  controllable. Wall contact stopped the vehicle before the wall. Exported XML
+  replay matched the loaded payload model after 200 steps within 1e-8 in qpos.
+- Motor cut now reports `disarmed`, not a false `grounded`. Hold/blur cannot rearm
+  it. The tilt-fault and landing paths clear actual and reported thrust together.
+  Native checks cover cut, gravity-driven descent, explicit takeoff from support
+  after cut and immediate thrust removal at excessive tilt.
+- Noetic and Humble full flight probes each passed 15 checks: XYZ/yaw commands,
+  unsupported roll rejection, timeout, landing, Livox schema, IMU rates, RGB,
+  depth, panorama and calibration. Evidence: `ros1-flight-final/`,
+  `ros2-flight-final/`. Cameras retain 320×240 RGB/depth and 720×360 panorama at
+  10 Hz; MID360 retains 20,000 rays at 10 Hz; enabled IMUs retain 200 Hz.
+- The native MyGo tests use real XTEST events, not application callbacks.
+  `ui-flight-final-03/` passed takeoff, keyboard translation/climb/yaw, release,
+  Space, blur, program ownership/timeout, landing, both themes/languages and clean
+  shutdown. `ui-tutorial-noetic/` passed UI-driven start, live calibration,
+  frontend-only stop and normal close. Later final checks are recorded below.
+
+All mapping cases below ran for 140 simulation seconds through independent
+native ROS and frontend processes. Alignment is one fixed first-frame SE(3).
+No truth topic enters either frontend; truth only drives the independent route
+checker and scores output. Gates remain 1 m / 5°, all route goals, recent final
+estimate and RTF > 0.97. These are live runs, not byte-identical sensor replays.
+
+CPU is summed mean logical cores; memory is the maximum simultaneous summed
+process RSS for simulator, ROS adapter/master and frontend/observer. GUI, X server,
+Docker daemon and measurement tools are excluded from this table.
+
+| Robot | Frontend | ROS | Goals | Maximum position error | Maximum angle error | RTF | Mean CPU cores | Peak summed RSS |
+|---|---|---|---|---|---|---|---|---|
+| go2w | fast-lio | ros1 | 6/6 | 0.01026 m | 0.07174° | 0.99978 | 0.668 | 1002.4 MiB |
+| go2w | fast-livo2 | ros1 | 6/6 | 0.01727 m | 0.39897° | 0.99993 | 0.454 | 1046.5 MiB |
+| go2w | fast-lio | ros2 | 6/6 | 0.01079 m | 0.07427° | 0.99998 | 0.460 | 857.1 MiB |
+| go2w | fast-livo2 | ros2 | 6/6 | 0.02776 m | 0.42093° | 0.99996 | 0.446 | 969.1 MiB |
+| skydio_x2 | fast-lio | ros1 | 7/7 | 0.01662 m | 0.19618° | 0.99998 | 0.353 | 486.3 MiB |
+| skydio_x2 | fast-livo2 | ros2 | 7/7 | 0.01934 m | 0.61577° | 0.99999 | 0.354 | 538.7 MiB |
+
+每条路线的 `score.json` 保存实际二进制身份，`resources.json` 保存采样值。
+Go2W 的 Noetic FAST-LIO 首轮使用 core `120fb1a15183`；随后 Go2W 用
+`f6a5ec0adf52`，传输对照和飞行 FAST-LIO 用 `ea56b27c33d5`，飞行 FAST-LIVO2
+用 `015daf5cfaf6`。后续统一了命令行与启动检查的机器人能力序列化；它不改变物理或
+传感器计算。最终构建身份另存于 `candidate-binaries.json`，不能把早期测量冒充为
+最终 ELF 的逐字节复验。
+
+The initial Humble FAST-LIVO2 run produced 880 estimates with gaps up to 0.7 s,
+even though the core produced all 1,400 LiDAR/camera frames and 28,000 IMU samples.
+Only pacing the wrapper's UDP fragments at 64 KiB/ms yielded 1,367 estimates
+from 3.3 to 139.9 s with a maximum 0.1 s gap on the same route configuration.
+RTF remained 0.99996. The flight case retained at most 0.2 s estimate gaps.
+The estimator, thresholds, image dimensions, sampling rates and host socket
+settings were unchanged. Original evidence is retained as
+`e2e-go2w-livo-humble/`; the transport comparison is
+`e2e-go2w-livo-humble-paced/`. Production XML follows the
+[Fast DDS 2.6 flow-controller configuration](https://github.com/eProsima/Fast-DDS/blob/v2.6.12/test/unittest/xmlparser/test_xml_profiles.xml).
+
+Lessons retained: payload recomputation must use scratch `mjData` because
+`mj_setConst` resets its working state; the exported model must carry the same
+payload inertial properties. Tutorial startup waits for the selected ROS adapter;
+Humble's default domain matches the adapter. ROS 1 frontend/camera parameters are
+loaded as one merged dictionary. Steady hold is measured after actual braking,
+not by requiring an airborne body to stop instantaneously. Native font metrics
+differ between English and Chinese, so both layouts were inspected.
+
+Frontend source locks: FAST-LIO `d9786240120d755780919c593dc4bec72e0a4949`,
+FAST-LIVO2 `d9e600c81f7b76c3509d6a269036c3e5aae3d3d7`. The second is a supplied
+local commit, not a published upstream revision. Optional images build from
+public pinned ROS bases and a self-contained source export. Their Docker-reported
+sizes are approximately 2.82 GB (Noetic) and 1.51 GB (Humble); they are separate
+from the application package. Only the chosen ROS version is needed.
+
+This stage qualifies the listed simulated routes and controls. It does not add
+wind/battery models, autonomous obstacle avoidance, estimator-driven flight
+stabilization, Avia map recovery or real-hardware acceptance.
+
+
+Final native UI checks: `ui-flight-qualified/` passed 14/14 controls and lifecycle
+checks, including an actual airborne motor cut followed by blur without rearming.
+`ui-tutorial-humble/` passed the UI-driven frontend lifecycle and calibration.
+Both final checks used core `a1944c0d0e1c` and console `9ae293271424`.
+The latest core registry serializer is shared by `--list-robots` and
+`--runtime-info`; both report the same nine robots and flight capabilities.
+
+The 20-second stationary Go2W + Humble + FAST-LIVO2 GUI measurement, with live
+first/third views and software GL, used 0.706 mean logical CPU cores,
+peaked at 1054.6 MiB summed RSS / 928.6 MiB summed PSS,
+and had RTF 1.0018. It includes console, core, adapter and
+frontend processes, and excludes the X server, Docker daemon and measuring tool.
+It is a stationary UI sample; moving-route measurements are in the table above.
+
+最终实际界面测试通过 14 项，包括空中停桨后失焦也不重新启桨。Humble 教程界面的
+启动、自动标定、单独停止前端和关闭清理均通过。静止双视角实测整套应用约占
+0.71 个逻辑核，PSS 峰值约 929 MiB；该值不代表复杂
+建筑或长时间运行的上限。
+
+
+Final package checks used a clean public Ubuntu 22.04 container with no ROS SDK,
+Python or development checkout. Installation, all nine registered CPU models,
+non-root native window, dependency checks, normal child-process shutdown and
+uninstall passed (`install-check/`). The application package is approximately
+40.5 MB compressed / 187.7 MiB installed; optional ROS/tutorial images are separate.
+The CPU-only package is now installed on Jammy with matching Noetic/Humble
+adapter images. It is a local build, not a published release. CI includes the
+native flight UI and full Noetic/Humble flight sensor checks; this session did
+not run remote GitHub Actions.
+
+The final IPC audit additionally rejected unknown flight fields and velocity
+arrays longer than XYZ, rather than silently discarding attempted roll/pitch
+components. The focused real-socket test covers both cases. This validation-only
+change does not alter the qualified valid motion or sensor paths.
+
+Jammy desktop installation exposed an X11 repaint stall that the isolated Xvfb
+checks did not reproduce. Core metadata and GUI state continued updating, but
+GTK stopped after three frames while waiting for a compositor acknowledgement.
+The pinned `x11-frame-ack.patch` disables that external wait for MyGo X11 windows
+through GTK's public `gdk_x11_window_set_frame_sync_enabled` API. GTK's local
+frame pacing remains enabled; Wayland and the C++ sensor/physics code are unchanged.
+The same saved building workspace then rendered 42 frames in the six-second
+diagnostic run. See [GTK's X11 implementation](https://github.com/GNOME/gtk/blob/gtk-3-24/gdk/x11/gdkwindow-x11.c).
+
+The final installed console is `16711f17c6be`, with unchanged installed core
+`a852e372549f`. Its 14 native flight UI checks passed again, including keyboard,
+focus ownership, motor cut, contrast and normal shutdown. The actual installed
+desktop window displays the saved Go2W/building workspace. Package, image and
+configuration checks are recorded in `output/flight-install-20261028/`; the final
+package SHA-256 is `5ca3535ab613415c69e1688c024e136eae6015f21a665ab3e7d3970fcba7faa5`.
+
+Jammy 已安装本次 CPU 版本，Noetic／Humble 适配器已同步。安装验收发现并修复了
+X11 绘制回执等待导致的首帧停滞，14 项原生界面测试再次通过。正式安装版已打开
+原有 Go2W 与双层建筑场景。工作区仅补充默认雷达型号，场景、预设和外参保留。
+后续桌面验收应同时检查真实合成器下的无操作启动，不能只依赖 Xvfb 截图。

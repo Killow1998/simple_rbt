@@ -76,22 +76,12 @@ func (a *app) controls(c *ui.Context) {
 			a.armControls(c)
 			return
 		}
-		ui.Box(c.Key("drive-pad")).Bind(&a.driveHandles[0]).Height(224).Radius(12).Background(c.Theme().Background).Focusable().Disabled(!a.manualMode()).Label(a.tr("Hold joystick to move; release to stop", "按住摇杆运动，松开停车")).HandleInput(a.controlInput).Draw(func(p *ui.Painter, r ui.Rect) {
-			a.pad.Width = float64(r.W)
-			a.pad.Height = float64(r.H)
-			cx, cy := r.X+r.W*.5, r.Y+r.H*.5
-			radius := float32(math.Min(float64(r.W), float64(r.H)) * .38)
-			color := c.Theme().Border
-			p.Fill(ui.Rect{X: cx - radius, Y: cy - radius, W: radius * 2, H: radius * 2}, c.Theme().Surface, radius)
-			p.Stroke(ui.Rect{X: cx - radius, Y: cy - radius, W: radius * 2, H: radius * 2}, color, radius, 2)
-			p.Line(cx-radius, cy, cx+radius, cy, 1, color)
-			p.Line(cx, cy-radius, cx, cy+radius, 1, color)
-			knob := c.Theme().TextMuted
-			if a.pad.Held {
-				knob = c.Theme().Accent
-			}
-			p.Fill(ui.Rect{X: cx + float32(a.pad.Position.X)*radius - 19, Y: cy + float32(a.pad.Position.Y)*radius - 19, W: 38, H: 38}, knob, 19)
-		})
+		a.tutorialSummary(c)
+		if a.catalog.Robots[a.cfg.Robot].FlightControl {
+			a.flightControls(c)
+			return
+		}
+		ui.Box(c.Key("drive-pad")).Bind(&a.driveHandles[0]).Height(224).Radius(12).Background(c.Theme().Background).Focusable().Disabled(!a.manualMode()).Label(a.tr("Hold joystick to move; release to stop", "按住摇杆运动，松开停车")).HandleInput(a.controlInput).Draw(a.drawJoystick(c))
 		hint := a.tr("Select Manual to use the joystick", "选择手动控制后可使用摇杆")
 		if a.manualMode() {
 			hint = a.tr("Hold to drive · release to stop", "按住运动，松开停车")
@@ -231,5 +221,34 @@ func (a *app) startOperating() {
 	a.sourceLabel = manualLabel
 	_ = a.manager.Client.SendRequest(map[string]any{"op": "source", "source": "gui"})
 	_ = a.manager.Client.SendRequest(map[string]any{"op": "start"})
+	if a.cfg.Tutorial != "" {
+		version := a.cfg.TutorialROS
+		if version == "" {
+			version = "ros1"
+		}
+		if err := a.manager.StartTutorial(a.cfg.Tutorial, version); err != nil {
+			a.status = err.Error()
+			a.showLog = true
+		}
+	}
 	a.requestView()
+}
+
+func (a *app) drawJoystick(c *ui.Context) func(*ui.Painter, ui.Rect) {
+	return func(p *ui.Painter, r ui.Rect) {
+		a.pad.Width = float64(r.W)
+		a.pad.Height = float64(r.H)
+		cx, cy := r.X+r.W*.5, r.Y+r.H*.5
+		radius := float32(math.Min(float64(r.W), float64(r.H)) * .38)
+		color := c.Theme().Border
+		p.Fill(ui.Rect{X: cx - radius, Y: cy - radius, W: radius * 2, H: radius * 2}, c.Theme().Surface, radius)
+		p.Stroke(ui.Rect{X: cx - radius, Y: cy - radius, W: radius * 2, H: radius * 2}, color, radius, 2)
+		p.Line(cx-radius, cy, cx+radius, cy, 1, color)
+		p.Line(cx, cy-radius, cx, cy+radius, 1, color)
+		knob := c.Theme().TextMuted
+		if a.pad.Held {
+			knob = c.Theme().Accent
+		}
+		p.Fill(ui.Rect{X: cx + float32(a.pad.Position.X)*radius - 19, Y: cy + float32(a.pad.Position.Y)*radius - 19, W: 38, H: 38}, knob, 19)
+	}
 }

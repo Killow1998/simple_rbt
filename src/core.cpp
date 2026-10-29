@@ -8,6 +8,7 @@
 #include "user_scene.hpp"
 #include "tracking.hpp"
 #include "imu_sensor.hpp"
+#include "flight_payload.hpp"
 #include <algorithm>
 #include <cmath>
 #include "sensor_devices.hpp"
@@ -60,6 +61,7 @@ struct Simulation::Impl {
   CommandTracker tracker;
   ImuSensor mid360_imu, camera_imu;
   std::unique_ptr<Controller> control;
+  std::unique_ptr<FlightPayload> payload;
   std::uint64_t steps = 0;
   Impl(const SimulationOptions &options)
       : o(options), spec(robot_spec(options.robot)) {
@@ -124,6 +126,7 @@ struct Simulation::Impl {
     const Json config = catalog["controllers"].value(o.robot + "-" + controller,
                                                      Json::object());
     control = make_controller({o, controller, config, catalog, m, d});
+    if(spec.flight_control)payload=std::make_unique<FlightPayload>(m);
     base_site = id(m, mjOBJ_SITE, "base_origin");
     lidar_site = id(m, mjOBJ_SITE, "lidar");
     camera_site = id(m, mjOBJ_SITE, "camera_mount");
@@ -158,6 +161,7 @@ Simulation::Simulation(const SimulationOptions &o)
 Simulation::~Simulation() = default;
 mjModel *Simulation::model() const { return p_->m; }
 mjData *Simulation::data() const { return p_->d; }
+const LidarSpec &Simulation::lidar_device() const { return lidar_spec(p_->o.lidar_model); }
 void Simulation::set_mount(const std::string& module, const Pose& requested) {
   Pose pose = requested;
   for (double v:pose.position) if (!std::isfinite(v) || std::abs(v)>10.)
@@ -171,7 +175,7 @@ void Simulation::set_mount(const std::string& module, const Pose& requested) {
                : module == "external_camera" && p_->o.external_camera_enabled
                    ? p_->site_id("external_camera_mount")
                    : -1;
-  if (target<0) throw std::invalid_argument("Only MID360 assembly and camera mounts are editable");
+  if (target<0) throw std::invalid_argument("Only LiDAR assembly and camera mounts are editable");
   auto assign=[&](int site,const Pose& value){
     p_->m->site_sameframe[site]=mjSAMEFRAME_NONE;
     std::copy(value.position.begin(),value.position.end(),p_->m->site_pos+site*3);
@@ -188,12 +192,13 @@ void Simulation::set_mount(const std::string& module, const Pose& requested) {
   assign(target,pose);
   if(module=="mid360") {
     Pose internal=pose;
-    const double offset[3]={.011,.02329,-.04412}; double transformed[3];
-    mju_rotVecQuat(transformed,offset,pose.quaternion.data());
+    const auto &offset = lidar_spec(p_->o.lidar_model).imu_offset; double transformed[3];
+    mju_rotVecQuat(transformed,offset.data(),pose.quaternion.data());
     for(int i=0;i<3;++i) internal.position[i]+=transformed[i];
     assign(p_->mid360_site,internal);
   }
   move_sensor_device(p_->m,module,pose,p_->o);
+  if(p_->payload)p_->payload->update(p_->m,p_->o);
   mj_forward(p_->m,p_->d);
   p_->mid360_imu.reset(p_->m, p_->d, stamp_ns());
   if (has_camera_imu()) p_->camera_imu.reset(p_->m, p_->d, stamp_ns());
@@ -209,6 +214,12 @@ void Simulation::set_command(const Vec3 &v) {
 void Simulation::set_joints(const JointCommand &command) {
   p_->control->set_joints(command);
 }
+void Simulation::set_flight(const FlightCommand &command) {
+  if (!supported_flight_command(command))
+    throw std::invalid_argument("Invalid flight command");
+  p_->control->set_flight(command);
+}
+Json Simulation::flight_status() const { return p_->control->flight_status(); }
 void Simulation::hold_joints() { p_->control->hold_joints(); }
 Json Simulation::joint_controls() const {
   return p_->control->joint_controls();
@@ -352,7 +363,8 @@ Json Simulation::deployment_metadata() const {
       {"pd_calls", p_->control->state.pd_calls},
       {"startup_steps", p_->control->state.startup_count},
       {"source_model",
-       "offline frozen MJCF; original contact/inertial/actuator parameters"}};
+       p_->spec.flight_control ? "pinned Skydio MJCF; original rotor/contact geometry; nominal configured sensor payload inertia"
+                               : "offline frozen MJCF; original contact/inertial/actuator parameters"}};
 }
 Json Simulation::tracker_metadata() const {
   return {{"saturation_fraction",
@@ -368,6 +380,16 @@ std::string Simulation::xml() const {
   tinyxml2::XMLDocument doc; doc.Parse(p_->scene_xml.c_str());
   auto numbers=[](const double* v,int count){std::ostringstream out;out<<std::setprecision(17);for(int i=0;i<count;++i){if(i)out<<' ';out<<v[i];}return out.str();};
   auto visit=[&](auto&& self,tinyxml2::XMLElement* e)->void {
+    if(p_->spec.flight_control && std::string(e->Name())=="body" && e->FirstChildElement("freejoint")) {
+      const int body=mj_name2id(p_->m,mjOBJ_BODY,e->Attribute("name"));
+      auto *inertial=e->FirstChildElement("inertial");
+      if(!inertial){inertial=doc.NewElement("inertial");e->InsertFirstChild(inertial);}
+      inertial->DeleteAttribute("fullinertia");
+      inertial->SetAttribute("mass",numbers(p_->m->body_mass+body,1).c_str());
+      inertial->SetAttribute("pos",numbers(p_->m->body_ipos+3*body,3).c_str());
+      inertial->SetAttribute("quat",numbers(p_->m->body_iquat+4*body,4).c_str());
+      inertial->SetAttribute("diaginertia",numbers(p_->m->body_inertia+3*body,3).c_str());
+    }
     if(std::string(e->Name())=="site") {
       const char* name=e->Attribute("name");
       if (name &&
@@ -379,6 +401,13 @@ std::string Simulation::xml() const {
     }
     if(std::string(e->Name())=="geom") {
       const char* name=e->Attribute("name");
+      if(name && std::string(name).rfind("payload_",0)==0) {
+        const int g=mj_name2id(p_->m,mjOBJ_GEOM,name);
+        e->SetAttribute("pos",numbers(p_->m->geom_pos+3*g,3).c_str());
+        e->SetAttribute("quat",numbers(p_->m->geom_quat+4*g,4).c_str());
+        e->SetAttribute("contype",p_->m->geom_contype[g]);
+        e->SetAttribute("conaffinity",p_->m->geom_conaffinity[g]);
+      }
       if (name &&
           (std::string(name).rfind("visual_device_", 0) == 0 ||
            std::string(name).rfind("visual_external_device_", 0) == 0)) {

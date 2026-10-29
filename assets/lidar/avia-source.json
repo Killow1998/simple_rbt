@@ -1,0 +1,25 @@
+{
+  "simulation_commit": "1cce1073633a062b92e30243a4c2920e45551bb5",
+  "sources": {
+    "avia.csv": {
+      "url": "https://raw.githubusercontent.com/Livox-SDK/livox_laser_simulation/1cce1073633a062b92e30243a4c2920e45551bb5/scan_mode/avia.csv",
+      "bytes": 34863404,
+      "sha256": "9363f7ec8da1541b49214ae18eea840151eda4eed176ebd573bd443eb7970d78"
+    },
+    "livox_sim_LICENSE": {
+      "url": "https://raw.githubusercontent.com/Livox-SDK/livox_laser_simulation/1cce1073633a062b92e30243a4c2920e45551bb5/LICENSE",
+      "bytes": 1062,
+      "sha256": "4846843fe86275ad7a08915992fe69019608aebb783b3fb84e35a68d4611ad26"
+    },
+    "avia.stp": {
+      "url": "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Download/Avia/Livox_Avia_shell_FOV.stp",
+      "bytes": 3489819,
+      "sha256": "a1254e83f44ed1a16f47a70995a206ff5f9c6a73c1bb701bb9e8b1e937f87745"
+    },
+    "avia_manual.pdf": {
+      "url": "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Download/Avia/Livox%20Avia%20User%20Manual%20202204.pdf",
+      "bytes": 8197435,
+      "sha256": "dde03f541c815d8afc1d159073422cf31b66b84080770642d5df27c8912f9100"
+    }
+  }
+}

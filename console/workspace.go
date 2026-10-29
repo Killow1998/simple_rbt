@@ -16,6 +16,7 @@ type RobotPreset struct {
 	RobotConfig
 }
 type RobotConfig struct {
+	LidarModel       string          `json:"lidar_model"`
 	Robot            string          `json:"robot"`
 	Controller       string          `json:"controller"`
 	ControlMode      string          `json:"control_mode"`
@@ -51,10 +52,14 @@ func clone[T any](v T) T {
 	return out
 }
 func robotConfig(c Config) RobotConfig {
-	return clone(RobotConfig{c.Robot, c.Controller, c.ControlMode, c.Sensors, c.Mounts, c.CameraModel, c.CameraExtrinsics, c.CameraHz})
+	return clone(RobotConfig{c.LidarModel, c.Robot, c.Controller, c.ControlMode, c.Sensors, c.Mounts, c.CameraModel, c.CameraExtrinsics, c.CameraHz})
 }
 func (r RobotConfig) apply(c *Config) {
 	r = clone(r)
+	c.LidarModel = r.LidarModel
+	if c.LidarModel == "" {
+		c.LidarModel = "mid360" // Presets saved before LiDAR selection.
+	}
 	c.Robot = r.Robot
 	c.Controller = r.Controller
 	c.ControlMode = r.ControlMode
@@ -67,7 +72,7 @@ func (r RobotConfig) apply(c *Config) {
 func (a *app) defaultRobotPresetName() string {
 	parts := []string{a.optionLabel(a.cfg.Robot)}
 	if a.cfg.Sensors.MID360 {
-		parts = append(parts, "MID360")
+		parts = append(parts, strings.ToUpper(a.cfg.LidarModel))
 	}
 	if a.cameraDeviceEnabled() {
 		parts = append(parts, strings.ToUpper(a.cfg.CameraModel))
@@ -80,7 +85,7 @@ func (a *app) defaultRobotPresetName() string {
 func workspacePath() string { return filepath.Join(filepath.Dir(profilePath()), "workspace.json") }
 func (a *app) initWorkspace(restore bool) {
 	a.workspace = Workspace{Version: 1, Robots: map[string]RobotPreset{}, Scenes: map[string]Scene{}, RobotDrafts: map[string]RobotPreset{}, SceneDrafts: map[string]Scene{}}
-	var w Workspace
+	w := Workspace{Config: defaultConfig()}
 	err := loadJSON(workspacePath(), &w)
 	if err == nil {
 		valid := w.Version == 1 && w.Robots != nil && w.Scenes != nil && w.RobotDrafts != nil && w.SceneDrafts != nil

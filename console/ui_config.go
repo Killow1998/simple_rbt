@@ -46,7 +46,7 @@ func (a *app) configuration(c *ui.Context) {
 			}
 		})
 		ui.Row(c).Gap(10).Children(func() {
-			if !spec.JointControl {
+			if !spec.JointControl && !spec.FlightControl {
 				field(c, a.tr("Motion", "运动"), func() {
 					if a.localizedSelect(c.Key("motion"), &a.cfg.ControlMode, []string{"tracked", "native"}).Width(166).Changed() {
 						a.startConfig()
@@ -63,6 +63,10 @@ func (a *app) configuration(c *ui.Context) {
 			ui.Text(c, a.tr("Fixed base · 7 joints + gripper", "固定底座 · 7 个关节＋夹爪")).FontSize(12).TextColor(c.Theme().TextMuted)
 			return
 		}
+		if spec.FlightControl {
+			ui.Text(c, a.tr("3D velocity + heading rate · physics flight controller", "三维速度＋偏航角速度 · 物理飞行控制器")).FontSize(12).TextColor(c.Theme().TextMuted)
+			return
+		}
 		ui.Text(c, fmt.Sprintf(a.tr("Limits · vx ±%.2f m/s · wz ±%.2f rad/s", "限幅 · vx ±%.2f 米/秒 · wz ±%.2f 弧度/秒"), spec.Limits[0], spec.Limits[2])).FontSize(12).TextColor(c.Theme().TextMuted)
 		if !spec.AllowsLateral {
 			ui.Text(c, a.tr("No lateral motion", "不支持横向平移")).FontSize(12).TextColor(c.Theme().TextMuted)
@@ -77,7 +81,7 @@ func (a *app) configuration(c *ui.Context) {
 	section(c, a.tr("Sensors", "传感器"), func() {
 		changed := false
 		ui.Row(c).Gap(14).Children(func() {
-			if ui.Checkbox(c.Key("mid360"), &a.cfg.Sensors.MID360, a.tr("MID360 · LiDAR + IMU", "MID360 · 雷达与 IMU")).Changed() {
+			if ui.Checkbox(c.Key("mid360"), &a.cfg.Sensors.MID360, a.tr("LiDAR + IMU", "雷达与 IMU")).Changed() {
 				changed = true
 			}
 			if ui.Checkbox(c.Key("rgb"), &a.cfg.Sensors.Camera, "RGB").Changed() {
@@ -95,6 +99,11 @@ func (a *app) configuration(c *ui.Context) {
 		if ui.Checkbox(c.Key("external-camera"), &a.cfg.Sensors.ExternalCamera, a.tr("External camera · RGB + depth", "第三人称相机 · RGB＋深度")).Changed() {
 			changed = true
 		}
+		field(c, a.tr("LiDAR device", "雷达型号"), func() {
+			if ui.Select(c.Key("lidar-model"), &a.cfg.LidarModel, []string{"mid360", "avia"}).FillWidth().Changed() {
+				changed = true
+			}
+		})
 		field(c, a.tr("Camera device", "相机型号"), func() {
 			if ui.Select(c.Key("camera-model"), &a.cfg.CameraModel, []string{"d435", "d435i"}).FillWidth().Changed() {
 				changed = true
@@ -173,7 +182,10 @@ func (a *app) loadProfile() {
 		a.showLog = true
 		return
 	}
-	if err = validateConfig(cfg, a.catalog); err != nil {
+	a.applySessionProfile(cfg, filepath.Base(paths[0]))
+}
+func (a *app) applySessionProfile(cfg Config, name string) {
+	if err := validateConfig(cfg, a.catalog); err != nil {
 		a.status = err.Error()
 		a.showLog = true
 		return
@@ -189,7 +201,7 @@ func (a *app) loadProfile() {
 	}
 	a.checkpoint()
 	a.cfg = cfg
-	a.robotPreset = RobotPreset{ID: newID(), Name: filepath.Base(paths[0]), RobotConfig: robotConfig(cfg)}
+	a.robotPreset = RobotPreset{ID: newID(), Name: name, RobotConfig: robotConfig(cfg)}
 	if cfg.Scene != nil {
 		a.sceneDraft = clone(*cfg.Scene)
 		a.sceneFloor = a.sceneDraft.firstFloor()

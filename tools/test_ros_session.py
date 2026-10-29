@@ -39,6 +39,7 @@ def build_image(version, image, base_image=None):
 
 def run_case(args, robot, output):
     arm = robot == "panda"
+    flight = robot == "skydio_x2"
     case = output / robot; case.mkdir()
     session = Path("/tmp") / ("srbt-"+uuid.uuid4().hex[:12]); session.mkdir(mode=0o700)
     container = "simple-rbt-"+args.ros+"-"+uuid.uuid4().hex[:12]
@@ -56,6 +57,10 @@ def run_case(args, robot, output):
         config["sensors"] = {"mid360": False, "camera": not args.no_camera, "depth": not args.no_camera,
                              "panorama": False, "external_camera": not args.no_camera}
         config["settle_s"] = 0
+    if flight:
+        config["duration_s"] = 48
+        config["camera_model"] = "d435i"
+        config["ros"] = {"publish_odom_tf": False, "odom_topic": "/ground_truth/odom"}
     (case / "config.json").write_text(json.dumps(config, indent=2)+"\n")
     core = adapter = probe = None
     with (case / "core.log").open("w") as core_log, (case / "adapter.log").open("w") as adapter_log:
@@ -85,13 +90,15 @@ def run_case(args, robot, output):
             shell = f'source {setup}; source {interface}; exec python3 /tests/ros_probe.py "$1" /results/probe.json --physical --robot "$2"'
             if arm:
                 shell = f'source {setup}; source {interface}; exec python3 /tests/arm_probe.py "$1" /results/probe.json'
+            if flight:
+                shell = f'source {setup}; source {interface}; exec python3 /tests/flight_probe.py "$1" /results/probe.json'
             if args.no_camera: shell += ' --no-camera'
-            if args.camera_model == 'd435i' and not arm: shell += ' --camera-imu'
-            if args.external_odometry and not arm: shell += ' --external-odometry'
+            if args.camera_model == 'd435i' and not arm and not flight: shell += ' --camera-imu'
+            if args.external_odometry and not arm and not flight: shell += ' --external-odometry'
             probe = subprocess.Popen(["docker", "exec", container, "bash", "-c", shell, "probe", args.ros, robot],
                                      stdout=adapter_log, stderr=subprocess.STDOUT)
-            probe_code = probe.wait(timeout=35)
-            core_code = core.wait(timeout=40)
+            probe_code = probe.wait(timeout=50 if flight else 35)
+            core_code = core.wait(timeout=55 if flight else 40)
             adapter_code = adapter.wait(timeout=15)
             if probe_code or core_code or adapter_code:
                 raise RuntimeError(f"{robot}: probe={probe_code}, core={core_code}, adapter={adapter_code}; see {case}")

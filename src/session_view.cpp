@@ -43,6 +43,7 @@ Json SessionObserver::metadata() {
         pose_json(sim_->mount_parent("external_camera"));
   }
   return {{"joint_controls", sim_->joint_controls()},
+          {"flight", sim_->flight_status()},
           {"mount_parents", parents},
           {"logging", diagnostics::log().health()},
           {"robot", config_.value("robot", std::string("ranger_mini"))},
@@ -56,6 +57,8 @@ Json SessionObserver::metadata() {
           {"mounts", mounts},
           {"mid360_internal_imu", pose_json(sim_->extrinsics("mid360_imu"))},
           {"mid360_imu_locked", true},
+          {"lidar_model", sim_->lidar_device().name},
+          {"lidar_imu_offset", sim_->lidar_device().imu_offset},
           {"camera_model", config_.value("camera_model", std::string("d435"))},
           {"camera_imu_locked", sim_->has_camera_imu()},
           {"camera_imu_mount", pose_json(sim_->extrinsics("camera_imu"))},

@@ -19,11 +19,18 @@ The protocol uses separate control and data Unix sockets, fixed little-endian pa
 
 协议使用分离的控制／数据 Unix socket、固定的小端字段和有界队列。GUI 消费最新观察画面；ROS 适配器接收传感器样本并发布消息。指令来源显式选择；断开、非法指令和 0.5 秒超时会清零。停车清除指令来源并给出零指令，物理仍运行；暂停冻结仿真时间。返回配置会重启操作台拥有的会话。
 
+The physical quadrotor adds a typed world-ENU flight command and a C++ rotor
+controller. Optional mapping tutorials use a separate C++ calibration tool and
+native frontend container. See [flight controls](flight.md) and
+[mapping tutorials](tutorials.md).
+四旋翼使用独立的世界 ENU 飞行指令。建图教程使用独立标定工具和前端进程，核心
+保持 ROS 无关；详见[飞行操控](flight.md)与[建图教程](tutorials.md)。
+
 ## Software camera rendering / 软件相机渲染
 
 Perspective RGB/depth remains 320×240, panorama RGB/radial depth remains
 720×360 from six 256×256 faces. Desktop sessions retain 10 Hz cameras and
-MID360 scans (20,000 rays), with both enabled IMUs at 200 Hz. These are rates
+LiDAR scans (MID360: 20,000 rays; Avia: 24,000 rays), with enabled IMUs at 200 Hz. These are rates
 in simulation time; a slow software renderer also slows the simulation.
 
 Software llvmpipe/softpipe keeps shadows with a 2048-pixel shadow-map cap;
@@ -76,7 +83,7 @@ and reflections retain native shading. Small meshes keep native display lists.
 See [dependency provenance](../third_party/meshoptimizer/README.md).
 
 透视 RGB／深度保持 320×240，全景 RGB／径向深度保持 720×360，由六个
-256×256 视面生成。桌面相机和 MID360 保持仿真时间 10 Hz（每次 20,000
+256×256 视面生成。桌面相机和雷达保持仿真时间 10 Hz（MID360 每次 20,000、Avia 每次 24,000
 条射线），两组启用的 IMU 均为 200 Hz。软件绘制跟不上时，整个仿真会慢于墙钟。
 软件模式保留阴影，将阴影贴图上限设为 2048；输出分辨率、深度精度、多重采样、
 物理和传感器时序均不降低。RGB 按距离选择简化网格，使用带余量的半像素投影
@@ -129,13 +136,52 @@ The robot registry comes from `simple-rbt-sim --list-robots` without initializin
 
 机器人能力通过 `simple-rbt-sim --list-robots` 从 C++ 登记表读取，不初始化 MuJoCo 或图形。资源 catalog 提供模型／控制器组合和地形预设。轮式底盘使用 `flat`、`ramp`、`hills`；Go2／Go2W 另可使用 `stairs`、`rough`。难度为 `standard`、`moderate`、`hard`、`extreme`。
 
-The `tracked` mode adds simulator velocity/heading feedback. `native` retains the chassis controller alone. Command limits are conservative simulator limits; speed on terrain is measured rather than guaranteed. Sensor selections independently enable MID360, RGB, depth and panorama.
+The `tracked` mode adds simulator velocity/heading feedback. `native` retains the chassis controller alone. Command limits are conservative simulator limits; speed on terrain is measured rather than guaranteed. Sensor selections independently enable the selected LiDAR/IMU, RGB, depth and panorama.
 
-`tracked` 模式增加模拟器速度／航向反馈；`native` 只使用底盘自身控制器。指令上限是保守的仿真上限，不保证所有地形上的实际速度。MID360、RGB、深度和全景输出可以分别选择。
+`tracked` 模式增加模拟器速度／航向反馈；`native` 只使用底盘自身控制器。指令上限是保守的仿真上限，不保证所有地形上的实际速度。所选雷达／IMU、RGB、深度和全景输出可以分别选择。
 
 A chassis sensor mount pose is relative to the robot base, with quaternion order `[w,x,y,z]`. Numeric Euler controls and projected 3D handles write the same pose. MID360's internal IMU is fixed at `[0.011,0.02329,-0.04412]` m in the LiDAR housing frame, with identical orientation. Moving the device preserves that relationship. The controller's body IMU is a different site and is never moved by sensor configuration. Mount editing is available before the first Start.
 
 底盘传感器外参相对机器人 base，四元数顺序为 `[w,x,y,z]`。数值欧拉角与三维手柄修改同一 pose。MID360 内部 IMU 在雷达坐标中固定为 `[0.011,0.02329,-0.04412]` m，方向相同。调整设备时保持这一关系。控制器自身的机身 IMU 是另一感测点，不会被传感器配置移动。外参在首次开始之前编辑。
+
+## Avia scan and mount / Avia 扫描与安装
+
+`--lidar-model avia` and session `lidar_model: "avia"` select one device,
+including its official CAD, optical origin, scan pattern, range, six line IDs
+and rigid internal IMU. The default remains `mid360`. Runtime metadata reports
+the device, point rate, line count and range. Robot presets retain the selection.
+The existing `mid360` mount/sensor keys name the shared LiDAR slot; they do not
+force a MID360 pattern or IMU offset.
+
+Avia 使用 [Livox 官方仿真轨迹](https://github.com/Livox-SDK/livox_laser_simulation)
+的固定提交，来源与 SHA256 在 `assets/lidar/avia-source.json`。当前接入非重复、
+单回波模式：240,000 次射线／秒、10 Hz 每帧 24,000 次，六线编号 0–5。
+960,000 行轨迹连续播放，每 4 秒循环；不会每帧重置扫描相位。逐点时间用
+`round(i × 10^9 / 240000)` 纳秒，避免把周期截成 4166 ns 后产生累计偏差。
+这是理想化扫描时序，不是实机时间戳或抖动记录。
+
+当前有效距离为 1–190 m；未命中或超出距离的射线不制造返回点，因此有效点数
+可以低于 24,000。官方标称视野为 70.4° × 77.2°，保留原 CSV 的边缘方向。
+未实现重复扫描模式、多回波、反射率／量程噪声、1–3 m 近距畸变或机身自遮挡。
+内部 IMU 在雷达坐标中为 `[-0.04165, -0.02326, +0.02840]` m，方向相同，
+由所选设备规格统一提供给原生采样点、元数据和 UI。控制器自身 IMU 与动力学不变。
+
+官方 Avia STEP 的 `LIVOX_AVIA_FOV` 是视场示意体，不进入物理外观。
+`tools/prepare_avia_assets.py` 校验扫描文件与官方 CAD，并可重建独立的
+`assets/visual/sensors/avia-provenance.json` 和派生网格。MID360/RealSense
+原资源清单保持不变。设备规格与安装依据：[规格](https://www.livoxtech.com/avia/specs)、
+[手册与 CAD](https://www.livoxtech.com/avia/downloads)。
+
+[Avia/D435i 安装示例](../examples/go2w-avia-d435i.json) 将相机与雷达光轴平行安装，
+两光学中心相距约 9.6 cm。实际融合应检查投影覆盖、遮挡、纹理与可跟踪点数，
+不能仅用设备间距推断重叠。单个前向相机覆盖 MID360 360° 视野的一部分。
+当前 D435/D435i 图像仍是 320×240、垂直 60° 的理想针孔模型；这不是实机标定或
+曝光、滚动快门、噪声模型。应使用仿真 CameraInfo 和实际安装外参配置估计器。
+
+`--scene-texture PNG` / session `scene_texture` 可给场景表面添加固定纹理。
+使用 MuJoCo 原生立方体贴图，不修改射线、碰撞或真值。纹理不能随机器人位姿生成。
+无纹理和有纹理对照须使用相同的照明、几何和运动。真值话题只供观察和评分，
+不要把它接成 LIO/VIO 的里程计输入；安装示例已关闭真值 odom TF 发布。
 
 ## Fixed arm and two cameras / 固定机械臂与双相机
 
@@ -517,11 +563,11 @@ simple-rbt-sim --help
 
 `--cmd VX VY WZ` 单位为 m/s、m/s、rad/s。`--session-config JSON --session-dir PATH` 启动桌面／ROS 会话。配置可选择各传感器、初始外参、指令来源和有限运行时长；未指定时长则运行到关闭。核心不提供同进程 ROS 启动模式，应启动独立适配器。
 
-MID360 produces 10 Hz scans, up to 20,000 CSV-ordered rays per frame and a synthetic 200 kHz point clock. IMU samples are 200 Hz. Rolling scans interpolate rigid pose at each point timestamp and are not deskewed. Robot self-occlusion is excluded. CUDA supports the current static plane/box terrain. `auto` attempts CUDA and reports a CPU fallback when unavailable; `cpu` is an explicit independent raycasting path. CPU fallback can be slower than real time. `warp` remains a compatibility name for native CUDA.
+MID360 produces 10 Hz scans with 20,000 CSV-ordered rays per frame and a synthetic 200 kHz point clock; Avia uses 24,000 rays and 240 kHz in its selected non-repetitive single-return mode. IMU samples are 200 Hz. Rolling scans interpolate rigid pose at each point timestamp and are not deskewed. Robot self-occlusion is excluded. CUDA supports the current static plane/box terrain. `auto` attempts CUDA and reports a CPU fallback when unavailable; `cpu` is an explicit independent raycasting path. CPU fallback can be slower than real time. `warp` remains a compatibility name for native CUDA.
 
-MID360 为 10 Hz 扫描，每帧最多 20,000 条 CSV 顺序射线，使用合成的 200 kHz 点时钟；IMU 为 200 Hz。rolling 逐点插值刚体位姿，不做去畸变；排除机器人自身遮挡。CUDA 支持当前静态 plane／box 地形。`auto` 尝试 CUDA，无法使用时报告 CPU 回退；`cpu` 是显式的独立射线路径，回退后可能低于实时速度。`warp` 保留为原生 CUDA 的兼容名称。
+MID360 为 10 Hz 扫描，每帧 20,000 条 CSV 顺序射线，使用合成的 200 kHz 点时钟；Avia 非重复单回波模式为每帧 24,000 条、240 kHz。有效返回数受场景和量程影响。IMU 为 200 Hz。rolling 逐点插值刚体位姿，不做去畸变；排除机器人自身遮挡。CUDA 支持当前静态 plane／box 地形。`auto` 尝试 CUDA，无法使用时报告 CPU 回退；`cpu` 是显式的独立射线路径，回退后可能低于实时速度。`warp` 保留为原生 CUDA 的兼容名称。
 
-Both simulated IMUs (MID360 and D435i) measure completed native physics intervals.
+Both simulated IMUs (the selected MID360/Avia and D435i) measure completed native physics intervals.
 Specific force comes from the change in each site's world velocity, including its
 rigid lever arm, minus gravity. Angular rate comes from its rotation increment.
 An implicit integrator's instantaneous `qacc`/accelerometer and endpoint gyro do

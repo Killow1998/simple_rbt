@@ -46,6 +46,10 @@
     "panda-joint_position": {
       "file": "models/panda-joint_position.xml",
       "sha256": "f202ce8082c8632208b0b3e7fb58647d7952d145ee26bc68a90b8adf2b6021d5"
+    },
+    "skydio_x2-flight_pid": {
+      "file": "models/skydio_x2-flight_pid.xml",
+      "sha256": "babba6f3e5f8a8e25c4a35a42dc28d21931dca180d667d850941abb53cd71beb"
     }
   },
   "controllers": {
@@ -1212,6 +1216,15 @@
         "finger_joint1",
         "finger_joint2"
       ]
+    },
+    "skydio_x2-flight_pid": {
+      "source": "visual/skydio_x2/provenance.json",
+      "feedback": "simulation_state",
+      "velocity_frame": "world_enu",
+      "vertical_limit_m_s": 0.6,
+      "yaw_rate_limit_rad_s": 1.0,
+      "max_tilt_deg": 25.0,
+      "rotor_max_thrust_n": 13.0
     }
   },
   "terrain_presets": {

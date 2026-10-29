@@ -30,6 +30,12 @@ struct JointCommand {
   std::vector<double> position;
   bool hold = false;
 };
+struct FlightCommand {
+  // Linear velocity in local world ENU; heading rate about world +Z.
+  Vec3 velocity{};
+  double yaw_rate = 0., takeoff_height = 1.;
+  std::string action = "hold"; // hold, velocity, takeoff, land, disarm
+};
 struct JointState {
   std::vector<std::string> name;
   std::vector<double> position, velocity, effort;

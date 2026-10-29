@@ -84,6 +84,22 @@ std::string build_scene(const SimulationOptions &o, const Json &catalog,
   } else {
     append_user_scene(doc, o.scene, o.scene_spawn);
   }
+  if (!o.scene_texture.empty()) {
+    const auto texture_path=o.scene_texture.is_absolute()?o.scene_texture:o.project_root/o.scene_texture;
+    auto *assets = root->FirstChildElement("asset");
+    if (!assets) assets = add(root, "asset", {});
+    add(assets, "texture", {{"name", "scene_surface_texture"}, {"type", "cube"},
+                           {"file", texture_path.string()}});
+    add(assets, "material", {{"name", "scene_surface_material"},
+                            {"texture", "scene_surface_texture"},
+                            {"texuniform", "false"}, {"texrepeat", "1 1"},
+                            {"reflectance", "0"}});
+    for (auto *geom = world->FirstChildElement("geom"); geom;
+         geom = geom->NextSiblingElement("geom")) {
+      if (geom->IntAttribute("group") == 1)
+        geom->SetAttribute("material", "scene_surface_material");
+    }
+  }
   add_sensor_devices(doc,o);
   auto *visual = root->FirstChildElement("visual");
   if (!visual)

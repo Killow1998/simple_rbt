@@ -26,6 +26,7 @@ class Transport {
 public:
   virtual ~Transport() = default;
   virtual Vec3 command() const = 0;
+  virtual FlightCommand flight_command() const { return {}; }
   virtual std::optional<JointCommand> joint_command() const { return {}; }
   virtual void publish_joints(std::uint64_t, const JointState &) {}
   virtual void publish_external_camera(std::uint64_t, const CameraFrame &) {}

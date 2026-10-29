@@ -42,7 +42,9 @@ Usage: simple-rbt-sim [options]
   --cmd VX VY WZ --settle SECONDS --duration SECONDS
   --sensors physics|lidar|full --cameras --camera-hz NUMBER --camera-model d435|d435i
   --backend auto|cpu|cuda|warp           warp is a compatibility alias for native CUDA
-  --lidar-motion rolling|snapshot --rays NUMBER (1..20000, diagnostic subset)
+  --scene-texture PNG                world-surface appearance; geometry unchanged
+  --lidar-model mid360|avia --lidar-motion rolling|snapshot
+  --rays NUMBER (diagnostic subset; default complete 100 ms scan)
   --session-config JSON --session-dir DIRECTORY   desktop/ROS process session
   --realtime --viewer --summary-only --output NEW_DIRECTORY
   --go2-torque-mode configured|upstream --go2-startup crouched|upstream_getup
@@ -79,17 +81,7 @@ int main(int argc, char **argv) {
     for (int i = 1; i < argc; ++i) {
       if (std::string(argv[i]) != "--list-robots")
         continue;
-      Json registry = Json::array();
-      for (const auto &spec : robot_specs())
-        registry.push_back({{"name", spec.name},
-                            {"default_controller", spec.default_controller},
-                            {"continuous_terrain", spec.continuous_terrain},
-                            {"allows_lateral", spec.allows_lateral},
-                            {"allows_in_place_turn", spec.allows_in_place_turn},
-                            {"command_limits", spec.command_limits},
-                            {"joint_control", spec.joint_control},
-                            {"min_turning_radius", spec.min_turning_radius}});
-      std::cout << registry.dump() << '\n';
+      std::cout << robot_registry().dump() << '\n';
       return 0;
     }
     RunOptions args;
@@ -156,6 +148,10 @@ int main(int argc, char **argv) {
         args.backend = value(i);
       else if (option == "--sensors")
         args.sensors = value(i);
+      else if (option == "--scene-texture")
+        args.simulation.scene_texture = value(i);
+      else if (option == "--lidar-model")
+        args.simulation.lidar_model = parse_lidar_model(value(i));
       else if (option == "--lidar-motion")
         args.lidar_motion = value(i);
       else if (option == "--duration")

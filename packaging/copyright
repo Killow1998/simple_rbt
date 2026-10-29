@@ -13,6 +13,7 @@ Bundled runtime libraries:
   nlohmann/json headers: MIT; licenses/nlohmann/LICENSE.MIT.
   Native Go console modules: licenses/console/ contains upstream notices.
   Franka Emika Panda model: Apache-2.0; licenses/panda/LICENSE.
+  Skydio X2 model: Apache-2.0; assets/visual/skydio_x2/LICENSE and provenance.json.
   RL SAR code/policy provenance: licenses/rl_sar-go2/ and rl_sar-go2w/.
   Legacy MuJoCo-LiDAR provenance: licenses/MuJoCo-LiDAR/.
 

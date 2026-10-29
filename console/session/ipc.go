@@ -15,6 +15,7 @@ import (
 )
 
 type Client struct {
+	flight        bool
 	Events        *diagnostics.Log
 	requestSeq    uint64
 	action        string
@@ -88,6 +89,16 @@ func (c *Client) Connect(dir string) error {
 		}
 		return err
 	}
+	var capability struct {
+		Flight bool `json:"flight_control"`
+	}
+	if err = json.Unmarshal(first.Payload, &capability); err != nil {
+		c.Close()
+		return err
+	}
+	c.mu.Lock()
+	c.flight = capability.Flight
+	c.mu.Unlock()
 	if err = writePacket(data, Packet{Kind: KindHello, Payload: hello}); err != nil {
 		c.Close()
 		return err
@@ -241,3 +252,22 @@ func (c *Client) SendCommand(value [3]float64) error {
 	return c.send(KindCommand, map[string]any{"velocity": value})
 }
 func (c *Client) SendJoints(value JointCommand) error { return c.send(KindJointCommand, value) }
+func (c *Client) SendFlight(value FlightCommand) error {
+	value.Frame = "world_enu"
+	if value.Action == "" {
+		value.Action = "hold"
+	}
+	if value.Height == 0 {
+		value.Height = 1
+	}
+	return c.send(KindFlightCommand, value)
+}
+func (c *Client) SendStop() error {
+	c.mu.Lock()
+	flight := c.flight
+	c.mu.Unlock()
+	if flight {
+		return c.SendFlight(FlightCommand{Action: "hold"})
+	}
+	return c.SendCommand([3]float64{})
+}

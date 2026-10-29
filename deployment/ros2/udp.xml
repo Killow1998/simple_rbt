@@ -11,6 +11,23 @@
     <rtps>
       <userTransports><transport_id>simple_rbt_udp</transport_id></userTransports>
       <useBuiltinTransports>false</useBuiltinTransports>
+      <!-- Pace UDP fragments below a normal socket buffer burst.
+           64 KiB/ms preserves the supported RGB-D/LiDAR sensor throughput. -->
+      <flow_controller_descriptor_list>
+        <flow_controller_descriptor>
+          <name>sensor_pacing</name>
+          <scheduler>FIFO</scheduler>
+          <max_bytes_per_period>65536</max_bytes_per_period>
+          <period_ms>1</period_ms>
+        </flow_controller_descriptor>
+      </flow_controller_descriptor_list>
     </rtps>
   </participant>
+  <publisher profile_name="paced_sensors" is_default_profile="true">
+    <qos><publishMode><kind>ASYNCHRONOUS</kind><flow_controller_name>sensor_pacing</flow_controller_name></publishMode></qos>
+    <historyMemoryPolicy>PREALLOCATED_WITH_REALLOC</historyMemoryPolicy>
+  </publisher>
+  <subscriber profile_name="resizable_reader" is_default_profile="true">
+    <historyMemoryPolicy>PREALLOCATED_WITH_REALLOC</historyMemoryPolicy>
+  </subscriber>
 </profiles>

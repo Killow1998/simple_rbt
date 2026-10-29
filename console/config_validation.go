@@ -10,6 +10,20 @@ import (
 // The core remains authoritative for physics; reject editable errors before
 // replacing a working session or launching a worker.
 func validateConfig(cfg Config, catalog Catalog) error {
+	if cfg.Tutorial != "" {
+		if cfg.Tutorial != "fast-lio" && cfg.Tutorial != "fast-livo2" {
+			return fmt.Errorf("Unknown tutorial / 未知教程")
+		}
+		if cfg.TutorialROS != "ros1" && cfg.TutorialROS != "ros2" {
+			return fmt.Errorf("Select Noetic or Humble for the tutorial / 请为教程选择 Noetic 或 Humble")
+		}
+		if !cfg.Adapters[cfg.TutorialROS] || !cfg.Sensors.MID360 || (cfg.Tutorial == "fast-livo2" && !cfg.Sensors.Camera) {
+			return fmt.Errorf("Tutorial requires its ROS adapter and input sensors / 教程需要相应 ROS 适配器和输入传感器")
+		}
+		if cfg.ROS.PublishOdomTF || cfg.ROS.OdomTopic != "/ground_truth/odom" {
+			return fmt.Errorf("Keep tutorial ground truth on /ground_truth/odom with its TF disabled / 教程真值请使用 /ground_truth/odom 并关闭真值 TF")
+		}
+	}
 	if err := validateScene(cfg.Scene); err != nil {
 		return err
 	}
@@ -38,6 +52,9 @@ func validateConfig(cfg Config, catalog Catalog) error {
 	}
 	if math.IsNaN(cfg.CameraHz) || math.IsInf(cfg.CameraHz, 0) || cfg.CameraHz <= 0 || cfg.CameraHz > 30 {
 		return fmt.Errorf("Camera rate must be greater than 0 and at most 30 Hz / 相机频率必须大于 0 且不超过 30 Hz")
+	}
+	if cfg.LidarModel != "mid360" && cfg.LidarModel != "avia" {
+		return fmt.Errorf("LiDAR model must be mid360 or avia / 雷达型号请选择 MID360 或 Avia")
 	}
 	if cfg.CameraModel != "d435" && cfg.CameraModel != "d435i" {
 		return fmt.Errorf("Camera model must be d435 or d435i / 相机型号请选择 D435 或 D435i")

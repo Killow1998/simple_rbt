@@ -1,0 +1,6 @@
+{
+  "source": "N3M/FAST-LIVO2 procedural simulation fixture, 2026-10-27",
+  "generator": "make_scene.py: fixed wall detail, RNG seed 217",
+  "sha256": "e2f31ec1120620b9e76b5e6e42336c12fc849b8fbcb8fd8e92c67de30afd44c5",
+  "modifications": "none; no captured building/person data"
+}

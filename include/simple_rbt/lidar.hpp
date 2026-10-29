@@ -1,5 +1,6 @@
 #pragma once
 #include "simple_rbt/types.hpp"
+#include "simple_rbt/lidar_model.hpp"
 #include <mujoco/mujoco.h>
 #include <deque>
 #include <memory>
@@ -12,19 +13,23 @@ struct PatternRay {
   std::array<float, 3> direction{};
 };
 
-// Full CSV replay, 200000 samples/s. Never decimates or resets between frames.
+// Ordered full-pattern replay; the selected model owns timing and line count.
 class CsvPattern {
  public:
-  explicit CsvPattern(const std::string& csv_path);
+  explicit CsvPattern(const std::string& csv_path, LidarModel model = LidarModel::Mid360);
+  const LidarSpec &spec() const { return lidar_spec(model_); }
+  std::uint64_t offset_ns(std::size_t sample) const {
+    return (sample * 1000000000ULL + spec().point_rate / 2) / spec().point_rate;
+  }
   void reset() noexcept { cursor_ = 0; emitted_ = 0; }
   std::size_t cursor() const noexcept { return cursor_; }
   std::size_t size() const noexcept { return rays_.size(); }
   std::uint64_t emitted() const noexcept { return emitted_; }
   const PatternRay& ray(std::size_t index) const { return rays_.at(index); }
   void advance(std::size_t count);
-  static constexpr std::uint64_t point_period_ns = 5000;
-  static constexpr unsigned line_count = 4;
+
  private:
+  LidarModel model_;
   std::vector<PatternRay> rays_;
   std::size_t cursor_ = 0;
   std::uint64_t emitted_ = 0;

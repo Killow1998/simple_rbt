@@ -105,6 +105,10 @@ jobs:
             python3 tools/test_ros_session.py --core /usr/bin/simple-rbt-sim \
               --ros "$ROS_VARIANT" --skip-build --robots panda --backend cpu \
               --output "output/ci/$ROS_VARIANT-panda-rgbd"
+          LIBGL_ALWAYS_SOFTWARE=1 EGL_PLATFORM=surfaceless \
+            python3 tools/test_ros_session.py --core /usr/bin/simple-rbt-sim \
+              --ros "$ROS_VARIANT" --skip-build --robots skydio_x2 --backend cpu \
+              --output "output/ci/$ROS_VARIANT-flight-rgbd"
       - name: Upload ROS evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

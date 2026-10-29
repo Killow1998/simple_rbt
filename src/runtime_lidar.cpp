@@ -9,18 +9,19 @@ RuntimeLidar::RuntimeLidar(Simulation &sim, const RunOptions &options,
                            Transport *bridge)
     : args(options), active_backend(args.backend) {
   if (args.sensors != "physics" && args.mid360_enabled) {
+    const auto &device = lidar_spec(args.simulation.lidar_model);
     pattern = std::make_unique<CsvPattern>(
-        (args.simulation.project_root / "assets/lidar/mid360-real-centr.csv")
-            .string());
+        (args.simulation.project_root / "assets/lidar" / device.csv).string(),
+        args.simulation.lidar_model);
     if (args.backend == "auto") {
       try {
         lidar = std::make_unique<RollingLidar>(sim.model(), LidarBackend::Cuda,
-                                               *pattern);
+                                               *pattern, device.minimum_range, device.maximum_range);
         active_backend = "cuda";
       } catch (const std::exception &e) {
         active_backend = "cpu";
         lidar = std::make_unique<RollingLidar>(sim.model(), LidarBackend::Cpu,
-                                               *pattern);
+                                               *pattern, device.minimum_range, device.maximum_range);
         if (bridge)
           bridge->publish_status(
               Json{{"lidar_backend", "cpu"}, {"reason", e.what()}}.dump());
@@ -29,7 +30,7 @@ RuntimeLidar::RuntimeLidar(Simulation &sim, const RunOptions &options,
       lidar = std::make_unique<RollingLidar>(
           sim.model(),
           args.backend == "cpu" ? LidarBackend::Cpu : LidarBackend::Cuda,
-          *pattern);
+          *pattern, device.minimum_range, device.maximum_range);
     auto pose = sim.pose("lidar");
     history.add(0, pose);
     PoseHistory warm;
@@ -54,7 +55,7 @@ void RuntimeLidar::scan(Simulation &sim, Transport *bridge,
       lidar->scan(sim.data(), stamp - 100000000, args.rays, history, last_scan);
       bounds = history.bounds();
       interval = history.maximum_interval(
-          last_scan.stamp_ns, last_scan.stamp_ns + (args.rays - 1) * 5000);
+          last_scan.stamp_ns, last_scan.stamp_ns + pattern->offset_ns(args.rays - 1));
     } else {
       PoseHistory scratch;
       auto pose = sim.pose("lidar");
@@ -65,8 +66,9 @@ void RuntimeLidar::scan(Simulation &sim, Transport *bridge,
       std::fill(last_scan.offsets_ns.begin(), last_scan.offsets_ns.end(), 0);
       bounds = scratch.bounds();
     }
-    if (args.rays < 20000)
-      pattern->advance(20000 - args.rays);
+    const auto frame_points = pattern->spec().point_rate / 10;
+    if (args.rays < frame_points)
+      pattern->advance(frame_points - args.rays);
     last_snapshot_pose = sim.pose("lidar");
     lidar_times.push_back(monotonic_seconds() - began);
     diagnostics::log().trace(
@@ -102,7 +104,11 @@ Json RuntimeLidar::scan_model() const {
              {"point_time_model", args.lidar_motion == "rolling"
                                       ? "uniform_from_csv_sample_order"
                                       : "all_returns_at_snapshot_stamp"},
-             {"sample_rate_hz", 200000},
+             {"device", pattern->spec().name},
+             {"sample_rate_hz", pattern->spec().point_rate},
+             {"line_count", pattern->spec().lines},
+             {"minimum_range_m", pattern->spec().minimum_range},
+             {"maximum_range_m", pattern->spec().maximum_range},
              {"robot_self_occlusion", false},
              {"dynamic_environment_supported", false},
              {"backend_implementation",

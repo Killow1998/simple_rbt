@@ -135,8 +135,8 @@ func (a *app) drawMounts(p *ui.Painter, r ui.Rect) {
 			continue
 		}
 		if name == "mid360" {
-			painterLine(p, r, q, a.project(internalImu(pose)), 1, ui.Hex("#79d4ef"))
-			painterCircle(p, r, a.project(internalImu(pose)), 3, ui.Hex("#79d4ef"))
+			painterLine(p, r, q, a.project(internalImu(pose, a.meta.LidarIMUOffset)), 1, ui.Hex("#79d4ef"))
+			painterCircle(p, r, a.project(internalImu(pose, a.meta.LidarIMUOffset)), 3, ui.Hex("#79d4ef"))
 		} else {
 			corners := []point{}
 			for _, y := range []float64{-.23, .23} {

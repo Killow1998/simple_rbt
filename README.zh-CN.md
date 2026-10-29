@@ -4,7 +4,13 @@
 
 基于 C++17 MuJoCo 核心的机器人仿真器，**SpRobo** 是其原生 [MyGo](https://github.com/egoist/mygo) 启动器和运行操作台，框架与仓库继续叫 `simple_rbt`。选择机器人、地形和传感器，在实时三维画面中调整外参，再选择手动或程序控制。ROS 1 Noetic 与 ROS 2 Humble 是可选的独立 C++ 适配进程。
 
-支持 Go2、Go2W、TurtleBot3 Waffle Pi、Scout Mini、FR-mini、Ridgeback、Ranger Mini，以及固定底座的 Franka Emika Panda 机械臂。纯轮式底盘只使用平地、坡道和连续起伏；Go2、Go2W 还可选择楼梯及阶跃地形。速度跟踪是模拟器辅助功能，不代表实车性能。
+支持 Go2、Go2W、TurtleBot3 Waffle Pi、Scout Mini、FR-mini、Ridgeback、Ranger Mini、固定底座的 Franka Emika Panda 机械臂，以及 Skydio X2 四旋翼。纯轮式底盘只使用平地、坡道和连续起伏；Go2、Go2W 还可选择楼梯及阶跃地形。速度跟踪是模拟器辅助功能，不代表实车性能。
+
+四旋翼使用四个旋翼推力与 C++ 控制器，接受世界 ENU 的 XYZ 线速度和偏航角速度，
+横滚、俯仰由控制器计算。操作台提供起飞、降落、悬停和键盘升降。
+详见[飞行操控](docs/flight.md)。**教程**页可启动独立 FAST-LIO 或 FAST-LIVO2 前端，
+并从当前传感器安装位姿生成标定。算法镜像需单独准备；当前固定 FAST-LIVO2 版本仍需
+本地源码。详见[建图教程](docs/tutorials.md)。
 
 ## 安装与启动
 

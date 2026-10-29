@@ -33,6 +33,9 @@ func (a *app) keyboardInput(ev ui.InputEvent) bool {
 	if key == ui.KeyUnknown {
 		key = ev.Key
 	}
+	if a.catalog.Robots[a.cfg.Robot].FlightControl {
+		return a.flightKeyboard(ev, key)
+	}
 	switch key {
 	case ui.KeyW, ui.KeyS, ui.KeyA, ui.KeyD, ui.KeyQ, ui.KeyE, ui.KeySpace:
 	default:
@@ -94,7 +97,7 @@ func (a *app) checkDriveFocus(c *ui.Context) {
 	if len(a.driveKeys) == 0 {
 		return
 	}
-	for _, handle := range a.driveHandles {
+	for _, handle := range append(a.driveHandles[:], a.flightHandles[:]...) {
 		if handle.Focused(c) && a.manualMode() {
 			return
 		}

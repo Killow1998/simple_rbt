@@ -11,6 +11,10 @@ class Controller {
 public:
   virtual ~Controller() = default;
   virtual void update(const Vec3 &command) = 0;
+  virtual void set_flight(const FlightCommand &) {
+    throw std::invalid_argument("Robot has no flight interface");
+  }
+  virtual Json flight_status() const { return Json::object(); }
   virtual void set_joints(const JointCommand &) {
     throw std::invalid_argument("Robot has no joint position interface");
   }

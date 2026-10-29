@@ -49,8 +49,25 @@ void check_assets(const fs::path &root) {
       check_digest(root / controller.at("policy").get<std::string>(),
                    controller.at("policy_sha256"));
   require_file(root / "assets/lidar/mid360-real-centr.csv");
+  require_file(root / "assets/lidar/avia.csv");
 }
 } // namespace
+Json robot_registry() {
+  Json robots = Json::array();
+  for (const auto &spec : robot_specs())
+    robots.push_back(
+        {{"name", spec.name},
+         {"default_controller", spec.default_controller},
+         {"continuous_terrain", spec.continuous_terrain},
+         {"allows_lateral", spec.allows_lateral},
+         {"allows_in_place_turn", spec.allows_in_place_turn},
+         {"allows_in_place_turn", spec.allows_in_place_turn},
+         {"command_limits", spec.command_limits},
+         {"joint_control", spec.joint_control},
+         {"flight_control", spec.flight_control},
+         {"min_turning_radius", spec.min_turning_radius}});
+  return robots;
+}
 Json runtime_info(const std::filesystem::path &root) {
   Json info{{"product", "simple_rbt"}, {"framework", "simple_rbt"},
             {"launcher", "SpRobo"}, {"version", SIMPLE_RBT_VERSION},
@@ -59,17 +76,8 @@ Json runtime_info(const std::filesystem::path &root) {
             {"mujoco_runtime_version", mj_version()},
             {"cuda_compiled", bool(SIMPLE_RBT_CUDA_COMPILED)},
             {"controller_backend", "cpu"}, {"assets_valid", false},
-            {"robots", Json::array()}};
-  for (const auto &spec : robot_specs())
-    info["robots"].push_back(
-        {{"name", spec.name},
-         {"default_controller", spec.default_controller},
-         {"continuous_terrain", spec.continuous_terrain},
-         {"allows_lateral", spec.allows_lateral},
-         {"allows_in_place_turn", spec.allows_in_place_turn},
-         {"command_limits", spec.command_limits},
-         {"joint_control", spec.joint_control},
-         {"min_turning_radius", spec.min_turning_radius}});
+            {"lidar_models", {"mid360", "avia"}},
+            {"robots", robot_registry()}};
   try {
     if (mj_version() != mjVERSION_HEADER)
       throw std::runtime_error("MuJoCo library and header versions differ");

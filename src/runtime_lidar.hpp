@@ -27,7 +27,7 @@ private:
   Pose last_snapshot_pose;
   std::vector<double> lidar_times;
   std::uint64_t lidar_frames = 0;
-  std::size_t min_points = 20000, max_points = 0;
+  std::size_t min_points = 24000, max_points = 0;
   bool scan_slow = false;
 };
 } // namespace simple_rbt

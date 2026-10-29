@@ -1,5 +1,6 @@
 #pragma once
 #include "simple_rbt/robots.hpp"
+#include "simple_rbt/lidar_model.hpp"
 #include "simple_rbt/types.hpp"
 #include <filesystem>
 #include <memory>
@@ -12,8 +13,10 @@ namespace simple_rbt {
 using Json = nlohmann::json;
 struct SimulationOptions {
   Json scene;
+  LidarModel lidar_model = LidarModel::Mid360;
   std::string scene_spawn;
   std::filesystem::path project_root;
+  std::filesystem::path scene_texture; // Optional world-surface appearance only.
   std::string robot = "go2", controller = "auto", terrain = "flat",
               terrain_level = "standard";
   std::string control_mode = "tracked", go2_torque_mode = "configured",
@@ -22,6 +25,7 @@ struct SimulationOptions {
   std::uint64_t seed = 0;
   std::optional<Pose> mid360_mount, camera_mount, external_camera_mount;
   bool external_camera_enabled = false;
+  bool lidar_payload_enabled = true, camera_payload_enabled = true;
   std::string camera_model = "d435";
   Pose camera_color_offset{{0.,.015,0.}}, camera_depth_offset{},
        camera_imu_offset{{-.01174,-.00552,.0051}};
@@ -29,10 +33,13 @@ struct SimulationOptions {
 class Simulation {
 public:
   explicit Simulation(const SimulationOptions &);
+  const LidarSpec &lidar_device() const;
   ~Simulation();
   Simulation(const Simulation &) = delete;
   Simulation &operator=(const Simulation &) = delete;
   void set_command(const Vec3 &);
+  void set_flight(const FlightCommand &);
+  Json flight_status() const;
   void set_joints(const JointCommand &);
   void hold_joints();
   JointState joints() const;

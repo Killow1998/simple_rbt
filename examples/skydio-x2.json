@@ -1,0 +1,22 @@
+{
+  "robot": "skydio_x2",
+  "controller": "flight_pid",
+  "control_mode": "native",
+  "terrain": "flat",
+  "terrain_level": "standard",
+  "backend": "cpu",
+  "camera_hz": 10,
+  "camera_model": "d435i",
+  "lidar_model": "mid360",
+  "sensors": {
+    "mid360": true,
+    "camera": true,
+    "depth": true,
+    "panorama": false
+  },
+  "ros": {
+    "publish_odom_tf": false,
+    "odom_topic": "/ground_truth/odom"
+  },
+  "adapters": {}
+}

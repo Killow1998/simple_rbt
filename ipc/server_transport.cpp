@@ -90,6 +90,12 @@ Vec3 SessionServer::command() const {
   return impl_->command;
 }
 void SessionServer::spin_once(double) {}
+simple_rbt::FlightCommand SessionServer::flight_command() const {
+  std::lock_guard<std::mutex> lock(impl_->mutex);
+  if(!impl_->running || Clock::now()-impl_->received >=
+      std::chrono::duration<double>(impl_->options.command_timeout_s))return {};
+  return impl_->flight;
+}
 std::optional<simple_rbt::JointCommand> SessionServer::joint_command() const {
   std::lock_guard<std::mutex> lock(impl_->mutex);
   if (!impl_->running ||

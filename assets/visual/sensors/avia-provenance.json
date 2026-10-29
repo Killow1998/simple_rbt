@@ -1,0 +1,126 @@
+{
+  "source_files": [
+    {
+      "name": "avia.stp",
+      "url": "https://terra-1-g.djicdn.com/65c028cd298f4669a7f0e40e50ba1131/Download/Avia/Livox_Avia_shell_FOV.stp",
+      "bytes": 3489819,
+      "sha256": "a1254e83f44ed1a16f47a70995a206ff5f9c6a73c1bb701bb9e8b1e937f87745"
+    }
+  ],
+  "parts": [
+    {
+      "part": "avia-glass",
+      "recipe": {
+        "part": "avia-glass",
+        "color": [
+          18,
+          24,
+          31,
+          255
+        ],
+        "target_faces": 12000
+      },
+      "files": [
+        {
+          "file": "assets/visual/sensors/avia-glass-0.obj",
+          "rgba": [
+            0.07058824,
+            0.09411765,
+            0.12156863,
+            1.0
+          ],
+          "source_faces": 1006,
+          "faces": 1006,
+          "vertices": 765,
+          "bounds_m": [
+            [
+              0.02353999949991703,
+              -0.030597619712352753,
+              -0.03240000084042549
+            ],
+            [
+              0.025189999490976334,
+              0.030602378770709038,
+              0.03240000084042549
+            ]
+          ],
+          "bbox_deviation_m": 0.0,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "a02dbb50be4894107aa29d172acdf218b088b00c45c956b2dd758c9d25ef3e7d",
+          "bytes": 43936
+        }
+      ]
+    },
+    {
+      "part": "avia-housing",
+      "recipe": {
+        "part": "avia-housing",
+        "color": [
+          155,
+          158,
+          161,
+          255
+        ],
+        "target_faces": 12000
+      },
+      "files": [
+        {
+          "file": "assets/visual/sensors/avia-housing-0.obj",
+          "rgba": [
+            0.60784314,
+            0.61960784,
+            0.63137255,
+            1.0
+          ],
+          "source_faces": 108238,
+          "faces": 12090,
+          "vertices": 6051,
+          "bounds_m": [
+            [
+              -0.06552924831980414,
+              -0.030998155812170573,
+              -0.03285942113106598
+            ],
+            [
+              0.026176763115996468,
+              0.044780353576870574,
+              0.03272041466999068
+            ]
+          ],
+          "bbox_deviation_m": 0.0004867626117411733,
+          "simplification_rejected_for_bounds": false,
+          "sha256": "e51b7f1fdba1ec2f7aaf0bbd290fbb039818ce84759293f700365288b7ebe68f",
+          "bytes": 438145
+        }
+      ]
+    }
+  ],
+  "alignment": {
+    "origin_cad_mm": [
+      45.49,
+      48.30000000001,
+      -38.502379674186024
+    ],
+    "rotation": [
+      [
+        -1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        1,
+        0
+      ]
+    ],
+    "included_component": "LIVOX_AVIA",
+    "excluded_component": "LIVOX_AVIA_FOV",
+    "unit_scale": 0.001,
+    "lidar_origin_height_mm": 32.4
+  }
+}

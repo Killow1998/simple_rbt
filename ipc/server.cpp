@@ -82,6 +82,7 @@ void SessionServer::Impl::broadcast(Packet packet) {
 
 void SessionServer::Impl::clear_command() {
   command = {};
+  flight = {};
   joint_command.reset();
   command_client = 0;
   received = {};

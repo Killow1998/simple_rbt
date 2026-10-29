@@ -4,7 +4,7 @@
 
 A robot simulator with a C++17 MuJoCo core and **SpRobo**, its native [MyGo](https://github.com/egoist/mygo) launcher and operator console. The framework and repository remain `simple_rbt`. Configure the robot, terrain and sensors, adjust sensor mounts in a live 3D view, then drive manually or select a program command source. ROS 1 Noetic and ROS 2 Humble are optional independent C++ adapters.
 
-Supported robots: Go2, Go2W, TurtleBot3 Waffle Pi, Scout Mini, FR-mini, Ridgeback, Ranger Mini and the fixed-base Franka Emika Panda arm. Pure wheel chassis use flat ground, ramps and continuous hills. Go2 and Go2W also offer stairs and stepped terrain. Command tracking is a simulator aid, rather than a hardware performance claim.
+Supported robots: Go2, Go2W, TurtleBot3 Waffle Pi, Scout Mini, FR-mini, Ridgeback, Ranger Mini, the fixed-base Franka Emika Panda arm and Skydio X2 quadrotor. Pure wheel chassis use flat ground, ramps and continuous hills. Go2 and Go2W also offer stairs and stepped terrain. Command tracking is a simulator aid, rather than a hardware performance claim.
 
 ## Install and launch
 
@@ -22,7 +22,7 @@ Changes apply immediately without restarting the simulation and are remembered
 when you reopen SpRobo. The initial appearance is dark; the initial language
 follows the system locale (English or Simplified Chinese).
 
-Select a robot, terrain preset and sensor outputs in the configuration screen. Numeric position/rotation fields and the 3D translation/rotation handles edit the same mount. MID360 LiDAR and its internal IMU move as one rigid device; their relative transform cannot be edited. Press Start to enter first/third-person viewing and joystick control. Return to configuration creates a fresh session. Settings and results use the user's XDG directories.
+Select a robot, terrain preset and sensor outputs in the configuration screen. Numeric position/rotation fields and the 3D translation/rotation handles edit the same mount. The selected MID360 or Avia LiDAR and its internal IMU move as one rigid device; their relative transform cannot be edited. Press Start to enter first/third-person viewing and joystick control. Return to configuration creates a fresh session. Settings and results use the user's XDG directories.
 
 ## ROS connection
 
@@ -36,7 +36,7 @@ Go2 and Go2W use CPU ONNX inference. Their motion controllers and MuJoCo physics
 
 Manual driving supports W/S forward/back, A/D lateral, Q/E yaw and Space stop after
 clicking the joystick or a driving view. Keyboard and joystick share speed limits;
-releasing keys or losing focus stops manual input. Official MID360/D435 visuals
+releasing keys or losing focus stops manual input. Official MID360/Avia/D435 visuals
 include optional independent D435i IMU output, rigid internal mounts and separate
 RGB/depth optical origins. See [sensor and keyboard usage](docs/runtime.md).
 
@@ -44,6 +44,14 @@ Panda uses seven joint-position targets and a coupled gripper. Both the wrist-mo
 first-person camera and the world-fixed third-person camera publish RGB, depth and
 CameraInfo at the configured camera rate (default 320×240, 10 Hz). Their mounts use
 the existing numeric/3D editor and named presets. See [arm controls and camera topics](docs/runtime.md#fixed-arm-and-two-cameras--固定机械臂与双相机).
+
+Skydio X2 uses four physical rotor thrusts and a native C++ controller. It accepts
+world-ENU XYZ velocity and yaw rate; the controller calculates roll/pitch. The
+console adds takeoff, landing, hover and keyboard climb/descent. See [flight controls](docs/flight.md).
+The **Tutorials** page launches independent FAST-LIO or FAST-LIVO2 frontends with
+calibration from the active sensor mounts. Optional images require separate
+preparation; the qualified FAST-LIVO2 source revision is currently supplied locally.
+See [mapping tutorials](docs/tutorials.md).
 
 ## Development
 
@@ -95,3 +103,10 @@ python3 tools/profile_console.py --display :114 --seconds 20 --ros --output outp
 
 Live sensor and GUI checks run on a host with graphics access. Fresh-container package checks cover installation, asset/library closure, CPU physics and removal. Dated reports identify the exact tested version and conditions.
 See the [completed console acceptance and resource measurements](docs/desktop-console-plan.md).
+
+Avia is selected with `--lidar-model avia` or the **LiDAR device** field in Robot
+presets. [Go2W + Avia + D435i](examples/go2w-avia-d435i.json) is an explicit
+co-mounted example for `simple-rbt-console --config`; pass the repository's
+`assets` directory to `--assets`. It places the optical centres 9.6 cm apart
+with parallel forward axes. Existing mounts are not moved automatically.
+See [sensor contracts and limits](docs/runtime.md#avia-scan-and-mount--avia-扫描与安装).

@@ -1,4 +1,5 @@
 #include "../common/wire.hpp"
+#include "../common/commands.hpp"
 #include <ros/callback_queue.h>
 #include <geometry_msgs/Twist.h>
 #include <tf2_msgs/TFMessage.h>
@@ -13,6 +14,8 @@ struct RosBridge::Impl {
   std::string command_topic, node_namespace;
   mutable std::mutex publication_mutex, command_mutex;
   Vec3 latest_command{};
+  FlightCommand latest_flight;
+  bool command_rejected = false;
   JointCommand latest_joints;
   std::optional<SteadyClock::time_point> joints_received;
   std::string camera_parent,
@@ -23,7 +26,7 @@ struct RosBridge::Impl {
   bool closed = false, has_camera = false, separate_camera_frames = false, has_camera_imu = false;
   ros::CallbackQueue callbacks;
   std::unique_ptr<ros::NodeHandle> node;
-  ros::Subscriber commands, joint_commands;
+  ros::Subscriber commands, joint_commands, flight_actions;
   ros::Publisher clock, lidar, points, imu, imu_si, odom, camera_info, depth_info, camera_imu, status;
   ros::Publisher tf, static_tf, joints, external_info, external_depth_info;
   std::array<ros::Publisher, 3> rgb, depth;
@@ -42,6 +45,7 @@ struct RosBridge::Impl {
     has_external_camera = extrinsics.has_external_camera;
     const auto *spec = find_robot_spec(options.robot_name);
     const bool arm = spec && spec->joint_control;
+    const bool flying = spec && spec->flight_control;
     const std::string camera_prefix =
         arm ? node_namespace + "/wrist_camera" : "/camera";
     const std::string external_prefix = node_namespace + "/external_camera";
@@ -117,18 +121,28 @@ struct RosBridge::Impl {
       commands = node->subscribe<geometry_msgs::Twist>(
           "cmd_vel", 10,
           [this](const geometry_msgs::Twist::ConstPtr &message) {
-            const Vec3 command{message->linear.x, message->linear.y,
-                               message->angular.z};
             std::lock_guard<std::mutex> lock(command_mutex);
-            if (robot_command_supported(options.robot_name, command)) {
-              latest_command = command;
+            if (velocity_command(options.robot_name, *message, latest_command, latest_flight)) {
+              command_rejected = false;
               received_at = SteadyClock::now();
             } else {
-              latest_command = {};
+              latest_command = {}; latest_flight = {};
+              if(!command_rejected) ROS_WARN("Unsupported Twist: require finite supported axes; quadrotor roll/pitch rates must be zero");
+              command_rejected = true;
               received_at.reset();
             }
           },
           ros::VoidConstPtr(), ros::TransportHints().tcpNoDelay());
+    if(flying)flight_actions=node->subscribe<messages::String>("flight_action",10,
+        [this](const messages::String::ConstPtr &message) {
+          FlightCommand request;request.action=message->data;
+          node->param("takeoff_height",request.takeoff_height,1.);
+          std::lock_guard<std::mutex> lock(command_mutex);
+          const bool valid=supported_flight_command(request);
+          if(!valid && !command_rejected) ROS_WARN("Unsupported flight action or takeoff height");
+          command_rejected=!valid;latest_flight=valid?request:FlightCommand{};
+          received_at=SteadyClock::now();
+        });
     status = advertise<messages::String>(options.status_topic, 1, true);
     tf = advertise<tf2_msgs::TFMessage>("/tf", 10);
     static_tf = advertise<tf2_msgs::TFMessage>("/tf_static", 1, true);
@@ -176,6 +190,12 @@ Vec3 RosBridge::command() const {
       std::chrono::duration<double>(impl_->options.command_timeout_s)) return {};
   return impl_->latest_command;
 }
+FlightCommand RosBridge::flight_command() const {
+  std::lock_guard<std::mutex> lock(impl_->command_mutex);
+  if(!impl_->received_at || SteadyClock::now()-*impl_->received_at >=
+      std::chrono::duration<double>(impl_->options.command_timeout_s))return {};
+  return impl_->latest_flight;
+}
 void RosBridge::spin_once(double timeout_s) {
   if (!std::isfinite(timeout_s) || timeout_s < 0.)
     throw std::invalid_argument("spin timeout must be nonnegative and finite");
@@ -202,6 +222,7 @@ void RosBridge::close() {
   if (impl_->closed) return;
   impl_->closed = true;
   impl_->commands.shutdown();
+  impl_->flight_actions.shutdown();
   impl_->joint_commands.shutdown();
   for (auto& item : impl_->publishers) item.second.shutdown();
   impl_->publishers.clear(); impl_->node.reset(); impl_->callbacks.clear();

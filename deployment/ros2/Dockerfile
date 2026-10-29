@@ -22,6 +22,7 @@ COPY --from=builder /opt/simple-rbt /opt/simple-rbt
 COPY deployment/ros2/entrypoint.sh /usr/local/bin/simple-rbt-ros-entrypoint
 COPY deployment/ros2/udp.xml /opt/simple-rbt/udp.xml
 ENV ROS_LOCALHOST_ONLY=1 ROS_DOMAIN_ID=83 \
-    FASTRTPS_DEFAULT_PROFILES_FILE=/opt/simple-rbt/udp.xml
+    FASTRTPS_DEFAULT_PROFILES_FILE=/opt/simple-rbt/udp.xml \
+    RMW_FASTRTPS_USE_QOS_FROM_XML=1
 ENTRYPOINT ["/usr/local/bin/simple-rbt-ros-entrypoint"]
 CMD ["--session-dir", "/session"]

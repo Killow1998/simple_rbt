@@ -68,6 +68,13 @@ void add_sensor_devices(tinyxml2::XMLDocument &doc,
   std::ifstream file(o.project_root / "assets/visual/sensors/provenance.json");
   if (!file || !(file >> manifest))
     throw std::runtime_error("Sensor visual manifest missing");
+  if (o.lidar_model == LidarModel::Avia) {
+    Json avia;
+    std::ifstream source(o.project_root / "assets/visual/sensors/avia-provenance.json");
+    if (!source || !(source >> avia))
+      throw std::runtime_error("Avia visual manifest missing");
+    for (const auto &part : avia.at("parts")) manifest["parts"].push_back(part);
+  }
   auto visit = [&](auto &&self, tinyxml2::XMLElement *parent) -> void {
     for (auto *e = parent->FirstChildElement(); e;
          e = e->NextSiblingElement()) {
@@ -80,10 +87,19 @@ void add_sensor_devices(tinyxml2::XMLDocument &doc,
         const bool camera = std::string(name) != "lidar";
         e->SetAttribute(
             "rgba", "0 0 0 0"); // The device mesh replaces the editing marker.
+        if(robot_spec(o.robot).flight_control && !external) {
+          auto *payload=doc.NewElement("geom");
+          payload->SetAttribute("name",camera?"payload_camera":"payload_lidar");
+          payload->SetAttribute("type","box");
+          payload->SetAttribute("size",camera?".045 .015 .015":
+              o.lidar_model==LidarModel::Avia?".045 .045 .035":".033 .033 .03");
+          payload->SetAttribute("mass",0);payload->SetAttribute("group",3);
+          payload->SetAttribute("rgba","0 0 0 0");parent->InsertEndChild(payload);
+        }
         for (const auto &part : manifest.at("parts")) {
           const std::string part_name = part.at("part");
-          if (camera != (part_name.rfind("d435", 0) == 0))
-            continue;
+          const std::string device = camera ? "d435" : lidar_spec(o.lidar_model).name;
+          if (part_name.rfind(device, 0) != 0) continue;
           for (std::size_t i = 0; i < part.at("files").size(); ++i) {
             const auto &entry = part.at("files")[i];
             const std::string mesh_name =
@@ -144,10 +160,20 @@ void add_sensor_devices(tinyxml2::XMLDocument &doc,
 }
 void move_sensor_device(mjModel *m, const std::string &device,
                         const Pose &mount, const SimulationOptions &o) {
+  if(robot_spec(o.robot).flight_control && device!="external_camera") {
+    const int g=mj_name2id(m,mjOBJ_GEOM,device=="mid360"?"payload_lidar":"payload_camera");
+    if(g>=0) {
+      m->geom_sameframe[g]=mjSAMEFRAME_NONE;
+      auto p=mount;
+      if(device=="mid360")p=compose(mount,Pose{{0,0,-.03}});
+      std::copy(p.position.begin(),p.position.end(),m->geom_pos+3*g);
+      std::copy(p.quaternion.begin(),p.quaternion.end(),m->geom_quat+4*g);
+    }
+  }
   const std::string prefix = device == "external_camera"
                                  ? "visual_external_device_d435"
                              : device == "camera" ? "visual_device_d435"
-                                                  : "visual_device_mid360";
+                                                  : std::string("visual_device_") + lidar_spec(o.lidar_model).name;
   for (int id = 0; id < m->ngeom; ++id) {
     const char *name = mj_id2name(m, mjOBJ_GEOM, id);
     if (name && std::string(name).rfind(prefix, 0) == 0) {

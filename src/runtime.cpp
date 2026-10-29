@@ -17,13 +17,16 @@
 #include <unistd.h>
 
 namespace simple_rbt {
-Json run_simulation(const RunOptions &args, RunObserver *observer,
+Json run_simulation(const RunOptions &options, RunObserver *observer,
                     const TransportFactory &transport_factory) {
+  RunOptions args = options;
+  const auto &device = lidar_spec(args.simulation.lidar_model);
+  if (args.rays == 0) args.rays = device.point_rate / 10;
   ResourceMeter run_meter;
   if (!std::isfinite(args.duration) || args.duration <= 0 ||
       !std::isfinite(args.settle) || args.settle < 0 ||
       !std::isfinite(args.camera_hz) || args.camera_hz <= 0 ||
-      args.camera_hz > 30 || args.rays < 1 || args.rays > 20000)
+      args.camera_hz > 30 || args.rays < 1 || args.rays > device.point_rate / 10)
     throw std::invalid_argument(
         "Invalid duration, settle, camera rate or ray count");
   if (args.sensors != "physics" && args.sensors != "lidar" &&
@@ -39,13 +42,16 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
                            {{"robot", args.simulation.robot},
                             {"controller", args.simulation.controller},
                             {"backend", args.backend}});
+  args.simulation.lidar_payload_enabled = args.mid360_enabled;
+  args.simulation.camera_payload_enabled = args.camera_enabled || args.depth_enabled ||
+      args.panorama_enabled || args.simulation.camera_model == "d435i";
   Simulation sim(args.simulation);
   diagnostics::log().event("simulation.loaded");
   for (int id = 0; id < sim.model()->ngeom; ++id) {
     const char *raw = mj_id2name(sim.model(), mjOBJ_GEOM, id);
     const std::string name = raw ? raw : "";
     const bool disabled =
-        (name.rfind("visual_device_mid360", 0) == 0 && !args.mid360_enabled) ||
+        (name.rfind(std::string("visual_device_") + device.name, 0) == 0 && !args.mid360_enabled) ||
         (name.rfind("visual_device_d435", 0) == 0 &&
          !(args.camera_enabled || args.depth_enabled || args.panorama_enabled ||
            sim.has_camera_imu()));
@@ -95,7 +101,9 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
   std::size_t steps = std::ceil(args.duration / m.opt.timestep);
   const Vec3 local_command = args.simulation_command;
   const bool joint_control = robot_spec(args.simulation.robot).joint_control;
+  const bool flight_control = robot_spec(args.simulation.robot).flight_control;
   Vec3 last_applied{};
+  Json last_flight_state;
   double last_sensor_log = monotonic_seconds();
   for (std::size_t step = 0; args.indefinite || step < steps;) {
     cameras.publish_ready(bridge.get(), observer);
@@ -118,6 +126,8 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
         policy_origin && sim.data()->time >= *policy_origin + args.settle;
     Vec3 requested = bridge ? bridge->command() : local_command;
     sim.set_command(ready ? requested : Vec3{});
+    if (flight_control)
+      sim.set_flight(ready && bridge ? bridge->flight_command() : FlightCommand{});
     if (joint_control) {
       const auto joint_command =
           ready && bridge ? bridge->joint_command() : std::nullopt;
@@ -148,6 +158,15 @@ Json run_simulation(const RunOptions &args, RunObserver *observer,
       bridge->publish_joints(stamp, sim.joints());
     imus.advance(sim, args.mid360_enabled, bridge.get(), artifacts, observer);
     if (stamp % 100000000 == 0) {
+      if (flight_control) {
+        const auto status = sim.flight_status();
+        const Json state{{"state", status.at("state")},
+                         {"saturated", status.at("saturated")}};
+        if (state != last_flight_state) {
+          diagnostics::log().event("flight.state", status, stamp);
+          last_flight_state = state;
+        }
+      }
       lidar.scan(sim, bridge.get(), observer);
       auto lin = sim.linear_velocity(), ang = sim.angular_velocity();
       if (bridge)

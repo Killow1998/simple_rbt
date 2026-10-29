@@ -17,24 +17,27 @@ import (
 )
 
 type Manager struct {
-	Events         *diagnostics.Log
-	prepareFailed  map[string]bool
-	verifiedImages map[string]string
-	connectMu      sync.Mutex
-	Client         *Client
-	SessionDir     string
-	mu             sync.Mutex
-	options        Options
-	update         func()
-	worker         *exec.Cmd
-	workerDone     chan struct{}
-	generation     uint64
-	log            []string
-	status         string
-	busy           bool
-	adapters       map[string]*exec.Cmd
-	containers     map[string]string
-	build          *exec.Cmd
+	tutorial          TutorialStatus
+	tutorialCancel    func()
+	tutorialContainer string
+	Events            *diagnostics.Log
+	prepareFailed     map[string]bool
+	verifiedImages    map[string]string
+	connectMu         sync.Mutex
+	Client            *Client
+	SessionDir        string
+	mu                sync.Mutex
+	options           Options
+	update            func()
+	worker            *exec.Cmd
+	workerDone        chan struct{}
+	generation        uint64
+	log               []string
+	status            string
+	busy              bool
+	adapters          map[string]*exec.Cmd
+	containers        map[string]string
+	build             *exec.Cmd
 }
 
 func NewManager(options Options, onUpdate func()) *Manager {
@@ -226,6 +229,7 @@ func (m *Manager) Start(config map[string]any) error {
 	return nil
 }
 func (m *Manager) Close() error {
+	m.StopTutorial()
 	m.mu.Lock()
 	m.generation++
 	worker, done, client, session := m.worker, m.workerDone, m.Client, m.SessionDir
@@ -237,7 +241,7 @@ func (m *Manager) Close() error {
 	m.busy = false
 	m.mu.Unlock()
 	if client != nil && client.Connected() {
-		client.SendCommand([3]float64{})
+		client.SendStop()
 		client.SendRequest(map[string]any{"op": "shutdown"})
 	}
 	for _, version := range []string{"ros1", "ros2"} {

@@ -13,6 +13,11 @@ import (
 )
 
 func adapterImage(version string) (string, error) {
+	if version == "ros1" || version == "ros2" {
+		if image := os.Getenv("SPROBO_" + strings.ToUpper(version) + "_IMAGE"); image != "" {
+			return image, nil
+		}
+	}
 	switch version {
 	case "ros1":
 		return "simple-rbt-ros1:noetic", nil

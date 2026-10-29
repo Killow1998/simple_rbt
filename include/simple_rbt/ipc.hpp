@@ -27,7 +27,8 @@ enum class Kind : std::uint16_t {
   CameraImu,
   JointCommand,
   JointState,
-  ExternalCamera
+  ExternalCamera,
+  FlightCommand
 };
 struct Packet {
   Kind kind = Kind::Metadata;
@@ -49,6 +50,8 @@ Odometry decode_odometry(const Packet &);
 Packet encode_camera(std::uint64_t, const CameraFrame &, Kind = Kind::Camera);
 CameraFrame decode_camera(const Packet &);
 Json extrinsics_json(const Extrinsics &);
+Packet encode_flight_command(const simple_rbt::FlightCommand &);
+simple_rbt::FlightCommand decode_flight_command(const Packet &);
 Extrinsics decode_extrinsics(const Json &);
 Packet encode_joint_command(const simple_rbt::JointCommand &);
 simple_rbt::JointCommand decode_joint_command(const Packet &);
@@ -76,6 +79,7 @@ public:
   std::size_t peer_count(const std::string &role) const;
   Json command_status() const; // Core receipt, not ROS publisher connectivity.
   Vec3 command() const override;
+  simple_rbt::FlightCommand flight_command() const override;
   std::optional<simple_rbt::JointCommand> joint_command() const override;
   void publish_joints(std::uint64_t, const simple_rbt::JointState &) override;
   void publish_external_camera(std::uint64_t, const CameraFrame &) override;

@@ -59,8 +59,8 @@ func toEuler(q Quat) Vec3 {
 	d := 180 / math.Pi
 	return Vec3{math.Atan2(2*(w*x+y*z), 1-2*(x*x+y*y)) * d, math.Asin(clamp(2*(w*y-z*x), -1, 1)) * d, math.Atan2(2*(w*z+x*y), 1-2*(y*y+z*z)) * d}
 }
-func internalImu(p Pose) Vec3 {
-	return add(p.Position, rotate(Vec3{.011, .02329, -.04412}, p.Quaternion))
+func internalImu(p Pose, offset Vec3) Vec3 {
+	return add(p.Position, rotate(offset, p.Quaternion))
 }
 func samePose(a, b Pose) bool {
 	d := 0.

@@ -33,6 +33,7 @@ Json run_session(const Json &config, const std::filesystem::path &directory,
   RunOptions args;
   args.simulation.project_root = project_root;
   args.simulation.scene = config.value("scene", Json());
+  args.simulation.scene_texture = config.value("scene_texture", std::string());
   args.simulation.scene_spawn = config.value("scene_spawn", std::string());
   args.simulation.robot = config.value("robot", std::string("ranger_mini"));
   args.simulation.controller = config.value("controller", std::string("auto"));
@@ -67,6 +68,7 @@ Json run_session(const Json &config, const std::filesystem::path &directory,
           ? "full"
       : args.mid360_enabled ? "lidar"
                             : "physics";
+  args.simulation.lidar_model = parse_lidar_model(config.value("lidar_model", std::string("mid360")));
   args.simulation.camera_model=config.value("camera_model",std::string("d435"));
   if(config.contains("camera_extrinsics")) {
     const auto &x=config.at("camera_extrinsics");
@@ -80,7 +82,7 @@ Json run_session(const Json &config, const std::filesystem::path &directory,
   }
   args.backend = config.value("backend", std::string("auto"));
   args.camera_hz = config.value("camera_hz", 10.);
-  args.rays = config.value("rays", std::size_t(20000));
+  args.rays = config.value("rays", std::size_t(0));
   args.settle = config.value("settle_s", 1.);
   args.realtime = true;
   args.indefinite = !config.contains("duration_s");

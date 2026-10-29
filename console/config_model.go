@@ -20,6 +20,10 @@ type ROSConfig struct {
 	OdomTopic     string `json:"odom_topic"`
 }
 type Config struct {
+	Tutorial         string          `json:"tutorial,omitempty"`
+	TutorialROS      string          `json:"tutorial_ros,omitempty"`
+	SceneTexture     string          `json:"scene_texture,omitempty"`
+	LidarModel       string          `json:"lidar_model"`
 	SceneSpawn       string          `json:"scene_spawn,omitempty"`
 	Scene            *Scene          `json:"scene,omitempty"`
 	CameraModel      string          `json:"camera_model"`
@@ -37,6 +41,7 @@ type Config struct {
 	Adapters         map[string]bool `json:"adapters"`
 }
 type RobotSpec struct {
+	FlightControl     bool    `json:"flight_control"`
 	JointControl      bool    `json:"joint_control"`
 	Name              string  `json:"name"`
 	DefaultController string  `json:"default_controller"`
@@ -53,7 +58,7 @@ type Catalog struct {
 }
 
 func defaultConfig() Config {
-	return Config{CameraModel: "d435", ROS: ROSConfig{true, "/odom"}, Robot: "go2", Controller: "auto", ControlMode: "tracked", Terrain: "flat", TerrainLevel: "standard", Backend: "auto", Sensors: Sensors{MID360: true, Camera: true, Depth: true}, Mounts: map[string]Pose{}, CameraHz: 10, Adapters: map[string]bool{}}
+	return Config{LidarModel: "mid360", CameraModel: "d435", ROS: ROSConfig{true, "/odom"}, Robot: "go2", Controller: "auto", ControlMode: "tracked", Terrain: "flat", TerrainLevel: "standard", Backend: "auto", Sensors: Sensors{MID360: true, Camera: true, Depth: true}, Mounts: map[string]Pose{}, CameraHz: 10, Adapters: map[string]bool{}}
 }
 func loadJSON(path string, out any) error {
 	data, err := os.ReadFile(path)

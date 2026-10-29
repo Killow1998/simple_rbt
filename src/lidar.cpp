@@ -35,7 +35,7 @@ using ModelPtr = std::unique_ptr<mjModel, ModelDelete>;
 using DataPtr = std::unique_ptr<mjData, DataDelete>;
 }
 
-CsvPattern::CsvPattern(const std::string& path) {
+CsvPattern::CsvPattern(const std::string& path, LidarModel model) : model_(model) {
   std::ifstream file(path);
   if (!file) throw std::runtime_error("Cannot open LiDAR CSV: " + path);
   std::string line;
@@ -52,13 +52,21 @@ CsvPattern::CsvPattern(const std::string& path) {
     if (!(row >> id >> azimuth >> zenith) || (row >> extra))
       throw std::invalid_argument("Expected three numeric CSV columns at line " + std::to_string(line_number));
     require(std::isfinite(id) && std::isfinite(azimuth) && std::isfinite(zenith), "CSV contains nonfinite values");
-    require(id == std::floor(id) && id >= -9007199254740991. && id <= 9007199254740991.,
-            "CSV sample IDs must be exactly representable integers");
+    if (model_ == LidarModel::Mid360) {
+      require(id == std::floor(id) && id >= -9007199254740991. && id <= 9007199254740991.,
+              "CSV sample IDs must be exactly representable integers");
+      const auto sample_id = static_cast<std::int64_t>(id);
+      require(rays_.empty() || sample_id == previous_sample_id + 1,
+              "CSV sample IDs must be consecutive");
+      previous_sample_id = sample_id;
+    } else {
+      // Official Avia CSV time is rounded below one nanosecond. Preserve its
+      // cadence with integer nanoseconds, avoiding a truncated 4166 ns period.
+      require(std::abs(id - double(rays_.size()) / spec().point_rate) <= 1e-9,
+              "Avia CSV time does not match the selected point rate");
+    }
     require(zenith >= 0. && zenith <= 180., "CSV zenith must lie in [0,180] degrees");
-    const auto sample_id = static_cast<std::int64_t>(id);
-    require(rays_.empty() || sample_id == previous_sample_id + 1, "CSV sample IDs must be consecutive");
     PatternRay ray;
-    previous_sample_id = sample_id;
     // Python oracle: deg2rad(float64), cast float32, float32 trig and products.
     const float theta = static_cast<float>(azimuth * (pi / 180.));
     const float phi = static_cast<float>((90. - zenith) * (pi / 180.));
@@ -213,9 +221,9 @@ void RollingLidar::scan(const mjData* data, std::uint64_t start, std::size_t cou
                        const PoseHistory& history, LidarScan& output) {
   require(data != nullptr, "LiDAR scan requires current live data for the static-scene check");
   require(count > 0, "Ray count must be positive");
-  require(count-1 <= std::numeric_limits<std::uint32_t>::max()/CsvPattern::point_period_ns,
+  require(count-1 <= std::uint64_t(std::numeric_limits<std::uint32_t>::max()) * impl_->pattern.spec().point_rate / 1000000000ULL,
           "Scan offsets exceed uint32 nanoseconds");
-  const std::uint64_t last_offset = (count-1)*CsvPattern::point_period_ns;
+  const std::uint64_t last_offset = impl_->pattern.offset_ns(count-1);
   require(start <= std::numeric_limits<std::uint64_t>::max()-last_offset, "Scan timestamp overflow");
   history.interpolate(start); history.interpolate(start+last_offset);
   for (std::size_t i=0; i<impl_->ids.size(); ++i) {
@@ -232,7 +240,7 @@ void RollingLidar::scan(const mjData* data, std::uint64_t start, std::size_t cou
   origins.resize(3*count); directions.resize(3*count); ranges.resize(count);
   const auto begin = impl_->pattern.cursor(), pattern_size = impl_->pattern.size();
   for (std::size_t i=0; i<count; ++i) {
-    const auto pose = history.interpolate(start+i*CsvPattern::point_period_ns);
+    const auto pose = history.interpolate(start+impl_->pattern.offset_ns(i));
     const auto direction = rotate(pose.quaternion, impl_->pattern.ray((begin+i)%pattern_size).direction);
     std::copy(pose.position.begin(), pose.position.end(), origins.begin()+3*i);
     std::copy(direction.begin(), direction.end(), directions.begin()+3*i);
@@ -262,8 +270,8 @@ void RollingLidar::scan(const mjData* data, std::uint64_t start, std::size_t cou
     const auto index = (begin+i)%pattern_size;
     const auto& local = impl_->pattern.ray(index).direction;
     output.xyz.push_back({static_cast<float>(local[0]*ranges[i]), static_cast<float>(local[1]*ranges[i]), static_cast<float>(local[2]*ranges[i])});
-    output.offsets_ns.push_back(static_cast<std::uint32_t>(i*CsvPattern::point_period_ns));
-    output.lines.push_back(static_cast<std::uint8_t>(index%CsvPattern::line_count));
+    output.offsets_ns.push_back(static_cast<std::uint32_t>(impl_->pattern.offset_ns(i)));
+    output.lines.push_back(static_cast<std::uint8_t>(index%impl_->pattern.spec().lines));
     output.ray_indices.push_back(index);
   }
   // Commit pattern/output clock only after successful interpolation and tracing.

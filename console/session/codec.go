@@ -22,6 +22,13 @@ type JointCommand struct {
 	Position []float64 `json:"position"`
 	Hold     bool      `json:"hold"`
 }
+type FlightCommand struct {
+	Frame    string     `json:"frame"`
+	Velocity [3]float64 `json:"velocity"`
+	YawRate  float64    `json:"yaw_rate"`
+	Action   string     `json:"action"`
+	Height   float64    `json:"takeoff_height"`
+}
 type JointState struct {
 	Name     []string  `json:"name"`
 	Position []float64 `json:"position"`

@@ -30,7 +30,15 @@ void geometry(Simulation &sim) {
   std::ifstream(std::filesystem::path(SIMPLE_RBT_PROJECT_ROOT) /
                 "assets/visual/sensors/provenance.json") >>
       manifest;
-  for (const auto &part : manifest.at("parts"))
+  if (std::string(sim.lidar_device().name) == "avia") {
+    Json avia;
+    std::ifstream(std::filesystem::path(SIMPLE_RBT_PROJECT_ROOT) /
+                  "assets/visual/sensors/avia-provenance.json") >> avia;
+    for (const auto &part : avia.at("parts")) manifest["parts"].push_back(part);
+  }
+  for (const auto &part : manifest.at("parts")) {
+    const std::string name = part.at("part");
+    if (name.rfind("d435", 0) != 0 && name.rfind(sim.lidar_device().name, 0) != 0) continue;
     for (std::size_t i = 0; i < part.at("files").size(); ++i) {
       const std::string name = "visual_device_" +
                                part.at("part").get<std::string>() + "_" +
@@ -67,6 +75,7 @@ void geometry(Simulation &sim) {
         close(hi[a], bounds[1][a], 2e-6);
       }
     }
+  }
 }
 } // namespace
 int main(int argc, char **argv) {
@@ -75,6 +84,10 @@ int main(int argc, char **argv) {
     o.project_root = SIMPLE_RBT_PROJECT_ROOT;
     o.robot = "ranger_mini";
     o.camera_model = "d435i";
+    for (int i = 1; i < argc; ++i)
+      if (std::string(argv[i]) == "--avia") o.lidar_model = LidarModel::Avia;
+    const Vec3 lidar_offset = o.lidar_model == LidarModel::Avia
+        ? Vec3{-.04165, -.02326, .02840} : Vec3{.011, .02329, -.04412};
     Simulation sim(o);
     const auto body = sim.extrinsics("imu");
     const std::vector<double> masses(
@@ -88,7 +101,7 @@ int main(int argc, char **argv) {
       offset(sim, "camera_color", p, {0, .015, 0});
       offset(sim, "camera_depth", p, {});
       offset(sim, "camera_imu", p, {-.01174, -.00552, .0051});
-      offset(sim, "mid360_imu", p, {.011, .02329, -.04412});
+      offset(sim, "mid360_imu", p, lidar_offset);
       geometry(sim);
       require(sim.extrinsics("imu").position == body.position &&
                   sim.extrinsics("imu").quaternion == body.quaternion,

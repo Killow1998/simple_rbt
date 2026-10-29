@@ -8,6 +8,18 @@ SpRobo validates the actual ROS installation inside each selected container: Noe
 
 SpRobo 检查选中容器内实际的 ROS 安装：Noetic 使用 Ubuntu 20.04，Humble 使用 Ubuntu 22.04；仿真宿主支持 Ubuntu 22.04 amd64，不把宿主的 `ROS_DISTRO` 当成容器版本证据。
 
+For quadrotor XYZ velocity, yaw rate and takeoff/landing commands, see
+[flight controls](flight.md). [Mapping tutorials](tutorials.md) start independent
+FAST-LIO/FAST-LIVO2 processes with calibration from the current sensor mounts.
+四旋翼指令与起降操作见[飞行操控](flight.md)；独立算法和自动标定见[建图教程](tutorials.md)。
+
+The Humble container uses UDP and paces fragments at 64 KiB/ms. This avoids large
+RGB/LiDAR bursts overflowing ordinary host socket buffers without changing sensor
+rates or host sysctl settings. A direct native Humble node can use the same
+`deployment/ros2/udp.xml` with `FASTRTPS_DEFAULT_PROFILES_FILE` and
+`RMW_FASTRTPS_USE_QOS_FROM_XML=1`.
+Humble 容器通过分包节奏限制减少大消息突发造成的丢帧，不修改宿主网络参数。
+
 ## Livox publication / Livox 发布
 
 With MID360 and a ROS adapter enabled, the core sends its real scan through IPC to the independent C++ node. That node publishes `/livox/lidar` as `livox_ros_driver2/CustomMsg` (ROS 1) or `livox_ros_driver2/msg/CustomMsg` (ROS 2), alongside PointCloud2 on `/livox/points`. The conversion preserves scan timebase, point count, per-point offset time, XYZ and line. Tag and reflectivity are simulator values. IMU, odometry, TF and clock use the same core's samples.

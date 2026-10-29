@@ -1,0 +1,50 @@
+{
+  "robot": "go2w",
+  "controller": "rl_sar",
+  "control_mode": "tracked",
+  "terrain": "flat",
+  "terrain_level": "standard",
+  "backend": "cpu",
+  "camera_hz": 10,
+  "camera_model": "d435i",
+  "lidar_model": "avia",
+  "mounts": {
+    "mid360": {
+      "position": [
+        0.2,
+        0,
+        0.22
+      ],
+      "quaternion": [
+        1,
+        0,
+        0,
+        0
+      ]
+    },
+    "camera": {
+      "position": [
+        0.25,
+        0,
+        0.14
+      ],
+      "quaternion": [
+        1,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "sensors": {
+    "mid360": true,
+    "camera": true,
+    "depth": true,
+    "panorama": false
+  },
+  "ros": {
+    "publish_odom_tf": false,
+    "odom_topic": "/ground_truth/odom"
+  },
+  "adapters": {}
+}

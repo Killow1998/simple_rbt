@@ -47,6 +47,13 @@ func (a *app) navigation(c *ui.Context) {
 			ui.Text(c, a.tr("• Runtime", "• 运行操作台")).Bold()
 		}
 		ui.Button(c, a.tr("Logs", "日志")).OnClick(a.action("logs.open", func() { a.stopManual(); a.diagnostics.Open = !a.diagnostics.Open; a.refreshDiagnostics() }))
+		ui.Button(c, a.tr("Tutorials", "教程")).OnClick(a.action("tutorial.open", func() {
+			if a.manualMode() {
+				a.stopManual()
+			}
+			a.tutorialOpen = !a.tutorialOpen
+			a.diagnostics.Open = false
+		}))
 		ui.Text(c, "").Grow(1)
 		if a.robotDirty() || a.sceneDirty() {
 			ui.Text(c, a.tr("Drafts retained · save to update presets", "草稿已保留 · 保存后更新预设")).FontSize(12).TextColor(c.Theme().TextMuted)

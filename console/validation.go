@@ -14,7 +14,7 @@ func smokeTest(a *app) error {
 		return fmt.Errorf("core registry is incomplete")
 	}
 	pose := Pose{Position: Vec3{.2, 0, .1275}, Quaternion: fromEuler(Vec3{0, 0, 90})}
-	imu := internalImu(pose)
+	imu := internalImu(pose, Vec3{.011, .02329, -.04412})
 	if math.Abs(imu[0]-.17671) > 1e-7 || math.Abs(imu[1]-.011) > 1e-7 || math.Abs(imu[2]-.08338) > 1e-7 {
 		return fmt.Errorf("MID360 rigid transform composition failed")
 	}

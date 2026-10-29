@@ -64,6 +64,8 @@ add_library(simple_rbt_core
   src/controller_policy.cpp
   src/controllers/go2.cpp src/controllers/go2w.cpp
   src/controllers/arm.cpp
+  src/controllers/flight.cpp
+  src/flight_payload.cpp
   src/controllers/diffdrive.cpp src/controllers/scout_mini.cpp
   src/controllers/fr_mini.cpp src/controllers/ridgeback.cpp
   src/controllers/ranger_mini.cpp)
@@ -106,6 +108,7 @@ target_include_directories(simple_rbt_runtime PUBLIC include)
 target_compile_options(simple_rbt_runtime PRIVATE -Wall -Wextra -Wpedantic -ffp-contract=off)
 target_link_libraries(simple_rbt_runtime PUBLIC simple_rbt_diagnostics simple_rbt_core simple_rbt_lidar simple_rbt_cameras PRIVATE glfw PkgConfig::GL PNG::PNG Threads::Threads)
 add_subdirectory(ipc)
+add_subdirectory(tutorials)
 add_library(simple_rbt_session src/session.cpp src/session_control.cpp src/session_view.cpp)
 target_link_libraries(simple_rbt_session PUBLIC simple_rbt_runtime simple_rbt_ipc)
 target_compile_options(simple_rbt_session PRIVATE -Wall -Wextra -Wpedantic)

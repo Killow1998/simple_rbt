@@ -26,6 +26,7 @@
 #include <stdexcept>
 #include <utility>
 #include "../common/wire.hpp"
+#include "../common/commands.hpp"
 
 namespace simple_rbt {
 using namespace wire;
@@ -46,6 +47,8 @@ struct RosBridge::Impl {
   std::string command_topic, node_namespace;
   mutable std::mutex publication_mutex, command_mutex;
   Vec3 latest_command{};
+  FlightCommand latest_flight;
+  bool command_rejected = false;
   JointCommand latest_joints;
   std::optional<SteadyClock::time_point> joints_received;
   std::string camera_parent,
@@ -60,6 +63,7 @@ struct RosBridge::Impl {
   std::unique_ptr<rclcpp::executors::SingleThreadedExecutor> executor;
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr commands;
   rclcpp::Subscription<messages::Joints>::SharedPtr joint_commands;
+  rclcpp::Subscription<messages::String>::SharedPtr flight_actions;
   rclcpp::Publisher<messages::Joints>::SharedPtr joints;
   rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clock;
   rclcpp::Publisher<livox_ros_driver2::msg::CustomMsg>::SharedPtr lidar;
@@ -82,6 +86,7 @@ struct RosBridge::Impl {
     has_external_camera = extrinsics.has_external_camera;
     const auto *spec = find_robot_spec(options.robot_name);
     const bool arm = spec && spec->joint_control;
+    const bool flying = spec && spec->flight_control;
     const std::string camera_prefix =
         arm ? node_namespace + "/wrist_camera" : "/camera";
     const std::string external_prefix = node_namespace + "/external_camera";
@@ -168,17 +173,30 @@ struct RosBridge::Impl {
         commands = node->create_subscription<geometry_msgs::msg::Twist>(
             "cmd_vel", 10,
             [this](geometry_msgs::msg::Twist::ConstSharedPtr message) {
-              const Vec3 command{message->linear.x, message->linear.y,
-                                 message->angular.z};
               std::lock_guard<std::mutex> lock(command_mutex);
-              if (robot_command_supported(options.robot_name, command)) {
-                latest_command = command;
+              if (velocity_command(options.robot_name, *message, latest_command, latest_flight)) {
+              command_rejected = false;
                 received_at = SteadyClock::now();
               } else {
-                latest_command = {};
+                latest_command = {}; latest_flight = {};
+              if(!command_rejected) RCLCPP_WARN(node->get_logger(), "Unsupported Twist: require finite supported axes; quadrotor roll/pitch rates must be zero");
+              command_rejected = true;
                 received_at.reset();
               }
             });
+      if(flying) {
+        node->declare_parameter<double>("takeoff_height",1.);
+        flight_actions=node->create_subscription<messages::String>("flight_action",10,
+          [this](messages::String::ConstSharedPtr message) {
+            FlightCommand request;request.action=message->data;
+            request.takeoff_height=node->get_parameter("takeoff_height").as_double();
+            std::lock_guard<std::mutex> lock(command_mutex);
+            const bool valid=supported_flight_command(request);
+          if(!valid && !command_rejected) RCLCPP_WARN(node->get_logger(), "Unsupported flight action or takeoff height");
+          command_rejected=!valid;latest_flight=valid?request:FlightCommand{};
+            received_at=SteadyClock::now();
+          });
+      }
       status = node->create_publisher<std_msgs::msg::String>(options.status_topic, rclcpp::QoS(1).transient_local());
       tf = std::make_unique<tf2_ros::TransformBroadcaster>(node);
       static_tf = std::make_unique<tf2_ros::StaticTransformBroadcaster>(node);
@@ -229,6 +247,12 @@ Vec3 RosBridge::command() const {
     return {};
   return impl_->latest_command;
 }
+FlightCommand RosBridge::flight_command() const {
+  std::lock_guard<std::mutex> lock(impl_->command_mutex);
+  if(!impl_->received_at || SteadyClock::now()-*impl_->received_at >=
+      std::chrono::duration<double>(impl_->options.command_timeout_s))return {};
+  return impl_->latest_flight;
+}
 void RosBridge::spin_once(double timeout_s) {
   if (!std::isfinite(timeout_s) || timeout_s < 0.) throw std::invalid_argument("spin timeout must be nonnegative and finite");
   std::lock_guard<std::mutex> lock(impl_->publication_mutex);
@@ -257,6 +281,7 @@ void RosBridge::close() {
   impl_->closed = true;
   impl_->executor->cancel(); impl_->executor->remove_node(impl_->node);
   impl_->commands.reset();
+  impl_->flight_actions.reset();
   impl_->joint_commands.reset();
   impl_->joints.reset();
   impl_->external_info.reset();

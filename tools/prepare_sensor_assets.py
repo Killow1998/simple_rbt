@@ -107,4 +107,7 @@ def prepare(refresh=False):
 if __name__ == "__main__":
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--refresh-manifests",action="store_true")
-    prepare(parser.parse_args().refresh_manifests)
+    args = parser.parse_args()
+    prepare(args.refresh_manifests)
+    from prepare_avia_assets import prepare as prepare_avia
+    prepare_avia(args.refresh_manifests)

@@ -148,7 +148,7 @@ func (t *e2e) step() {
 			return
 		}
 		t.check(true, "3D rotation acknowledged by core")
-		t.check(norm(sub(a.meta.MidImu.Position, internalImu(a.meta.Mounts["mid360"]))) < 1e-6, "MID360 internal IMU remains rigidly coupled")
+		t.check(norm(sub(a.meta.MidImu.Position, internalImu(a.meta.Mounts["mid360"], a.meta.LidarIMUOffset))) < 1e-6, "MID360 internal IMU remains rigidly coupled")
 		t.check(norm(sub(a.meta.BodyImu.Position, t.body)) < 1e-9, "body controller IMU stays independent")
 		t.capture(".configuration.png")
 		t.check(t.tester.Click(a.tr("Launch", "启动")) == nil, "return to launch")

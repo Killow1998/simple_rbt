@@ -18,18 +18,20 @@ type observerInfo struct {
 	Width, Height int
 }
 type metadata struct {
-	JointControls []jointAxis     `json:"joint_controls"`
-	MountParents  map[string]Pose `json:"mount_parents"`
-	Logging       map[string]any  `json:"logging"`
-	State         string          `json:"session_state"`
-	Source        string          `json:"source"`
-	Base          Pose            `json:"base_pose"`
-	Mounts        map[string]Pose `json:"mounts"`
-	BodyImu       Pose            `json:"body_imu_mount"`
-	MidImu        Pose            `json:"mid360_internal_imu"`
-	Observer      observerInfo    `json:"observer"`
-	Connections   map[string]int  `json:"connections"`
-	CommandStatus struct {
+	Flight         flightStatus    `json:"flight"`
+	LidarIMUOffset Vec3            `json:"lidar_imu_offset"`
+	JointControls  []jointAxis     `json:"joint_controls"`
+	MountParents   map[string]Pose `json:"mount_parents"`
+	Logging        map[string]any  `json:"logging"`
+	State          string          `json:"session_state"`
+	Source         string          `json:"source"`
+	Base           Pose            `json:"base_pose"`
+	Mounts         map[string]Pose `json:"mounts"`
+	BodyImu        Pose            `json:"body_imu_mount"`
+	MidImu         Pose            `json:"mid360_internal_imu"`
+	Observer       observerInfo    `json:"observer"`
+	Connections    map[string]int  `json:"connections"`
+	CommandStatus  struct {
 		State   string   `json:"state"`
 		Age     *float64 `json:"age_s"`
 		Timeout float64  `json:"timeout_s"`
@@ -43,6 +45,11 @@ type metadata struct {
 	} `json:"resources"`
 }
 type app struct {
+	tutorialOpen            bool
+	flightHandles           [4]ui.Handle
+	flightCommand           *session.FlightCommand
+	flightLocal             [4]float64
+	takeoffHeight           float64
 	armCommand              *session.JointCommand
 	jointState              session.JointState
 	externalCamera          *ui.Bitmap
@@ -287,7 +294,15 @@ func (a *app) applyMetadata(value metadata) {
 	a.sourceLabel = sourceLabel(value.Source)
 	a.commandMu.Lock()
 	a.manualHeartbeat = a.manualMode()
+	if a.manualHeartbeat && a.catalog.Robots[a.cfg.Robot].FlightControl {
+		if a.flightCommand == nil {
+			a.flightCommand = &session.FlightCommand{Action: "hold"}
+		}
+		a.updateFlightVelocity()
+	}
 	if !a.manualHeartbeat {
+		a.flightCommand = nil
+		a.flightLocal = [4]float64{}
 		clear(a.driveKeys)
 		a.command = Vec3{}
 		a.pad = joystick{}
@@ -317,7 +332,14 @@ func (a *app) stopManual() {
 	a.commandMu.Lock()
 	a.armCommand = nil
 	a.command = Vec3{}
-	_ = a.manager.Client.SendCommand([3]float64{})
+	a.flightLocal = [4]float64{}
+	if a.catalog.Robots[a.cfg.Robot].FlightControl {
+		a.flightCommand = &session.FlightCommand{Action: "hold"}
+		_ = a.manager.Client.SendFlight(*a.flightCommand)
+	} else {
+		a.flightCommand = nil
+		_ = a.manager.Client.SendCommand([3]float64{})
+	}
 	a.commandMu.Unlock()
 }
 func (a *app) close() {

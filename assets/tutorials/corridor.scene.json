@@ -1,0 +1,497 @@
+{
+  "format": "sprobo.scene",
+  "version": 2,
+  "id": "mapping-tutorial",
+  "name": "Mapping corridor / \u5efa\u56fe\u8d70\u5eca",
+  "units": {
+    "length": "m",
+    "angle": "rad"
+  },
+  "coordinate_system": "right_handed_z_up",
+  "objects": [
+    {
+      "id": "floor",
+      "name": "floor",
+      "kind": "primitive",
+      "semantic": "floor",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          0,
+          1.2,
+          -0.1
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 25,
+        "width_m": 9,
+        "height_m": 0.2
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "ceiling",
+      "name": "ceiling",
+      "kind": "primitive",
+      "semantic": "wall",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          0,
+          1.2,
+          3.1
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 25,
+        "width_m": 9,
+        "height_m": 0.2
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "south",
+      "name": "south",
+      "kind": "primitive",
+      "semantic": "wall",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          0,
+          -1.7,
+          1.5
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 24,
+        "width_m": 0.2,
+        "height_m": 3
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "north--12",
+      "name": "north--12",
+      "kind": "primitive",
+      "semantic": "wall",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          -11.0,
+          1.7,
+          1.5
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 2,
+        "width_m": 0.2,
+        "height_m": 3
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "north--6",
+      "name": "north--6",
+      "kind": "primitive",
+      "semantic": "wall",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          -1.5,
+          1.7,
+          1.5
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 9,
+        "width_m": 0.2,
+        "height_m": 3
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "north-4",
+      "name": "north-4",
+      "kind": "primitive",
+      "semantic": "wall",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          8.0,
+          1.7,
+          1.5
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 8,
+        "width_m": 0.2,
+        "height_m": 3
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "west",
+      "name": "west",
+      "kind": "primitive",
+      "semantic": "wall",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          -12,
+          1.3,
+          1.5
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 0.2,
+        "width_m": 6.2,
+        "height_m": 3
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "east",
+      "name": "east",
+      "kind": "primitive",
+      "semantic": "wall",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          12,
+          0,
+          1.5
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 0.2,
+        "width_m": 3.6,
+        "height_m": 3
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "room-back--10",
+      "name": "room-back--10",
+      "kind": "primitive",
+      "semantic": "wall",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          -8.0,
+          4.8,
+          1.5
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 4,
+        "width_m": 0.2,
+        "height_m": 3
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "room-side--10",
+      "name": "room-side--10",
+      "kind": "primitive",
+      "semantic": "wall",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          -10,
+          3.25,
+          1.5
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 0.2,
+        "width_m": 3.0999999999999996,
+        "height_m": 3
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "room-side--6",
+      "name": "room-side--6",
+      "kind": "primitive",
+      "semantic": "wall",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          -6,
+          3.25,
+          1.5
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 0.2,
+        "width_m": 3.0999999999999996,
+        "height_m": 3
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "room-back-3",
+      "name": "room-back-3",
+      "kind": "primitive",
+      "semantic": "wall",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          3.5,
+          3.8,
+          1.5
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 1,
+        "width_m": 0.2,
+        "height_m": 3
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "room-side-3",
+      "name": "room-side-3",
+      "kind": "primitive",
+      "semantic": "wall",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          3,
+          2.75,
+          1.5
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 0.2,
+        "width_m": 2.0999999999999996,
+        "height_m": 3
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "room-side-4",
+      "name": "room-side-4",
+      "kind": "primitive",
+      "semantic": "wall",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          4,
+          2.75,
+          1.5
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 0.2,
+        "width_m": 2.0999999999999996,
+        "height_m": 3
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "cabinet",
+      "name": "cabinet",
+      "kind": "primitive",
+      "semantic": "obstacle",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          -7.1,
+          3.8,
+          0.7
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 0.7,
+        "width_m": 0.5,
+        "height_m": 1.4
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "column",
+      "name": "column",
+      "kind": "primitive",
+      "semantic": "obstacle",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          3.6,
+          3.2,
+          1.2
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "geometry": {
+        "type": "box",
+        "length_m": 0.35,
+        "width_m": 0.3,
+        "height_m": 2.4
+      },
+      "evidence": {
+        "basis": "manual"
+      }
+    },
+    {
+      "id": "spawn",
+      "name": "Start / \u8d77\u70b9",
+      "kind": "group",
+      "semantic": "spawn",
+      "parent": "world",
+      "pose": {
+        "position_m": [
+          -8,
+          0,
+          0
+        ],
+        "quaternion_wxyz": [
+          1,
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  ]
+}

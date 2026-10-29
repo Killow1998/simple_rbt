@@ -5,7 +5,7 @@ install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/.vendor/panda-upstream/franka_emika_p
 set(SIMPLE_RBT_DATA_DIR "${CMAKE_INSTALL_DATADIR}/simple-rbt")
 # Use one stable, architecture-independent application library directory.
 set(SIMPLE_RBT_LIB_DIR "lib/simple-rbt")
-foreach(APP simple-rbt-sim)
+foreach(APP simple-rbt-sim simple-rbt-tutorial-config)
   if(TARGET ${APP})
     set_target_properties(${APP} PROPERTIES
       INSTALL_RPATH "$ORIGIN/../lib/simple-rbt"
@@ -46,6 +46,9 @@ endif()
 
 install(DIRECTORY "${PROJECT_WORKSPACE}/assets/"
   DESTINATION "${SIMPLE_RBT_DATA_DIR}/assets" COMPONENT Runtime)
+install(FILES "${PROJECT_WORKSPACE}/docs/flight.md" "${PROJECT_WORKSPACE}/docs/tutorials.md"
+  "${PROJECT_WORKSPACE}/docs/noetic.md" "${PROJECT_WORKSPACE}/docs/desktop-console-plan.md"
+  DESTINATION "${SIMPLE_RBT_DATA_DIR}/docs" COMPONENT Runtime)
 # Install exactly the mesh/texture files named by shipped model XML, rather
 # than a developer's entire .vendor directory. Keep their original paths.
 file(GLOB MODEL_XML_FILES "${PROJECT_WORKSPACE}/assets/models/*.xml")

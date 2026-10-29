@@ -9,7 +9,7 @@ dpkg -i "$package" > "$evidence/install.log"
 dpkg-query -W sprobo > "$evidence/package-version.txt"
 dpkg-query -L sprobo > "$evidence/installed-files.txt"
 desktop-file-validate /usr/share/applications/sprobo.desktop
-for app in simple-rbt-sim sprobo; do
+for app in simple-rbt-sim sprobo simple-rbt-tutorial-config; do
     if ! ldd "/usr/bin/$app" > "$evidence/$app-libraries.txt" 2>&1; then
         if readelf -d "/usr/bin/$app" | grep -q '(NEEDED)'; then
             cat "$evidence/$app-libraries.txt" >&2
@@ -41,7 +41,8 @@ setpriv --reuid=65534 --regid=65534 --clear-groups \
     /usr/bin/simple-rbt-sim --help > "$evidence/sim-help.txt"
 /usr/bin/simple-rbt-sim --list-robots > "$evidence/robot-registry.json"
 robots=$(jq -er '.[].name' "$evidence/robot-registry.json")
-test "$(jq length "$evidence/robot-registry.json")" -eq 8
+jq -e 'length > 0 and ((map(.name) | length) == (map(.name) | unique | length))' \
+    "$evidence/robot-registry.json" >/dev/null
 for robot in $robots; do
     setpriv --reuid=65534 --regid=65534 --clear-groups \
         /usr/bin/simple-rbt-sim --robot "$robot" --sensors physics --backend cpu \
@@ -91,8 +92,9 @@ printf 'preserve-user-settings\n' > /tmp/sprobo-user/config/user-state-marker
 dpkg --purge sprobo > "$evidence/uninstall.log"
 test ! -e /usr/bin/simple-rbt-sim
 test ! -e /usr/bin/sprobo
+test ! -e /usr/bin/simple-rbt-tutorial-config
 test ! -e /usr/share/applications/sprobo.desktop
 test ! -d /usr/share/simple-rbt
 test ! -d /usr/lib/simple-rbt
 test -f /tmp/sprobo-user/config/user-state-marker
-printf 'install, non-root native window, eight CPU models, dependency isolation and uninstall passed\n'
+printf 'install, non-root native window, all registered CPU models, dependency isolation and uninstall passed\n'

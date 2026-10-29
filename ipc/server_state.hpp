@@ -26,6 +26,7 @@ struct SessionServer::Impl {
   std::vector<Peer> peers;
   std::vector<Json> requests;
   Vec3 command{};
+  simple_rbt::FlightCommand flight;
   std::optional<simple_rbt::JointCommand> joint_command;
   Clock::time_point received{};
   std::uint64_t command_client = 0, next_id = 1;

@@ -1,0 +1,13 @@
+{
+  "fast-lio": {
+    "revision": "d9786240120d755780919c593dc4bec72e0a4949",
+    "repository": "https://github.com/Killow1998/FAST_LIO",
+    "directory": "FAST_LIO"
+  },
+  "fast-livo2": {
+    "revision": "d9e600c81f7b76c3509d6a269036c3e5aae3d3d7",
+    "repository": null,
+    "directory": "FAST_LIVO2",
+    "note": "Qualified local commit; supply a checkout or exported build context. Not yet a public upstream revision."
+  }
+}

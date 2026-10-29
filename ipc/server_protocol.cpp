@@ -10,6 +10,7 @@ Json SessionServer::Impl::hello() const {
           {"log_session", diagnostics::log().session()},
           {"trace", diagnostics::log().tracing()},
           {"protocol", protocol_version},
+          {"flight_control",find_robot_spec(options.robot_name) && robot_spec(options.robot_name).flight_control},
           {"robot", options.robot_name},
           {"extrinsics", extrinsics_json(extrinsics)},
           {"options",
@@ -74,7 +75,19 @@ void SessionServer::Impl::handle(Peer &p, const Packet &packet) {
   }
   if (p.data)
     return;
-  if (packet.kind == Kind::JointCommand) {
+  if(packet.kind==Kind::FlightCommand) {
+    if(!running || p.role!=source || (command_client && command_client!=p.id))return;
+    try {
+      if(!robot_spec(options.robot_name).flight_control)
+        throw std::invalid_argument("Robot has no flight interface");
+      const auto next=decode_flight_command(packet);
+      if(flight.action!=next.action || flight.velocity!=next.velocity || flight.yaw_rate!=next.yaw_rate)
+        diagnostics::log().event("flight.command",{{"action",next.action},{"velocity",next.velocity},{"yaw_rate",next.yaw_rate},{"role",p.role}});
+      flight=next;received=Clock::now();command_client=p.id;
+    } catch(const std::exception &error) {
+      clear_command();queue(p,json_packet(Kind::Error,{{"message",error.what()}}),true);
+    }
+  } else if (packet.kind == Kind::JointCommand) {
     if (!running || p.role != source ||
         (command_client && command_client != p.id))
       return;
@@ -122,6 +135,9 @@ void SessionServer::Impl::handle(Peer &p, const Packet &packet) {
       return;
     const auto j = decode_json(packet);
     auto value = j.at("velocity").get<Vec3>();
+    if(const auto *spec=find_robot_spec(options.robot_name);spec && spec->flight_control) {
+      clear_command();queue(p,json_packet(Kind::Error,{{"message","Use the flight command contract"}}),true);return;
+    }
     if (!supported_command(options.robot_name, value)) {
       diagnostics::log().event(
           "command.rejected",

@@ -133,6 +133,33 @@ void scene_oracle(const std::string& xml, const std::string& csv, const std::str
             << " differing_xyz_components=" << differences << " cpu_median_ms=" << median(cpu_ms)
             << " cuda_median_ms=" << (gpu_ms.empty()?0.:median(gpu_ms)) << '\n';
 }
+void test_avia(const std::string& csv) {
+  CsvPattern pattern(csv,LidarModel::Avia);
+  check(pattern.size()==960000,"Official Avia four-second pattern length");
+  const auto& first=pattern.ray(0).direction;
+  const double az=-35.27109427*std::acos(-1.)/180., zen=92.24293826*std::acos(-1.)/180.;
+  near(first[0],std::sin(zen)*std::cos(az),1e-7,"Avia azimuth/zenith convention");
+  near(first[1],std::sin(zen)*std::sin(az),1e-7,"Avia azimuth sign");
+  near(first[2],std::cos(zen),1e-7,"Avia elevation sign");
+  Fixture fixture; auto history=motion();
+  RollingLidar lidar(fixture.model,LidarBackend::Cpu,pattern,1.,190.);
+  pattern.advance(pattern.size()-12);
+  LidarScan scan; lidar.scan(fixture.data,0,24000,history,scan);
+  check(scan.rays_cast==24000 && scan.xyz.size()==24000,"Avia full-rate scan lost rays");
+  std::array<std::size_t,6> counts{}; double snapshot_error=0.;
+  for(std::size_t i=0;i<scan.xyz.size();++i) {
+    check(scan.ray_indices[i]==(960000-12+i)%960000,"Avia pattern wrap changed sample order");
+    check(scan.lines[i]==i%6,"Avia six-line sequence");++counts[scan.lines[i]];
+    check(scan.offsets_ns[i]==std::uint32_t(std::llround(double(i)*1e9/240000.)),"Avia fractional-nanosecond rounding");
+    const double t=scan.offsets_ns[i]*1e-9, angle=.5*t;
+    near(t+std::cos(angle)*scan.xyz[i][0]-std::sin(angle)*scan.xyz[i][1],5.,2e-6,"Avia moving wall geometry");
+    snapshot_error=std::max(snapshot_error,std::abs(.1+std::cos(.05)*scan.xyz[i][0]-std::sin(.05)*scan.xyz[i][1]-5.));
+  }
+  check(scan.offsets_ns.back()==99995833 && counts[5]==4000,"Avia full-frame duration/line count");
+  check(snapshot_error>.05,"Avia scan-end negative control did not distinguish rolling");
+  check(pattern.cursor()==23988,"Avia scan reset the four-second pattern");
+  std::cout << "Avia 24000 rays, six lines, fractional timing, wrap and moving-plane oracle passed\n";
+}
 void test_cpu() {
   PatternFile file; CsvPattern pattern(file.path);
   check(pattern.size()==4 && pattern.ray(0).direction==std::array<float,3>{1,0,0},"CSV azimuth/zenith direction");
@@ -185,6 +212,7 @@ int main(int argc,char** argv) {
   try {
     if(argc==4 && std::string(argv[1])=="--dump-directions") {write_directions(argv[2],argv[3]);return 0;}
     if(argc>=5 && std::string(argv[1])=="--scene-oracle") {scene_oracle(argv[2],argv[3],argv[4],argc==6 && std::string(argv[5])=="cuda");return 0;}
+    if(argc==3 && std::string(argv[1])=="--avia") {test_avia(argv[2]);return 0;}
     test_cpu();
     if(argc==2 && std::string(argv[1])=="--cuda") compare_cuda();
     return 0;

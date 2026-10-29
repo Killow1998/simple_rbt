@@ -22,6 +22,10 @@ func (a *app) view(c *ui.Context) {
 			ui.Badge(c, a.stateLabel())
 		})
 		a.navigation(c)
+		if a.tutorialOpen {
+			a.tutorialPage(c)
+			return
+		}
 		if a.diagnostics.Open {
 			a.diagnosticsPage(c)
 			return

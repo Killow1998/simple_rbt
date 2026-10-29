@@ -21,12 +21,24 @@ func TestWorkspaceReopenPreservesNamedResourcesAndDrafts(t *testing.T) {
 	a.robotPreset.Name = "Xian 的巡检机器人"
 	pose := Pose{Position: Vec3{.18, .02, .25}, Quaternion: Quat{1, 0, 0, 0}}
 	a.cfg.Mounts["mid360"] = pose
+	a.cfg.LidarModel = "avia"
 	a.saveRobot(false)
 	id := a.robotPreset.ID
 	a.robotPreset.Name = "Renamed survey robot"
 	a.saveRobot(false)
 	if a.robotPreset.ID != id || len(a.workspace.Robots) != 1 {
 		t.Fatal("rename changed identity")
+	}
+	stored := a.workspace.Robots[id]
+	cfg := defaultConfig()
+	stored.apply(&cfg)
+	if cfg.LidarModel != "avia" {
+		t.Fatal("saved preset lost Avia")
+	}
+	stored.LidarModel = ""
+	stored.apply(&cfg)
+	if cfg.LidarModel != "mid360" {
+		t.Fatal("legacy preset lost MID360 default")
 	}
 	a.sceneDraft.Name = "双层实验室"
 	a.saveScene(false)
@@ -36,7 +48,7 @@ func TestWorkspaceReopenPreservesNamedResourcesAndDrafts(t *testing.T) {
 	a.checkpoint()
 	b := workspaceApp(t)
 	b.initWorkspace(true)
-	if b.robotPreset.Name != "Unfinished name" || b.robotPreset.ID != id || !samePose(b.cfg.Mounts["mid360"], pose) {
+	if b.cfg.LidarModel != "avia" || b.robotPreset.LidarModel != "avia" || b.robotPreset.Name != "Unfinished name" || b.robotPreset.ID != id || !samePose(b.cfg.Mounts["mid360"], pose) {
 		t.Fatal("robot draft did not reopen")
 	}
 	if b.workspace.Robots[id].Name != "Renamed survey robot" || b.workspace.Scenes[sceneID].Objects[1].Position[0] != 0 || b.sceneDraft.Objects[1].Position[0] != 2.5 {

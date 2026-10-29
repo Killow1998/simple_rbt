@@ -2,6 +2,7 @@
 #include <stdexcept>
 namespace simple_rbt {
 std::unique_ptr<Controller> make_arm_controller(const ControllerContext &);
+std::unique_ptr<Controller> make_flight_controller(const ControllerContext &);
 std::unique_ptr<Controller> make_go2_controller(const ControllerContext &);
 std::unique_ptr<Controller> make_go2w_controller(const ControllerContext &);
 std::unique_ptr<Controller>
@@ -20,6 +21,7 @@ std::unique_ptr<Controller> make_controller(const ControllerContext &c) {
     Factory make;
   };
   static constexpr Entry factories[]{
+      {"flight_pid", make_flight_controller},
       {"joint_position", make_arm_controller},
       {"robot_lab", make_go2_controller},
       {"himloco", make_go2_controller},

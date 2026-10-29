@@ -81,6 +81,7 @@ int main(int argc, char **argv) {
                              {"configurable_odometry", true},
                              {"camera_devices", true},
                              {"joint_control", true},
+                             {"flight_control", true},
                              {"external_camera", true},
                              {"diagnostics", true},
                              {"runtime_language", "C++17"}}
@@ -204,6 +205,8 @@ int main(int argc, char **argv) {
         if (spec && spec->joint_control)
           client.send_packet(ipc::encode_joint_command(
               bridge->joint_command().value_or(JointCommand{{}, {}, true})));
+        else if(spec && spec->flight_control)
+          client.send_packet(ipc::encode_flight_command(bridge->flight_command()));
         else
           client.send_command(bridge->command());
         sent = now;
@@ -214,7 +217,11 @@ int main(int argc, char **argv) {
       std::this_thread::sleep_for(std::chrono::milliseconds(2));
     }
     events->event("ipc.disconnected",{{"packets",count},{"requested_stop",bool(stop)}});
-    client.send_command({});
+    const auto *closing_spec=bridge?find_robot_spec(bridge->options().robot_name):nullptr;
+    if(closing_spec && closing_spec->flight_control)
+      client.send_packet(ipc::encode_flight_command({}));
+    else
+      client.send_command({});
     client.close();
     if (bridge)
       bridge->close();

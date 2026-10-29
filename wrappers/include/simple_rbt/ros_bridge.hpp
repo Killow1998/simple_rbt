@@ -26,6 +26,7 @@ class RosBridge final : public Transport {
   RosBridge& operator=(const RosBridge&) = delete;
 
   Vec3 command() const;
+  FlightCommand flight_command() const override;
   std::optional<JointCommand> joint_command() const override;
   void publish_joints(std::uint64_t, const JointState &) override;
   void publish_external_camera(std::uint64_t, const CameraFrame &) override;

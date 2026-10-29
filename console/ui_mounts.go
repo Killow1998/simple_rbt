@@ -64,13 +64,13 @@ func (a *app) mountInspector(c *ui.Context) {
 		if a.selected == "camera" {
 			ui.Text(c, a.tr("Whole-device mount · camera_link reference", "整机安装外参 · camera_link 基准")).FontSize(12).TextColor(c.Theme().TextMuted)
 			if a.cfg.CameraModel == "d435i" {
-				ui.Text(c, a.tr("Internal IMU fixed to camera · independent of MID360", "内置 IMU 与相机固定连接 · 独立于 MID360")).FontSize(12).TextColor(c.Theme().TextMuted)
+				ui.Text(c, a.tr("Internal IMU fixed to camera · independent of LiDAR", "内置 IMU 与相机固定连接 · 独立于雷达")).FontSize(12).TextColor(c.Theme().TextMuted)
 			}
 		}
 		if a.selected == "mid360" {
-			imu := internalImu(pose)
+			imu := internalImu(pose, a.meta.LidarIMUOffset)
 			ui.Column(c).Padding(10).Radius(8).Background(c.Theme().Background).Gap(5).Children(func() {
-				ui.Text(c, a.tr("MID360 · rigid LiDAR + IMU", "MID360 · 雷达与 IMU 刚性总成")).FontSize(12).Bold()
+				ui.Text(c, a.cfg.LidarModel+a.tr(" · rigid LiDAR + IMU", " · 雷达与 IMU 刚性总成")).FontSize(12).Bold()
 				ui.Text(c, fmt.Sprintf(a.tr("IMU → base_link (m)\n%.5f, %.5f, %.5f", "IMU → base_link（米）\n%.5f, %.5f, %.5f"), imu[0], imu[1], imu[2])).FontSize(12).TextColor(c.Theme().TextMuted)
 				ui.Text(c, a.tr("Body IMU stays independent", "机身 IMU 保持独立")).FontSize(12).TextColor(c.Theme().TextMuted)
 			})

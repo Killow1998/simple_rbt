@@ -27,7 +27,7 @@ def digest(path):
 
 def check_runtime(stage):
     binaries = stage / "usr/bin"
-    for name in ("simple-rbt-sim", "sprobo"):
+    for name in ("simple-rbt-sim", "sprobo", "simple-rbt-tutorial-config"):
         binary = binaries / name
         if not binary.is_file():
             raise RuntimeError(f"Missing built runtime: {name}")

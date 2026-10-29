@@ -22,6 +22,11 @@ xvfb-run -a -s '-screen 0 1600x1100x24' /bin/bash -c '
 '
 .venv/bin/python tools/test_manipulator.py --core /usr/bin/simple-rbt-sim --output output/ci/panda-core
 xvfb-run -a -s '-screen 0 1600x1100x24' /bin/bash -c '
+  exec python3 tools/test_console_flight.py --display "$DISPLAY" \
+    --console /usr/bin/sprobo --core /usr/bin/simple-rbt-sim \
+    --assets /usr/share/simple-rbt/assets --output output/ci/flight-ui
+'
+xvfb-run -a -s '-screen 0 1600x1100x24' /bin/bash -c '
   exec .venv/bin/python tools/test_console_manipulator.py --display "$DISPLAY" \
     --console /usr/bin/sprobo --core /usr/bin/simple-rbt-sim \
     --assets /usr/share/simple-rbt/assets --output output/ci/panda-ui

@@ -1,5 +1,5 @@
 find_package(Threads REQUIRED)
-add_library(simple_rbt_ipc codec.cpp joints.cpp socket.cpp client.cpp server.cpp server_protocol.cpp server_transport.cpp)
+add_library(simple_rbt_ipc codec.cpp joints.cpp flight.cpp socket.cpp client.cpp server.cpp server_protocol.cpp server_transport.cpp)
 target_include_directories(simple_rbt_ipc PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../include" "${CMAKE_CURRENT_SOURCE_DIR}/../third_party")
 target_compile_features(simple_rbt_ipc PUBLIC cxx_std_17)
 target_compile_options(simple_rbt_ipc PRIVATE -Wall -Wextra -Wpedantic)
