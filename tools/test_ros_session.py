@@ -97,11 +97,13 @@ def run_case(args, robot, output):
             if args.external_odometry and not arm and not flight: shell += ' --external-odometry'
             probe = subprocess.Popen(["docker", "exec", container, "bash", "-c", shell, "probe", args.ros, robot],
                                      stdout=adapter_log, stderr=subprocess.STDOUT)
-            probe_code = probe.wait(timeout=50 if flight else 35)
+            probe_code = probe.wait(timeout=110 if flight else 35)
+            if probe_code:
+                raise RuntimeError(f"{robot}: probe={probe_code}; see {case / 'adapter.log'}")
             core_code = core.wait(timeout=55 if flight else 40)
             adapter_code = adapter.wait(timeout=15)
-            if probe_code or core_code or adapter_code:
-                raise RuntimeError(f"{robot}: probe={probe_code}, core={core_code}, adapter={adapter_code}; see {case}")
+            if core_code or adapter_code:
+                raise RuntimeError(f"{robot}: core={core_code}, adapter={adapter_code}; see {case}")
         finally:
             stop(probe); stop(core)
             subprocess.run(["docker", "rm", "--force", container], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

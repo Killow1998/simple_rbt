@@ -13,7 +13,7 @@ def receive(name):
         if hasattr(msg,'header'):stamps.setdefault(name,[]).append(ns(msg.header.stamp))
         if name=='odom':
             p=msg.pose.pose.position;q=msg.pose.pose.orientation
-            samples.append([time.monotonic(),p.x,p.y,p.z,2*math.atan2(q.z,q.w)])
+            samples.append([ns(msg.header.stamp)/1e9,p.x,p.y,p.z,2*math.atan2(q.z,q.w)])
     return callback
 if args.version=='ros1':
     import rospy
@@ -48,12 +48,14 @@ if args.motion_only:
     command=publish(Twist,'/skydio_x2/cmd_vel');action=publish(String,'/skydio_x2/flight_action')
     wrong=publish(Twist,'/cmd_vel')
     deadline=time.monotonic()+8
-    while 'odom' not in seen and time.monotonic()<deadline:time.sleep(.05)
-    if 'odom' not in seen:raise RuntimeError('Missing flight ground truth')
+    while not samples and time.monotonic()<deadline:time.sleep(.05)
+    if not samples:raise RuntimeError('Missing flight ground truth')
     time.sleep(.5)
     def phase(name,seconds,kind=None,velocity=(0,0,0),yaw=0,roll=0):
-        end=time.monotonic()+seconds
-        while time.monotonic()<end:
+        # Motion advances in simulation time; command expiry uses wall time.
+        clock=time.monotonic if kind is None else lambda:samples[-1][0]
+        end=clock()+seconds
+        while clock()<end:
             if kind in ['takeoff','land','hold']:
                 m=String();m.data=kind;action.publish(m)
             elif kind=='velocity':
@@ -79,7 +81,7 @@ else:
         subscriptions += [subscribe(Image,'/camera/image_raw','rgb'),subscribe(Image,'/camera/depth/image_raw','depth'),
                           subscribe(Image,'/camera/panorama/image_raw','panorama'),subscribe(CameraInfo,'/camera/camera_info','info')]
     output=Path(args.output);motion=output.with_suffix('.motion.json')
-    subprocess.run([sys.executable,__file__,args.version,str(motion),'--motion-only'],check=True,timeout=45)
+    subprocess.run([sys.executable,__file__,args.version,str(motion),'--motion-only'],check=True,timeout=100)
     report=json.loads(motion.read_text());checks.update(report['checks']);phases=report['phases']
     for stream,interval in [('imu',5_000_000),('camera_imu',5_000_000),('lidar',100_000_000)]:
         t=stamps.get(stream,[]);dt=[b-a for a,b in zip(t,t[1:])]
