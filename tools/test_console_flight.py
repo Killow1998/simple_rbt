@@ -49,6 +49,15 @@ def main():
     def flight_state(name):
         return observer.wait(lambda m, v: m.get("flight", {}).get("state") == name, timeout=12)
 
+    def flight_action(name):
+        # Source -> height and its steppers -> action row; independent of font metrics.
+        inputs.click(180, 196)
+        inputs.press("Escape")
+        tabs = {"takeoff": 4, "land": 5, "disarm": 7}
+        for _ in range(tabs[name]):
+            inputs.tab()
+        inputs.press("Return")
+
     def held(key, seconds=1.5):
         inputs.key(key, True)
         time.sleep(seconds)
@@ -71,7 +80,7 @@ def main():
             inputs.click(180, 825)
             observer.wait(lambda m, v: m.get("session_state") == "running", timeout=15)
             inputs.capture(window, out / "grounded.png")
-            inputs.click(72, 328)
+            flight_action("takeoff")
             flight_state("hover")
             check("native_takeoff", .9 < xyz()[2] < 1.1)
             inputs.click(900, 340)
@@ -135,12 +144,12 @@ def main():
             time.sleep(.4)
             inputs.capture(window, out / "runtime-light-zh.png")
             check("light_contrast", inputs.readability(window)[0])
-            inputs.click(145, 356)  # Chinese row uses the native font's line height.
+            flight_action("land")
             flight_state("grounded")
             check("native_land", xyz()[2] < .06)
-            inputs.click(55, 356)
+            flight_action("takeoff")
             flight_state("hover")
-            inputs.click(318, 356)
+            flight_action("disarm")
             flight_state("disarmed")
             inputs.blur()
             observer.wait(lambda m, v: m["base_pose"]["position"][2] < .1)
