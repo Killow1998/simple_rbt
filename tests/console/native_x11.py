@@ -286,6 +286,29 @@ class Inputs:
             raise RuntimeError("Cannot identify the native Start button")
         return 180, (fills[0][0]+fills[0][-1])/2
 
+    def command_source(self, window):
+        """Locate the first full-width bordered control in the runtime sidebar."""
+        width, height, pixels = self.pixels(window)
+
+        def pixel(x, y):
+            i = (y * width + x) * 3
+            return pixels[i:i+3]
+
+        def border(y):
+            background = pixel(5, y)
+            samples = [pixel(x, y) for x in (40, 100, 160, 220, 280, 340)]
+            return all(max(abs(a-b) for a, b in zip(sample, background)) > 35
+                       for sample in samples) and all(
+                max(abs(a-b) for a, b in zip(sample, samples[0])) < 20
+                for sample in samples[1:])
+
+        for top in range(120, min(400, height-40)):
+            if border(top):
+                for bottom in range(top+26, top+37):
+                    if border(bottom):
+                        return 180, (top+bottom)//2
+        raise RuntimeError("Cannot identify the native command source selector")
+
     def readability(self, window):
         """Measure rendered glyph interiors, not theme constants or GPU callbacks.
 

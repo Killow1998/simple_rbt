@@ -277,7 +277,7 @@ def main():
                 inputs.t.XTestFakeButtonEvent(inputs.d,4,True,0); inputs.t.XTestFakeButtonEvent(inputs.d,4,False,0)
             inputs.x.XFlush(inputs.d); time.sleep(.2)
             inputs.capture(window, output / "source-selector.png")
-            inputs.click(180,246)
+            inputs.click(*inputs.command_source(window))
             inputs.key("End",True); inputs.key("End",False)
             inputs.key("Return",True); inputs.key("Return",False)
             observer.wait(lambda m,v:m.get("source")=="program")

@@ -145,15 +145,22 @@ def main():
             observer.wait(lambda m, v: m.get("session_state") == "running", timeout=15)
             peer = Peer(directory)
             wait_joints(lambda q: len(q) == 9)
-            inputs.number(240, 262, "20")
+            def joint_target(index, value):
+                inputs.click(*inputs.command_source(window))
+                inputs.press("Escape")
+                for _ in range(2 + index * 4):
+                    inputs.tab()
+                inputs.type_number(value)
+
+            joint_target(0, "20")
             wait_joints(lambda q: abs(q[0]-math.radians(20)) < .02)
             check("native_joint_target", True)
-            inputs.number(240, 550, "0")
+            joint_target(7, "0")
             wait_joints(lambda q: max(abs(x) for x in q[7:]) < .005)
-            inputs.number(240, 550, "80")
+            joint_target(7, "80")
             wait_joints(lambda q: min(q[7:]) > .035)
             check("native_gripper_open_close", True)
-            inputs.number(240, 262, "80")
+            joint_target(0, "80")
             inputs.blur()
             time.sleep(.8)
             held = wait_joints(lambda q: True)[0]
@@ -161,7 +168,7 @@ def main():
             after = wait_joints(lambda q: True)[0]
             check("manual_blur_holds_pose", after < 1.2 and abs(after-held) < .01)
             inputs.focus(window)
-            inputs.click(180, 196)
+            inputs.click(*inputs.command_source(window))
             inputs.press("Home")
             inputs.press("Down")
             inputs.press("Return")

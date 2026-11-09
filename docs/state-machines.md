@@ -67,7 +67,16 @@ CPU physics: Go2W with RL-SAR on Noetic and Scout Mini on Noetic and Humble.
 Those ROS tests disabled RGB and depth; they do not assess SuperMimic lateral
 tracking.
 
+The first 0.2.2 CI run exposed a stale fixed coordinate in the flight test:
+the new physics information moved the command selector. Native flight and arm
+E2E now locate that selector in the rendered window and use keyboard focus for
+joint targets. The original failed CI evidence is retained.
+
 2026-11-09 的本机构建通过 19 项 CTest、Go 竞态测试、7 项场景编辑检查和 40 项
 原生窗口检查。直接 ROS 测试使用 CPU 物理：Go2W 使用 RL-SAR 和 Noetic，Scout
 Mini 使用 Noetic 和 Humble。这些 ROS 测试关闭了 RGB 和深度，不用于评价
 SuperMimic 侧移跟踪。
+
+首次 0.2.2 CI 发现无人机测试使用了过时的固定坐标：物理信息使指令来源控件下移。
+无人机和机械臂端到端测试现在从实际窗口定位该控件，并通过键盘焦点设置关节目标。
+原 CI 失败证据保留。

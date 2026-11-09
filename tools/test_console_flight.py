@@ -51,7 +51,7 @@ def main():
 
     def flight_action(name):
         # Source -> height and its steppers -> action row; independent of font metrics.
-        inputs.click(180, 196)
+        inputs.click(*inputs.command_source(window))
         inputs.press("Escape")
         tabs = {"takeoff": 4, "land": 5, "disarm": 7}
         for _ in range(tabs[name]):
@@ -114,7 +114,7 @@ def main():
             time.sleep(1)
             check("manual_blur_holds_position", math.dist(before, xyz()) < .05)
             inputs.focus(window)
-            inputs.click(180, 196)
+            inputs.click(*inputs.command_source(window))
             inputs.press("Home"); inputs.press("Down"); inputs.press("Return")
             observer.wait(lambda m, v: m.get("source") == "program" or m.get("command_source") == "program")
             program = Observer(directory, "program")
@@ -135,7 +135,7 @@ def main():
             flight_state("hover")
             check("program_timeout_holds_position", True)
             inputs.focus(window)
-            inputs.click(180, 196); inputs.press("Home"); inputs.press("Return")
+            inputs.click(*inputs.command_source(window)); inputs.press("Home"); inputs.press("Return")
             observer.wait(lambda m, v: m.get("source") == "gui" or m.get("command_source") == "gui")
             inputs.capture(window, out / "runtime-dark-en.png")
             check("dark_contrast", inputs.readability(window)[0])
