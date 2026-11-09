@@ -50,7 +50,10 @@ def main():
     p.add_argument('--algorithm',choices=['fast-lio','fast-livo2'],required=True);p.add_argument('--robot',choices=['go2w','skydio_x2'],default='go2w')
     p.add_argument('--build',type=Path,default=ROOT/'build/flight-jammy');p.add_argument('--output',type=Path,required=True)
     p.add_argument('--adapter-image',required=True);p.add_argument('--tutorial-image');p.add_argument('--duration',type=float,default=140)
+    p.add_argument('--assets-root',type=Path,default=ROOT);p.add_argument('--session-config',type=Path)
+    p.add_argument('--cpus',default='0,2,4,6');p.add_argument('--noetic-command',action='store_true')
     p.add_argument('--port',type=int,default=11992);p.add_argument('--domain',type=int,default=195);a=p.parse_args()
+    if a.noetic_command and (a.ros!='ros1' or a.robot!='go2w'):p.error('--noetic-command requires Go2W and ROS 1')
     out=a.output.resolve();out.mkdir(parents=True,exist_ok=False);build=a.build.resolve()
     session=Path('/tmp')/('srbt-tutorial-'+uuid.uuid4().hex[:10]);session.mkdir()
     stem=session.name;adapter_name=stem+'-ros';front_name=stem+'-front'
@@ -58,8 +61,8 @@ def main():
     core_sha=hashlib.sha256((build/'simple-rbt-sim').read_bytes()).hexdigest()
     image_ids={name:subprocess.check_output(['docker','image','inspect','--format','{{.Id}}',tag],text=True).strip()
                for name,tag in [('adapter',a.adapter_image),('frontend',image)]}
-    config=json.loads((ROOT/('examples/tutorial-go2w.json' if a.robot=='go2w' else 'examples/tutorial-quadrotor.json')).read_text())
-    config.update(source='program',start_immediately=False,duration_s=a.duration,settle_s=1.,output=str(out/'native'))
+    config=json.loads((a.session_config or ROOT/('examples/tutorial-go2w.json' if a.robot=='go2w' else 'examples/tutorial-quadrotor.json')).read_text())
+    config.update(source='ros1' if a.noetic_command else 'program',start_immediately=False,duration_s=a.duration,settle_s=1.,output=str(out/'native'))
     (out/'session.json').write_text(json.dumps(config,indent=2)+'\n')
     environment=dict(os.environ,LIBGL_ALWAYS_SOFTWARE='1',EGL_PLATFORM='surfaceless',LP_NUM_THREADS='4',XDG_STATE_HOME=str(out/'state'))
     ros_env={'ROS_MASTER_URI':f'http://127.0.0.1:{a.port}','ROS_IP':'127.0.0.1','SIMPLE_RBT_START_MASTER':'1'} if a.ros=='ros1' else {'ROS_DOMAIN_ID':str(a.domain),'ROS_LOCALHOST_ONLY':'1'}
@@ -67,15 +70,15 @@ def main():
     handles=[];processes=[];gui=program=None;resources=[];complete=0
     def start(name,command):
         f=(out/(name+'.log')).open('w');handles.append(f);proc=subprocess.Popen(command,env=environment,stdout=f,stderr=subprocess.STDOUT);processes.append(proc);return proc
-    def docker(name,extra):return ['docker','run','--rm','--pull','never','--cpuset-cpus','0,2,4,6','--network','host','--name',name,*ros_args,*extra]
+    def docker(name,extra):return ['docker','run','--rm','--pull','never','--cpuset-cpus',a.cpus,'--network','host','--name',name,*ros_args,*extra]
     try:
-        core=start('core',[str(build/'simple-rbt-sim'),'--project-root',str(ROOT),'--session-config',str(out/'session.json'),'--session-dir',str(session)])
+        core=start('core',[str(build/'simple-rbt-sim'),'--project-root',str(a.assets_root.resolve()),'--session-config',str(out/'session.json'),'--session-dir',str(session)])
         deadline=time.monotonic()+15
         while not (session/'data.sock').exists():
             if core.poll() is not None or time.monotonic()>deadline:raise RuntimeError('core did not create IPC')
             time.sleep(.05)
         gui=Telemetry(session,'gui');program=Telemetry(session,'program');gui.wait(lambda m,v:m.get('session_state')=='config')
-        adapter=start('adapter',docker(adapter_name,['--mount',f'type=bind,source={session},target=/session',a.adapter_image,'--session-dir','/session']))
+        adapter=start('adapter',docker(adapter_name,['--mount',f'type=bind,source={session},target=/session','--mount',f'type=bind,source={out},target=/evidence',a.adapter_image,'--session-dir','/session']))
         gui.wait(lambda m,v:m.get('connections',{}).get(a.ros,0)>0,timeout=20)
         calibration=start('calibration',[str(build/'simple-rbt-tutorial-config'),'--session-dir',str(session),'--data-root',str(ROOT),'--output',str(out/'frontend'),'--algorithm',a.algorithm,'--ros',a.ros])
         gui.send(2,{'op':'start'});gui.wait(lambda m,v:m.get('session_state')=='running')
@@ -85,6 +88,13 @@ def main():
         while not estimate.exists() or len(estimate.read_text().splitlines())<5:
             if frontend.poll() is not None or time.monotonic()>ready:raise RuntimeError('frontend did not produce estimated poses')
             time.sleep(.1)
+        ros_input=None
+        if a.noetic_command:
+            script=out/'noetic_tutorial_io.py';script.write_bytes((ROOT/'tests/ipc/noetic_tutorial_io.py').read_bytes())
+            f=(out/'ros-io.log').open('w');handles.append(f)
+            ros_input=subprocess.Popen(['docker','exec','-i',adapter_name,'bash','-c',
+                'source /opt/ros/noetic/setup.bash; source /opt/simple-rbt/interfaces/setup.bash; exec python3 -u /evidence/noetic_tutorial_io.py /evidence/ros-sensors.json'],
+                stdin=subprocess.PIPE,stdout=f,stderr=subprocess.STDOUT,text=True);processes.append(ros_input)
         pids={'core':[core.pid]}
         for name,container in [('adapter',adapter_name),('frontend',front_name)]:
             rows=subprocess.check_output(['docker','top',container,'-eo','pid'],text=True).splitlines()[1:];pids[name]=[int(row) for row in rows if row.strip()]
@@ -113,8 +123,13 @@ def main():
                         command=[max(-.5,min(.5,.8*(math.cos(yaw)*dx+math.sin(yaw)*dy))),max(-.25,min(.25,.8*(-math.sin(yaw)*dx+math.cos(yaw)*dy))),wz]
                         if abs(angle)>.25:command[:2]=[0.,0.]
             elif a.robot=='skydio_x2' and complete==len(goals):flight['action']='land'
-            try:program.send(18,flight) if a.robot=='skydio_x2' else program.send(3,{'velocity':command})
-            except OSError:break
+            try:
+                if ros_input:
+                    ros_input.stdin.write(json.dumps(command)+'\n');ros_input.stdin.flush()
+                else:program.send(18,flight) if a.robot=='skydio_x2' else program.send(3,{'velocity':command})
+            except OSError:
+                if ros_input and ros_input.poll() is not None:raise RuntimeError('Noetic command fixture exited; inspect ros-io.log')
+                break
             now=time.monotonic()
             if now-last_resource>=1:
                 resources.append({'elapsed_s':now-begin,'groups':{k:stats(v) for k,v in pids.items()}});last_resource=now
@@ -136,6 +151,16 @@ def main():
         result['resources']={k:{'mean_cores':(resources[-1]['groups'][k][0]-before[k][0])/resources[-1]['elapsed_s'],'peak_rss_mib':max(row['groups'][k][1] for row in resources)} for k in pids}
         result['passed']&=complete==len(goals) and result['real_time_factor']>.97 and result['last_stamp_s']>a.duration-2
         result['core_sha256']=core_sha;result['image_ids']=image_ids
+        result['controller']=summary['controller'];result['control_mode']=summary['control_mode'];result['tracker_updates']=summary['tracker_updates']
+        result['command_source']='ros1' if a.noetic_command else 'ipc'
+        if ros_input:
+            sensor_report=json.loads((out/'ros-sensors.json').read_text())
+            transforms=sensor_report['transforms'];lidar_tf,imu_tf=transforms['livox_frame'],transforms['imu_frame']
+            q=lidar_tf['quaternion'];rotation=Rotation.from_quat([*q[1:],q[0]])
+            offset=rotation.inv().apply(np.asarray(imu_tf['position'])-lidar_tf['position'])
+            sensor_report['checks']['mid360_rigid_offset']=bool(np.allclose(offset,[.011,.02329,-.04412],atol=1e-9))
+            sensor_report['checks']['mid360_rigid_rotation']=bool(abs(np.dot(q,imu_tf['quaternion']))>1-1e-9)
+            result['ros_sensor_checks']=sensor_report['checks'];result['passed']&=all(sensor_report['checks'].values())
         (out/'resources.json').write_text(json.dumps(resources,indent=2)+'\n');(out/'score.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result),flush=True)
         if not result['passed']:raise RuntimeError('tutorial E2E failed')
     finally:

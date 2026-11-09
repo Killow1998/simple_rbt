@@ -30,7 +30,7 @@ func (a *app) endSceneFrame() {
 		return
 	}
 	group := a.sceneField
-	if a.viewport.Dragging {
+	if a.viewport.gesture == gestureTransform {
 		group = "drag:" + a.sceneObject
 	}
 	if !sameJSON(h.current.Scene, a.sceneDraft) {
@@ -55,8 +55,7 @@ func (a *app) restoreScene(s sceneSnapshot) {
 	a.sceneDraft = clone(s.Scene)
 	a.sceneFloor = s.Floor
 	a.sceneObject = s.Object
-	a.viewport.Dragging = false
-	a.viewport.Orbit = false
+	a.viewport.gesture = gestureIdle
 	a.sceneHistory.current = a.sceneSnapshot()
 	a.sceneHistory.group = ""
 }

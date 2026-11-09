@@ -4,7 +4,7 @@ namespace simple_rbt {
 struct CommandTracker {
   Vec3 integral{}, filtered{}, correction{};
   bool initialized = false, heading_set = false, turning = false;
-  double heading = 0.;
+  double heading = 0., lateral_integral_gain = .8;
   std::uint64_t updates = 0, saturated = 0;
   Vec3 limits{1., .6, 1.};
   bool lateral = true, brake_on_zero = false;

@@ -59,6 +59,14 @@ func (a *app) controlInput(ev ui.InputEvent) bool {
 }
 func (a *app) controls(c *ui.Context) {
 	section(c, a.tr("Motion control", "运动控制"), func() {
+		if a.meta.Deployment.Controller != "" {
+			ui.Text(c, a.cfg.Robot+" · "+a.meta.Deployment.Controller+" · "+a.meta.Deployment.ControlMode).FontSize(12)
+			ui.Text(c, a.tr("Physics: ", "物理：")+a.meta.Deployment.PhysicsBackend+" · "+a.meta.Deployment.PhysicsVersion+" · "+a.meta.Deployment.PhysicsDevice).FontSize(12).TextColor(c.Theme().TextMuted)
+		}
+		if a.cfg.Controller == "supermimic" {
+			ui.Text(c, a.tr("vx / vy / yaw rate · one policy-step delay (20 ms)", "前进／横移／偏航速度 · 延迟一个策略周期（20 ms）")).FontSize(12)
+			ui.Text(c, a.tr("This checkpoint has no height or pitch commands.", "当前权重不支持高度或俯仰指令。")).FontSize(12).TextColor(c.Theme().TextMuted)
+		}
 		choices := []string{manualLabel, programLabel}
 		if a.meta.Connections["ros1"] > 0 || a.meta.Source == "ros1" {
 			choices = append(choices, ros1Label)
@@ -95,7 +103,8 @@ func (a *app) controls(c *ui.Context) {
 				a.command[1] = a.pad.Lateral * a.catalog.Robots[a.cfg.Robot].Limits[1] * a.manualScale
 				a.commandMu.Unlock()
 			}
-			if !slider.Pressed() && a.pad.Lateral != 0 {
+			_, _, pointerHeld := slider.Dragged()
+			if !pointerHeld && a.pad.Lateral != 0 {
 				a.pad.Lateral = 0
 				a.commandMu.Lock()
 				a.command[1] = 0
@@ -195,7 +204,7 @@ func (a *app) prepareAdapters(startAfter bool) {
 	}()
 }
 func (a *app) startOperating() {
-	if a.stage != "configure" || a.loading || a.preparing || !a.preflight.Ready {
+	if a.stage != "configure" || a.loading || a.preparing || !a.preflight.Ready || !a.coreConfigReady() {
 		return
 	}
 	for _, version := range []string{"ros1", "ros2"} {

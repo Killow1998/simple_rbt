@@ -244,8 +244,17 @@ struct CameraRig::Impl {
       FlagRestore restore(scene.value);
       scene.value.flags[mjRND_SEGMENT] = 1;
       scene.value.flags[mjRND_IDCOLOR] = 1;
-      renderer.render(viewport, &scene.value, &context.value);
-      mjr_readPixels(segmentation_rgb.data(), raw_depth.data(), viewport, &context.value);
+      // MuJoCo already allocates a single-sample resolve framebuffer for
+      // multisampled RGB. Render depth there to sample pixel centres exactly.
+      mjrContext depth_context = context.value;
+      if (depth_context.offSamples) {
+        depth_context.offFBO = depth_context.offFBO_r;
+        depth_context.offSamples = 0;
+        mjr_setBuffer(mjFB_OFFSCREEN, &depth_context);
+      }
+      renderer.render(viewport, &scene.value, &depth_context);
+      mjr_readPixels(segmentation_rgb.data(), raw_depth.data(), viewport, &depth_context);
+      mjr_restoreBuffer(&context.value);
     }
     // Match classic Renderer's float32 projection coefficients, double metric
     // conversion and final float32 store. Compile without fast-math/FMA folding.

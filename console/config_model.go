@@ -34,12 +34,31 @@ type Config struct {
 	ControlMode      string          `json:"control_mode"`
 	Terrain          string          `json:"terrain"`
 	TerrainLevel     string          `json:"terrain_level"`
-	Backend          string          `json:"backend"`
+	Backend          string          `json:"sensor_backend"`
+	PhysicsBackend   string          `json:"physics_backend,omitempty"`
 	Sensors          Sensors         `json:"sensors"`
 	Mounts           map[string]Pose `json:"mounts"`
 	CameraHz         float64         `json:"camera_hz"`
 	Adapters         map[string]bool `json:"adapters"`
 }
+
+func (cfg *Config) UnmarshalJSON(data []byte) error {
+	type plain Config
+	value := struct {
+		*plain
+		Legacy string `json:"backend"`
+	}{plain: (*plain)(cfg)}
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	var keys map[string]json.RawMessage
+	_ = json.Unmarshal(data, &keys)
+	if _, ok := keys["sensor_backend"]; !ok && value.Legacy != "" {
+		cfg.Backend = value.Legacy
+	}
+	return nil
+}
+
 type RobotSpec struct {
 	FlightControl     bool    `json:"flight_control"`
 	JointControl      bool    `json:"joint_control"`

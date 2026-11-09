@@ -116,6 +116,9 @@ Json RuntimeLidar::scan_model() const {
 Json RuntimeLidar::report() const {
   Json result = {
       {"backend", lidar ? Json(active_backend) : Json(nullptr)},
+      {"sensor_backend", lidar ? Json(active_backend) : Json(nullptr)},
+      {"physics_backend", "mujoco"}, {"physics_device", "cpu"},
+      {"physics_version", mj_versionString()},
       {"backend_implementation",
        lidar ? (active_backend == "cpu" ? "native_mujoco_ray_bvh" : "native_cuda_aot")
              : "none"},

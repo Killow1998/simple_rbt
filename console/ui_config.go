@@ -185,7 +185,7 @@ func (a *app) loadProfile() {
 	a.applySessionProfile(cfg, filepath.Base(paths[0]))
 }
 func (a *app) applySessionProfile(cfg Config, name string) {
-	if err := validateConfig(cfg, a.catalog); err != nil {
+	if err := validateConfig(cfg, a.catalog, &a.sceneResolver); err != nil {
 		a.status = err.Error()
 		a.showLog = true
 		return

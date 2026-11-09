@@ -63,6 +63,8 @@ add_library(simple_rbt_core
   src/scene_geometry.cpp src/scene_primitives.cpp src/scene_polygon.cpp src/scene_xml.cpp src/scene_connections.cpp src/scene_openings.cpp src/sensor_devices.cpp src/tracking.cpp src/controller.cpp
   src/controller_policy.cpp
   src/controllers/go2.cpp src/controllers/go2w.cpp
+  src/controllers/supermimic.cpp
+  src/controllers/external.cpp
   src/controllers/arm.cpp
   src/controllers/flight.cpp
   src/flight_payload.cpp
@@ -71,7 +73,7 @@ add_library(simple_rbt_core
   src/controllers/ranger_mini.cpp)
 target_include_directories(simple_rbt_core PUBLIC include third_party)
 target_compile_options(simple_rbt_core PRIVATE -Wall -Wextra -Wpedantic -ffp-contract=off)
-target_link_libraries(simple_rbt_core PUBLIC mujoco simple_rbt_robots PRIVATE simple_rbt_random onnxruntime tinyxml2::tinyxml2 OpenSSL::Crypto)
+target_link_libraries(simple_rbt_core PUBLIC mujoco simple_rbt_robots PRIVATE simple_rbt_random onnxruntime tinyxml2::tinyxml2 OpenSSL::Crypto ${CMAKE_DL_LIBS})
 
 add_library(simple_rbt_lidar src/lidar.cpp src/lidar_scene.cpp)
 if(SIMPLE_RBT_CUDA)
@@ -109,6 +111,7 @@ target_compile_options(simple_rbt_runtime PRIVATE -Wall -Wextra -Wpedantic -ffp-
 target_link_libraries(simple_rbt_runtime PUBLIC simple_rbt_diagnostics simple_rbt_core simple_rbt_lidar simple_rbt_cameras PRIVATE glfw PkgConfig::GL PNG::PNG Threads::Threads)
 add_subdirectory(ipc)
 add_subdirectory(tutorials)
+add_subdirectory(physics)
 add_library(simple_rbt_session src/session.cpp src/session_control.cpp src/session_view.cpp)
 target_link_libraries(simple_rbt_session PUBLIC simple_rbt_runtime simple_rbt_ipc)
 target_compile_options(simple_rbt_session PRIVATE -Wall -Wextra -Wpedantic)

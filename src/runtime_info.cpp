@@ -44,10 +44,13 @@ void check_assets(const fs::path &root) {
     };
     references(references, xml.RootElement());
   }
-  for (const auto &controller : catalog.at("controllers"))
+  for (const auto &controller : catalog.at("controllers")) {
+    if (controller.contains("library"))
+      require_file(root / controller.at("library").get<std::string>());
     if (controller.contains("policy"))
       check_digest(root / controller.at("policy").get<std::string>(),
                    controller.at("policy_sha256"));
+  }
   require_file(root / "assets/lidar/mid360-real-centr.csv");
   require_file(root / "assets/lidar/avia.csv");
 }
@@ -71,10 +74,14 @@ Json robot_registry() {
 Json runtime_info(const std::filesystem::path &root) {
   Json info{{"product", "simple_rbt"}, {"framework", "simple_rbt"},
             {"launcher", "SpRobo"}, {"version", SIMPLE_RBT_VERSION},
+            {"executable_sha256", sha256_file("/proc/self/exe")},
             {"mujoco_version", mj_versionString()},
             {"mujoco_header_version", mjVERSION_HEADER},
             {"mujoco_runtime_version", mj_version()},
             {"cuda_compiled", bool(SIMPLE_RBT_CUDA_COMPILED)},
+            {"physics_backend", "mujoco"}, {"physics_device", "cpu"},
+            {"physics_version", mj_versionString()}, {"sensor_backends", SIMPLE_RBT_CUDA_COMPILED ? Json{"cpu", "cuda"} : Json{"cpu"}},
+            {"legacy_backend_warp", "sensor CUDA alias; never GPU physics"},
             {"controller_backend", "cpu"}, {"assets_valid", false},
             {"lidar_models", {"mid360", "avia"}},
             {"robots", robot_registry()}};

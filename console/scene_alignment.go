@@ -29,11 +29,11 @@ func (a *app) snapSelected() {
 	p.Quaternion = fromEuler(angles)
 	a.editPoseSet(p)
 }
-func (s *Scene) bounds(id string) (Vec3, Vec3, bool) {
+func (s *Scene) bounds(id string, resolver *sceneResolver) (Vec3, Vec3, bool) {
 	low, high := Vec3{math.Inf(1), math.Inf(1), math.Inf(1)}, Vec3{math.Inf(-1), math.Inf(-1), math.Inf(-1)}
 	found := false
 	if s.Version == 2 {
-		geometry, err := resolveScene(s)
+		geometry, err := resolver.resolve(s)
 		if err != nil {
 			return low, high, false
 		}
@@ -77,8 +77,8 @@ func (a *app) alignSceneObject(mode string) {
 	if o == nil || a.alignTarget == o.ID {
 		return
 	}
-	low, high, ok := a.sceneDraft.bounds(o.ID)
-	targetLow, targetHigh, other := a.sceneDraft.bounds(a.alignTarget)
+	low, high, ok := a.sceneDraft.bounds(o.ID, &a.sceneResolver)
+	targetLow, targetHigh, other := a.sceneDraft.bounds(a.alignTarget, &a.sceneResolver)
 	if !ok || !other {
 		return
 	}

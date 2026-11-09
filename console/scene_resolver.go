@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os/exec"
 	"simple-rbt/console/session"
-	"sync"
 	"time"
 )
 
@@ -23,30 +22,21 @@ type resolvedScene struct {
 	Nodes map[string]Pose `json:"nodes"`
 }
 
-var sceneCompiler = struct {
-	sync.Mutex
+type sceneResolver struct {
 	worker, key string
 	result      resolvedScene
 	err         error
-}{}
-
-func setSceneWorker(worker string) {
-	sceneCompiler.Lock()
-	defer sceneCompiler.Unlock()
-	sceneCompiler.worker = worker
-	sceneCompiler.key = ""
 }
-func resolveScene(s *Scene) (resolvedScene, error) {
-	sceneCompiler.Lock()
-	defer sceneCompiler.Unlock()
+
+func (r *sceneResolver) resolve(s *Scene) (resolvedScene, error) {
 	raw, err := json.Marshal(s)
 	if err != nil {
 		return resolvedScene{}, err
 	}
-	if string(raw) == sceneCompiler.key {
-		return sceneCompiler.result, sceneCompiler.err
+	if string(raw) == r.key {
+		return r.result, r.err
 	}
-	worker := sceneCompiler.worker
+	worker := r.worker
 	if worker == "" {
 		worker = session.DefaultOptions().WorkerPath
 	}
@@ -63,6 +53,6 @@ func resolveScene(s *Scene) (resolvedScene, error) {
 	} else {
 		err = json.Unmarshal(output, &result)
 	}
-	sceneCompiler.key, sceneCompiler.result, sceneCompiler.err = string(raw), result, err
+	r.key, r.result, r.err = string(raw), result, err
 	return result, err
 }

@@ -1,0 +1,6 @@
+add_executable(simple-rbt-physics-contract contract.cpp trace.cpp)
+target_link_libraries(simple-rbt-physics-contract PRIVATE simple_rbt_core)
+target_compile_options(simple-rbt-physics-contract PRIVATE -Wall -Wextra -Wpedantic -ffp-contract=off)
+install(TARGETS simple-rbt-physics-contract RUNTIME DESTINATION bin COMPONENT Runtime)
+set_target_properties(simple-rbt-physics-contract PROPERTIES INSTALL_RPATH "$ORIGIN/../lib/simple-rbt" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+install(FILES job.py warp_batch.py train_smoke.py DESTINATION share/simple-rbt/physics COMPONENT Runtime)

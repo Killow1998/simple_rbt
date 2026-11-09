@@ -89,7 +89,7 @@ func (a *app) drawGizmo(p *ui.Painter, r ui.Rect) {
 		}
 		a.viewport.Handles = a.gizmoHandles(pose)
 		active := -1
-		if a.viewport.Dragging {
+		if a.viewport.gesture == gestureTransform {
 			active = a.viewport.Current.Axis
 		} else if a.viewport.Hovering {
 			if h, ok := a.pickHandle(a.viewport.Pointer); ok {

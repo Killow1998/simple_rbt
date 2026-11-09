@@ -9,7 +9,10 @@ import (
 // Validation is shared by startup, profile loading and session restart.
 // The core remains authoritative for physics; reject editable errors before
 // replacing a working session or launching a worker.
-func validateConfig(cfg Config, catalog Catalog) error {
+func validateConfig(cfg Config, catalog Catalog, resolver *sceneResolver) error {
+	if cfg.PhysicsBackend != "" && cfg.PhysicsBackend != "mujoco" {
+		return fmt.Errorf("Warp physics uses the independent physics-job window")
+	}
 	if cfg.Tutorial != "" {
 		if cfg.Tutorial != "fast-lio" && cfg.Tutorial != "fast-livo2" {
 			return fmt.Errorf("Unknown tutorial / 未知教程")
@@ -24,7 +27,7 @@ func validateConfig(cfg Config, catalog Catalog) error {
 			return fmt.Errorf("Keep tutorial ground truth on /ground_truth/odom with its TF disabled / 教程真值请使用 /ground_truth/odom 并关闭真值 TF")
 		}
 	}
-	if err := validateScene(cfg.Scene); err != nil {
+	if err := validateScene(cfg.Scene, resolver); err != nil {
 		return err
 	}
 	spec, ok := catalog.Robots[cfg.Robot]

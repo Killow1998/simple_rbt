@@ -135,7 +135,7 @@ func (a *app) sceneEditor(c *ui.Context) {
 			if p, ok := a.editPose(); ok {
 				a.sceneLookat = p.Position
 				a.viewport.Distance = 8
-				if low, high, ok := a.sceneDraft.bounds(a.sceneObject); ok {
+				if low, high, ok := a.sceneDraft.bounds(a.sceneObject, &a.sceneResolver); ok {
 					a.sceneLookat = mul(add(low, high), .5)
 					a.viewport.Distance = clamp(norm(sub(high, low))*1.5, 8, 100)
 				}

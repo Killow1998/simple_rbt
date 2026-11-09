@@ -41,7 +41,7 @@ func (a *app) mountInspector(c *ui.Context) {
 			ui.Row(c).Gap(10).Children(func() {
 				ui.Text(c, label).Width(52).FontSize(12)
 				value := pose.Position[i]
-				if ui.NumberInput(c.Key("pos-"+label), &value, -5, 5, .00001).Width(232).Label(a.tr(label+" translation", label+" 轴平移")).Disabled(a.loading).Changed() {
+				if ui.NumberInput(c.Key("pos-"+label), &value, -5, 5, .00001).Width(232).Label(a.tr(label+" translation", label+" 轴平移")).Disabled(a.loading || !a.coreConfigReady()).Changed() {
 					pose.Position[i] = value
 					a.editMount(a.selected, pose)
 				}
@@ -54,7 +54,7 @@ func (a *app) mountInspector(c *ui.Context) {
 			ui.Row(c).Gap(10).Children(func() {
 				ui.Text(c, a.tr(label, []string{"横滚", "俯仰", "偏航"}[i])).Width(52).FontSize(12)
 				value := euler[i]
-				if ui.NumberInput(c.Key("rpy-"+label), &value, -180, 180, .01).Width(232).Label(a.tr(label+" angle", []string{"横滚", "俯仰", "偏航"}[i]+"角度")).Disabled(a.loading).Changed() {
+				if ui.NumberInput(c.Key("rpy-"+label), &value, -180, 180, .01).Width(232).Label(a.tr(label+" angle", []string{"横滚", "俯仰", "偏航"}[i]+"角度")).Disabled(a.loading || !a.coreConfigReady()).Changed() {
 					euler[i] = value
 					pose.Quaternion = fromEuler(euler)
 					a.editMount(a.selected, pose)

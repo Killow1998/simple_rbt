@@ -7,11 +7,7 @@ import (
 	"math"
 )
 
-func (a *app) structuredTriangles(visit func(scenePart, [3]Vec3)) error {
-	resolved, err := resolveScene(&a.sceneDraft)
-	if err != nil {
-		return err
-	}
+func (a *app) structuredTriangles(resolved resolvedScene, visit func(scenePart, [3]Vec3)) {
 	for _, part := range resolved.Parts {
 		if a.sceneDraft.hidden(part.ObjectID, a.hiddenFloors) {
 			continue
@@ -24,13 +20,13 @@ func (a *app) structuredTriangles(visit func(scenePart, [3]Vec3)) error {
 			visit(part, triangle)
 		}
 	}
-	return nil
 }
 func (a *app) drawStructured(p *ui.Painter, r ui.Rect) {
 	key, _ := json.Marshal([]any{a.sceneDraft, a.sceneObject, a.hiddenFloors, a.viewInfo(), r.W, r.H})
 	cache := &a.scenePreview
 	if cache.key != string(key) {
-		if _, err := resolveScene(&a.sceneDraft); err != nil {
+		resolved, err := a.sceneResolver.resolve(&a.sceneDraft)
+		if err != nil {
 			a.status = err.Error()
 			if cache.bitmap != nil {
 				p.Image(cache.bitmap, r, ui.Contain)
@@ -54,7 +50,7 @@ func (a *app) drawStructured(p *ui.Painter, r ui.Rect) {
 		}
 		forward, _, _ := a.basis()
 		eye := a.viewInfo().Position
-		err := a.structuredTriangles(func(part scenePart, t [3]Vec3) {
+		a.structuredTriangles(resolved, func(part scenePart, t [3]Vec3) {
 			color := ui.Hex("#8a9db3")
 			if part.Semantic == "floor" {
 				color = ui.Hex("#657c94")
@@ -84,9 +80,6 @@ func (a *app) drawStructured(p *ui.Painter, r ui.Rect) {
 				cache.triangle(projected[0], projected[i], projected[i+1], color)
 			}
 		})
-		if err != nil {
-			a.status = err.Error()
-		}
 		if cache.bitmap == nil {
 			cache.bitmap = ui.NewBitmap(cache.image)
 		} else {
@@ -105,10 +98,14 @@ func (a *app) drawStructured(p *ui.Painter, r ui.Rect) {
 	}
 }
 func (a *app) pickStructured(p point) {
+	resolved, err := a.sceneResolver.resolve(&a.sceneDraft)
+	if err != nil {
+		return
+	}
 	eye, ray := a.ray(p)
 	nearest := math.Inf(1)
 	id := ""
-	_ = a.structuredTriangles(func(part scenePart, t [3]Vec3) {
+	a.structuredTriangles(resolved, func(part scenePart, t [3]Vec3) {
 		e1, e2 := sub(t[1], t[0]), sub(t[2], t[0])
 		h := cross(ray, e2)
 		det := dot(e1, h)
@@ -133,6 +130,6 @@ func (a *app) pickStructured(p point) {
 	})
 	if id != "" {
 		a.sceneObject = id
-		a.viewport.Orbit = false
+		a.viewport.gesture = gestureIdle
 	}
 }

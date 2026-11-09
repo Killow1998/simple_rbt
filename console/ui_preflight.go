@@ -12,6 +12,10 @@ func (a *app) dependencyPanel(c *ui.Context) {
 			ui.Text(c, a.tr("Checking the system, simulator and selected ROS adapters…", "正在检查系统、仿真器和所选 ROS 适配器…")).FontSize(13)
 		}
 		ui.Text(c, a.tr("Ubuntu 22.04 amd64 · ROS adapters are optional", "Ubuntu 22.04 amd64 · ROS 适配器可选")).FontSize(12).TextColor(c.Theme().TextMuted)
+		if core := a.preflight.Core; core != nil {
+			ui.Text(c, "Core "+core.Version+" · "+core.ExecutableSHA256).FontSize(12)
+			ui.Text(c, a.options.WorkerPath).FontSize(12).TextColor(c.Theme().TextMuted)
+		}
 		for _, check := range a.preflight.Checks {
 			color := c.Theme().TextMuted
 			status := a.tr("SKIP", "跳过")

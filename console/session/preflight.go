@@ -14,7 +14,7 @@ import (
 const Product = "SpRobo"
 const Framework = "simple_rbt"
 
-var Version = "0.2.1" // Build injects the canonical packaging/VERSION value.
+var Version = "0.2.2" // Build injects the canonical packaging/VERSION value.
 const MuJoCoVersion = "3.15.0"
 const MuJoCoVersionNumber = 3015000
 
@@ -26,18 +26,19 @@ type DependencyCheck struct {
 	Details  map[string]any `json:"details,omitempty"`
 }
 type RuntimeInfo struct {
-	Product      string            `json:"product"`
-	Framework    string            `json:"framework"`
-	Launcher     string            `json:"launcher"`
-	Version      string            `json:"version"`
-	MuJoCo       string            `json:"mujoco_version"`
-	Header       int               `json:"mujoco_header_version"`
-	Runtime      int               `json:"mujoco_runtime_version"`
-	AssetsValid  bool              `json:"assets_valid"`
-	AssetsError  string            `json:"assets_error"`
-	CUDACompiled bool              `json:"cuda_compiled"`
-	Controller   string            `json:"controller_backend"`
-	Robots       []json.RawMessage `json:"robots"`
+	Product          string            `json:"product"`
+	Framework        string            `json:"framework"`
+	Launcher         string            `json:"launcher"`
+	Version          string            `json:"version"`
+	ExecutableSHA256 string            `json:"executable_sha256"`
+	MuJoCo           string            `json:"mujoco_version"`
+	Header           int               `json:"mujoco_header_version"`
+	Runtime          int               `json:"mujoco_runtime_version"`
+	AssetsValid      bool              `json:"assets_valid"`
+	AssetsError      string            `json:"assets_error"`
+	CUDACompiled     bool              `json:"cuda_compiled"`
+	Controller       string            `json:"controller_backend"`
+	Robots           []json.RawMessage `json:"robots"`
 }
 type DependencyReport struct {
 	Product   string            `json:"product"`

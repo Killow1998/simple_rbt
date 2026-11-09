@@ -44,6 +44,8 @@ if(EXISTS "${ORT_LIBRARY_DIR}/libonnxruntime_providers_shared.so")
     DESTINATION "${SIMPLE_RBT_LIB_DIR}" COMPONENT Runtime)
 endif()
 
+install(PROGRAMS "${PROJECT_WORKSPACE}/tools/run_supermimic.sh"
+  DESTINATION "${CMAKE_INSTALL_BINDIR}" RENAME sprobo-supermimic COMPONENT Runtime)
 install(DIRECTORY "${PROJECT_WORKSPACE}/assets/"
   DESTINATION "${SIMPLE_RBT_DATA_DIR}/assets" COMPONENT Runtime)
 install(FILES "${PROJECT_WORKSPACE}/docs/flight.md" "${PROJECT_WORKSPACE}/docs/tutorials.md"

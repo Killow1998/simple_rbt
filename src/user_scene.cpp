@@ -5,6 +5,7 @@
 #include <map>
 #include <set>
 #include <sstream>
+#include <utility>
 namespace simple_rbt {
 namespace {
 void require(bool ok, const char *message) {
@@ -40,7 +41,8 @@ void identity(const Json &x, std::set<std::string> &ids) {
   require(!name.empty() && name.size() <= 160,
           "Scene name is empty or too long");
 }
-void place_fixed_base(tinyxml2::XMLElement *world, const Json &scene) {
+void place_fixed_base(tinyxml2::XMLElement *world,
+                      const ScenePlacement &spawn) {
   for (auto *body = world->FirstChildElement("body"); body;
        body = body->NextSiblingElement("body")) {
     if (body->FirstChildElement("joint") ||
@@ -63,12 +65,10 @@ void place_fixed_base(tinyxml2::XMLElement *world, const Json &scene) {
         for (auto &v : quaternion)
           input >> v;
       }
-      const auto spawn = scene.at("spawn").at("position").get<Vec3>();
       for (int i = 0; i < 3; ++i)
-        position[i] += spawn[i];
-      position[2] += floors(scene).at(scene.at("spawn").at("floor"));
-      const double half =
-          scene.at("spawn").at("yaw_deg").get<double>() * std::acos(-1.) / 360.;
+        position[i] += spawn.position[i];
+      position[2] += spawn.floor_height;
+      const double half = spawn.yaw_degrees * std::acos(-1.) / 360.;
       const Quat yaw{std::cos(half), 0, 0, std::sin(half)};
       Quat result;
       mju_mulQuat(result.data(), yaw.data(), quaternion.data());
@@ -84,8 +84,8 @@ void place_fixed_base(tinyxml2::XMLElement *world, const Json &scene) {
             input >> v;
           mju_rotVecQuat(placed.data(), center.data(), yaw.data());
           for (int i = 0; i < 3; ++i)
-            placed[i] += spawn[i];
-          placed[2] += floors(scene).at(scene.at("spawn").at("floor"));
+            placed[i] += spawn.position[i];
+          placed[2] += spawn.floor_height;
           statistic->SetAttribute("center", numbers(placed).c_str());
         }
       }
@@ -94,8 +94,12 @@ void place_fixed_base(tinyxml2::XMLElement *world, const Json &scene) {
   }
 }
 } // namespace
-void validate_user_scene(const Json &s) {
-  if (s.at("version") == 2) { (void)resolve_structured_scene(s); return; }
+PreparedUserScene prepare_user_scene(const Json &s, const std::string &spawn) {
+  if (s.at("version") == 2) {
+    auto geometry = resolve_structured_scene(s);
+    auto placement = structured::spawn_placement(s, geometry, spawn);
+    return {2, std::move(geometry), {}, placement};
+  }
   require(s.at("version") == 1, "Unsupported scene version");
   std::set<std::string> ids;
   identity(s, ids);
@@ -108,7 +112,8 @@ void validate_user_scene(const Json &s) {
     require(std::isfinite(h) && std::abs(h) <= 100, "Invalid floor height");
   }
   auto heights = floors(s);
-  require(s.at("objects").is_array() && s.at("objects").size() <= max_scene_boxes,
+  require(s.at("objects").is_array() &&
+              s.at("objects").size() <= max_scene_boxes,
           "Scene exceeds its physical geometry budget");
   for (const auto &o : s.at("objects")) {
     identity(o, ids);
@@ -127,27 +132,30 @@ void validate_user_scene(const Json &s) {
       norm += v * v;
     require(std::abs(norm - 1) < 1e-6, "Scene quaternion must be normalized");
   }
-  (void)scene_boxes(s);
-  const auto &spawn = s.at("spawn");
-  require(heights.count(spawn.at("floor")), "Unknown spawn floor");
-  vector(spawn.at("position"), 3, 100);
-  double yaw = spawn.at("yaw_deg");
+  auto geometry = scene_boxes(s);
+  const auto &placement = s.at("spawn");
+  require(heights.count(placement.at("floor")), "Unknown spawn floor");
+  vector(placement.at("position"), 3, 100);
+  double yaw = placement.at("yaw_deg");
   require(std::isfinite(yaw) && std::abs(yaw) <= 180, "Invalid spawn yaw");
+  ScenePlacement location{placement.at("position").get<Vec3>(),
+                          heights.at(placement.at("floor")), yaw};
+  return {1, std::move(geometry), std::move(heights), location};
 }
-void append_user_scene(tinyxml2::XMLDocument &doc, const Json &s, const std::string &spawn) {
-  if (s.at("version") == 2) {
-    structured::append(doc,s);
-    place_fixed_base(doc.RootElement()->FirstChildElement("worldbody"), structured::spawn_document(s,spawn));
+void append_user_scene(tinyxml2::XMLDocument &doc,
+                       const PreparedUserScene &scene) {
+  if (scene.version == 2) {
+    structured::append(doc, scene.geometry);
+    place_fixed_base(doc.RootElement()->FirstChildElement("worldbody"),
+                     scene.spawn);
     return;
   }
-  validate_user_scene(s);
-  auto heights = floors(s);
   auto *world = doc.RootElement()->FirstChildElement("worldbody");
-  place_fixed_base(world, s);
+  place_fixed_base(world, scene.spawn);
   int index = 0;
-  for (const auto &o : scene_boxes(s)) {
+  for (const auto &o : scene.geometry) {
     auto pos = o.at("position").get<Vec3>(), size = o.at("size").get<Vec3>();
-    pos[2] += heights.at(o.at("floor"));
+    pos[2] += scene.floor_heights.at(o.at("floor"));
     for (auto &v : size)
       v *= .5;
     auto *g = doc.NewElement("geom");
@@ -167,9 +175,7 @@ void append_user_scene(tinyxml2::XMLDocument &doc, const Json &s, const std::str
     world->InsertEndChild(g);
   }
 }
-void apply_scene_spawn(mjModel *m, mjData *d, const Json &input, const std::string &spawn) {
-  validate_user_scene(input);
-  const Json s = input.at("version") == 2 ? structured::spawn_document(input,spawn) : input;
+void apply_scene_spawn(mjModel *m, mjData *d, const ScenePlacement &spawn) {
   int joint = -1;
   for (int i = 0; i < m->njnt; i++)
     if (m->jnt_type[i] == mjJNT_FREE) {
@@ -186,13 +192,12 @@ void apply_scene_spawn(mjModel *m, mjData *d, const Json &input, const std::stri
     return;
   }
   int q = m->jnt_qposadr[joint];
-  auto pos = s.at("spawn").at("position").get<Vec3>();
-  pos[2] += floors(s).at(s.at("spawn").at("floor"));
+  auto pos = spawn.position;
+  pos[2] += spawn.floor_height;
   d->qpos[q] = pos[0];
   d->qpos[q + 1] = pos[1];
   d->qpos[q + 2] += pos[2];
-  double half =
-      s.at("spawn").at("yaw_deg").get<double>() * 3.14159265358979323846 / 360.;
+  double half = spawn.yaw_degrees * 3.14159265358979323846 / 360.;
   mjtNum yaw[4]{std::cos(half), 0, 0, std::sin(half)}, out[4];
   mju_mulQuat(out, yaw, d->qpos + q + 3);
   mju_copy(d->qpos + q + 3, out, 4);

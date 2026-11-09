@@ -41,7 +41,9 @@ Usage: simple-rbt-sim [options]
   --difficulty NUMBER --seed UNSIGNED --friction NUMBER
   --cmd VX VY WZ --settle SECONDS --duration SECONDS
   --sensors physics|lidar|full --cameras --camera-hz NUMBER --camera-model d435|d435i
-  --backend auto|cpu|cuda|warp           warp is a compatibility alias for native CUDA
+  --physics-backend mujoco           CPU native physics; Warp jobs use SpRobo --physics-job
+  --sensor-backend auto|cpu|cuda     LiDAR computation
+  --backend auto|cpu|cuda|warp       legacy sensor flag; warp aliases native CUDA
   --scene-texture PNG                world-surface appearance; geometry unchanged
   --lidar-model mid360|avia --lidar-motion rolling|snapshot
   --rays NUMBER (diagnostic subset; default complete 100 ms scan)
@@ -144,7 +146,9 @@ int main(int argc, char **argv) {
         args.simulation.friction = number(value(i));
       else if (option == "--seed")
         args.simulation.seed = integer(value(i));
-      else if (option == "--backend")
+      else if (option == "--physics-backend") {
+        if (value(i) != "mujoco") throw std::invalid_argument("This C++ process supports mujoco CPU physics; use SpRobo --physics-job for real Warp batch jobs");
+      } else if (option == "--backend" || option == "--sensor-backend")
         args.backend = value(i);
       else if (option == "--sensors")
         args.sensors = value(i);

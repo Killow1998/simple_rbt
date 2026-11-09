@@ -31,6 +31,7 @@ OpticalPose ObserverView::pose() {
   return p;
 }
 Json SessionObserver::metadata() {
+  static constexpr const char *states[] = {"config", "running", "paused", "closed"};
   OpticalPose eye = view_.pose();
   Json mounts = {{"mid360", pose_json(sim_->extrinsics("lidar"))},
                  {"camera", pose_json(sim_->extrinsics("camera_mount"))}};
@@ -47,11 +48,9 @@ Json SessionObserver::metadata() {
           {"mount_parents", parents},
           {"logging", diagnostics::log().health()},
           {"robot", options_.simulation.robot},
-          {"running", running_ && !closing_},
-          {"session_state", closing_   ? "closed"
-                            : running_ ? "running"
-                            : started_ ? "paused"
-                                       : "config"},
+          {"deployment", sim_->deployment_metadata()},
+          {"running", running()},
+          {"session_state", states[static_cast<unsigned>(state_)]},
           {"source", source_},
           {"sensors", {{"mid360", options_.mid360_enabled},
                        {"camera", options_.camera_enabled},
@@ -108,8 +107,8 @@ void SessionObserver::publish_metadata(double now) {
     resources_["cpu_percent_one_core"] =
         100 * (cpu - cpu_time_) / (now - cpu_wall_);
     resources_["real_time_factor"] =
-        running_ ? (sim_->data()->time - simulation_time_) / (now - cpu_wall_)
-                 : 0.;
+        running() ? (sim_->data()->time - simulation_time_) / (now - cpu_wall_)
+                  : 0.;
   }
   std::ifstream memory("/proc/self/statm");
   long pages = 0, resident = 0;
@@ -133,8 +132,8 @@ void SessionObserver::tick() {
     view_.lookat = sim_->pose().position;
     view_.lookat[2] += sim_->joint_controls().empty() ? .07 : .45;
   }
-  if (view_.enabled && server_->subscribed("view") && (dirty_ || running_) &&
-      now - last_view_ >= (running_ ? .1 : 1. / 30.)) {
+  if (view_.enabled && server_->subscribed("view") && (dirty_ || running()) &&
+      now - last_view_ >= (running() ? .1 : 1. / 30.)) {
     if (!renderer_) {
       CameraConfig c;
       c.render_depth = false;

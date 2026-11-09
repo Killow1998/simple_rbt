@@ -14,10 +14,12 @@ struct ObserverView {
   OpticalPose pose();
 };
 class SessionObserver final : public RunObserver {
+  enum class State { Config, Running, Paused, Closed };
   const RunOptions &options_;
   Simulation *sim_ = nullptr;
   ipc::SessionServer *server_ = nullptr;
-  bool running_ = false, started_ = false, closing_ = false, dirty_ = true;
+  State state_;
+  bool dirty_ = true;
   std::string source_ = "gui", last_command_state_;
   ObserverView view_;
   std::unique_ptr<CameraRig> renderer_;
@@ -28,6 +30,7 @@ class SessionObserver final : public RunObserver {
   Json resources_ = {
       {"cpu_percent_one_core", 0.}, {"rss_mib", 0.}, {"real_time_factor", 0.}};
   volatile std::sig_atomic_t &interrupted_;
+  bool running() const { return state_ == State::Running; }
   Json metadata();
   void publish_metadata(double now);
   void requests();

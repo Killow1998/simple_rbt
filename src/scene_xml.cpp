@@ -17,8 +17,7 @@ std::string numbers(const Json &values) {
   return out.str();
 }
 } // namespace
-void append(tinyxml2::XMLDocument &doc, const Json &scene) {
-  const auto compiled = resolve_structured_scene(scene);
+void append(tinyxml2::XMLDocument &doc, const Json &compiled) {
   auto *root = doc.RootElement(), *world = root->FirstChildElement("worldbody"),
        *assets = root->FirstChildElement("asset");
   if (!assets) {
@@ -53,8 +52,8 @@ void append(tinyxml2::XMLDocument &doc, const Json &scene) {
     world->InsertEndChild(geom);
   }
 }
-Json spawn_document(const Json &scene, const std::string &selected) {
-  const auto compiled = resolve_structured_scene(scene);
+ScenePlacement spawn_placement(const Json &scene, const Json &compiled,
+                               const std::string &selected) {
   std::string marker = selected;
   if (marker.empty())
     for (const auto &o : scene.at("objects"))
@@ -79,10 +78,6 @@ Json spawn_document(const Json &scene, const std::string &selected) {
     require(std::abs(q[1]) + std::abs(q[2]) < 1e-6,
             "robot spawn must be upright");
   }
-  return {{"floors", Json::array({{{"id", "world"}, {"height", 0}}})},
-          {"spawn",
-           {{"floor", "world"},
-            {"position", position},
-            {"yaw_deg", 2 * std::atan2(q[3], q[0]) * 180 / std::acos(-1.)}}}};
+  return {position, 0, 2 * std::atan2(q[3], q[0]) * 180 / std::acos(-1.)};
 }
 } // namespace simple_rbt::structured

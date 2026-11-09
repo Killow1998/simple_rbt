@@ -71,12 +71,12 @@ func (s *Scene) pose(o SceneObject) Pose {
 	p.Position[2] += s.height(o.Floor)
 	return p
 }
-func validateScene(s *Scene) error {
+func validateScene(s *Scene, resolver *sceneResolver) error {
 	if s == nil {
 		return nil
 	}
 	if s.Version == 2 {
-		_, err := resolveScene(s)
+		_, err := resolver.resolve(s)
 		return err
 	}
 	fail := fmt.Errorf("Invalid scene: check names, floors, dimensions and transforms / 场景无效：请检查名称、楼层、尺寸及位姿")

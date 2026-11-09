@@ -27,7 +27,7 @@ def digest(path):
 
 def check_runtime(stage):
     binaries = stage / "usr/bin"
-    for name in ("simple-rbt-sim", "sprobo", "simple-rbt-tutorial-config"):
+    for name in ("simple-rbt-sim", "sprobo", "simple-rbt-tutorial-config", "simple-rbt-physics-contract"):
         binary = binaries / name
         if not binary.is_file():
             raise RuntimeError(f"Missing built runtime: {name}")
@@ -91,6 +91,9 @@ def check_runtime(stage):
             raise RuntimeError(f"Container entrypoint is not executable: {ros}")
     libraries = stage / "usr/lib/simple-rbt"
     for elf in list(binaries.iterdir()) + list(libraries.glob("*.so*")):
+        with elf.open("rb") as file:
+            if file.read(4) != b"\x7fELF":
+                continue
         versions = run("readelf", "--version-info", str(elf), capture_output=True).stdout
         # Jammy updates ship GCC 12's runtime; control.in requires it explicitly.
         for family, supported in (("GLIBC", (2, 35)), ("GLIBCXX", (3, 4, 30))):

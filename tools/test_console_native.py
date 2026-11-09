@@ -229,6 +229,9 @@ def main():
             check("native pointer release stops physical robot", True)
             # Actual X11 key events must reach the same core command path.
             inputs.click(180,348)
+            focus_stamp = observer.snapshot()[0]["stamp_ns"]
+            observer.wait(lambda m, v: m.get("stamp_ns", 0) > focus_stamp + 250_000_000
+                          and m.get("applied_command") == [0,0,0])
             for key,axis,sign in [('w',0,1),('s',0,-1),('a',1,1),('d',1,-1),('q',2,1),('e',2,-1)]:
                 inputs.key(key,True)
                 metadata,_=observer.wait(lambda m,v:sign*m.get("applied_command",[0,0,0])[axis]>.05)
@@ -269,7 +272,12 @@ def main():
             check("actual native window focus loss stops robot", True)
             inputs.button(False); inputs.focus(window)
             # Pick the non-ROS program owner through the real native selector.
-            inputs.click(180,202)
+            inputs.move(10, 400)
+            for _ in range(30):
+                inputs.t.XTestFakeButtonEvent(inputs.d,4,True,0); inputs.t.XTestFakeButtonEvent(inputs.d,4,False,0)
+            inputs.x.XFlush(inputs.d); time.sleep(.2)
+            inputs.capture(window, output / "source-selector.png")
+            inputs.click(180,246)
             inputs.key("End",True); inputs.key("End",False)
             inputs.key("Return",True); inputs.key("Return",False)
             observer.wait(lambda m,v:m.get("source")=="program")

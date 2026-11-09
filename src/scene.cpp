@@ -34,7 +34,8 @@ std::string numbers(std::initializer_list<double> x) {
 }
 } // namespace
 std::string build_scene(const SimulationOptions &o, const Json &catalog,
-                        const std::string &controller, Json &profile) {
+                        const std::string &controller, Json &profile,
+                        std::optional<ScenePlacement> &spawn) {
   std::string key = o.robot + "-" + controller;
   std::string raw = read(o.project_root / "assets" /
                          catalog["models"][key]["file"].get<std::string>());
@@ -82,7 +83,9 @@ std::string build_scene(const SimulationOptions &o, const Json &catalog,
            {"rgba", colors[i]},
            {"group", "1"}});
   } else {
-    append_user_scene(doc, o.scene, o.scene_spawn);
+    auto scene = prepare_user_scene(o.scene, o.scene_spawn);
+    append_user_scene(doc, scene);
+    spawn = scene.spawn;
   }
   if (!o.scene_texture.empty()) {
     const auto texture_path=o.scene_texture.is_absolute()?o.scene_texture:o.project_root/o.scene_texture;
@@ -104,8 +107,14 @@ std::string build_scene(const SimulationOptions &o, const Json &catalog,
   auto *visual = root->FirstChildElement("visual");
   if (!visual)
     visual = add(root, "visual", {});
-  add(visual, "global", {{"offwidth", "1024"}, {"offheight", "1024"}});
-  add(visual, "map", {{"znear", ".005"}, {"zfar", "50"}});
+  auto *global = visual->FirstChildElement("global");
+  if (!global) global = add(visual, "global", {});
+  global->SetAttribute("offwidth", "1024");
+  global->SetAttribute("offheight", "1024");
+  auto *map = visual->FirstChildElement("map");
+  if (!map) map = add(visual, "map", {});
+  map->SetAttribute("znear", ".005");
+  map->SetAttribute("zfar", "50");
   Json terrain = catalog["terrain_presets"][o.terrain + "-" + o.terrain_level];
   profile = terrain["metadata"];
   profile["difficulty"] = o.difficulty;

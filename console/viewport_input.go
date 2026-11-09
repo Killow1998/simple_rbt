@@ -23,18 +23,20 @@ func (a *app) viewportInput(event ui.InputEvent) bool {
 		}
 		v.Previous = pointer
 		v.Start = pointer
-		v.Dragging = false
-		v.Orbit = true
-		v.Pan = a.page == "scene" && (event.Button == 2 || (event.Button == 1 && event.Mods&ui.Shift != 0) || (event.Button == 0 && a.scenePan))
-		if event.Button != 0 || v.Pan {
+		v.gesture = gestureOrbit
+		if a.page == "scene" && (event.Button == 2 || (event.Button == 1 && event.Mods&ui.Shift != 0) || (event.Button == 0 && a.scenePan)) {
+			v.gesture = gesturePan
+		}
+		if event.Button != 0 || v.gesture == gesturePan {
 			return true
 		}
-		if a.stage != "configure" || (a.page != "scene" && (a.loading || a.viewLoading)) {
+		if a.stage != "configure" || (a.page != "scene" && (a.loading || a.viewLoading || !a.coreConfigReady())) {
 			return true
 		}
-		v.Current, v.Dragging = a.pickHandle(pointer)
-		if v.Dragging {
-			v.Orbit = false
+		current, dragging := a.pickHandle(pointer)
+		v.Current = current
+		if dragging {
+			v.gesture = gestureTransform
 			v.Initial, _ = a.editPose()
 			eye, ray := a.ray(pointer)
 			worldAxis := a.worldDirection(v.Current.Direction)
@@ -50,7 +52,7 @@ func (a *app) viewportInput(event ui.InputEvent) bool {
 		for name, pose := range a.cfg.Mounts {
 			if a.visibleMount(name) && plen(psub(pointer, a.projectMount(name, pose.Position))) < 18 {
 				a.selected = name
-				v.Orbit = false
+				v.gesture = gestureIdle
 				return true
 			}
 		}
@@ -59,7 +61,7 @@ func (a *app) viewportInput(event ui.InputEvent) bool {
 		if event.Button < 0 || event.Button > 2 {
 			return false
 		}
-		if v.Dragging {
+		if v.gesture == gestureTransform {
 			pose := v.Initial
 			eye, ray := a.ray(pointer)
 			origin := a.world(pose.Position)
@@ -88,9 +90,9 @@ func (a *app) viewportInput(event ui.InputEvent) bool {
 				}
 			}
 			a.editPoseSet(pose)
-		} else if v.Orbit {
+		} else if v.gesture == gestureOrbit || v.gesture == gesturePan {
 			delta := psub(pointer, v.Previous)
-			if v.Pan || (a.page == "scene" && event.Button == 1 && event.Mods&ui.Shift != 0) {
+			if v.gesture == gesturePan || (a.page == "scene" && event.Button == 1 && event.Mods&ui.Shift != 0) {
 				_, right, up := a.basis()
 				scale := a.viewport.Distance * 2 * math.Tan(math.Pi/8) / math.Max(1, a.viewport.Height)
 				a.sceneLookat = add(a.sceneLookat, add(mul(right, -delta.X*scale), mul(up, delta.Y*scale)))
@@ -103,9 +105,7 @@ func (a *app) viewportInput(event ui.InputEvent) bool {
 		v.Previous = pointer
 		return true
 	case ui.InputPointerUp:
-		v.Dragging = false
-		v.Orbit = false
-		v.Pan = false
+		v.gesture = gestureIdle
 		return true
 	}
 	return false

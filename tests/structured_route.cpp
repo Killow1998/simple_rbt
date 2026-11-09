@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
       if (o["id"] == "spawn-ground")
         o["pose"]["position_m"] = {-2.9, 0, 0};
     SimulationOptions options;
-    options.project_root = root;
+    options.project_root = std::filesystem::relative(root);
     options.robot = "go2w";
     options.controller = "rl_sar";
     options.scene = scene;

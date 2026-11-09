@@ -11,6 +11,7 @@
 #include <cmath>
 #include "sensor_devices.hpp"
 #include <stdexcept>
+#include <utility>
 namespace simple_rbt {
 namespace {
 double clamp(double x, double lo, double hi) {
@@ -36,6 +37,7 @@ struct Simulation::Impl {
   SimulationOptions o;
   const RobotSpec &spec;
   std::string controller, scene_xml;
+  std::string model_sha256, policy_sha256;
   Json terrain;
   int base_site = -1, lidar_site = -1, camera_site = -1, imu_site = -1,
       mid360_site = -1;
@@ -59,12 +61,14 @@ struct Simulation::Impl {
   CommandTracker tracker;
   ImuSensor mid360_imu, camera_imu;
   std::unique_ptr<Controller> control;
+  std::function<void(const mjModel *, const mjData *)> step_observer;
   std::unique_ptr<FlightPayload> payload;
   std::uint64_t steps = 0;
   Impl(const SimulationOptions &options)
       : o(options), spec(robot_spec(options.robot)) {
     if (o.project_root.empty())
       o.project_root = default_project_root();
+    o.project_root = std::filesystem::absolute(o.project_root);
     const Json catalog = load_catalog(o.project_root);
     controller = o.controller;
     if (controller == "auto")
@@ -97,10 +101,13 @@ struct Simulation::Impl {
     if (!spec.allows_lateral)
       tracker.limits[1] = .6;
     tracker.lateral = spec.allows_lateral;
-    // Pure wheel chassis have physical joint brakes; legged policies still
-    // need chassis feedback while holding a zero-speed stance.
-    tracker.brake_on_zero = spec.continuous_terrain;
-    scene_xml = build_scene(o, catalog, controller, terrain);
+    // Wheeled bases brake at zero; SuperMimic already holds its native stance
+    // and must not retain accumulated velocity correction after a stop.
+    tracker.brake_on_zero = spec.continuous_terrain || controller == "supermimic";
+    if (controller == "supermimic")
+      tracker.lateral_integral_gain = 1.6;
+    std::optional<ScenePlacement> scene_spawn;
+    scene_xml = build_scene(o, catalog, controller, terrain, scene_spawn);
     mjVFS vfs;
     mj_defaultVFS(&vfs);
     mj_addBufferVFS(&vfs, "scene.xml", scene_xml.data(), scene_xml.size());
@@ -118,11 +125,13 @@ struct Simulation::Impl {
                                                                  mj_deleteData);
     if (m->nkey)
       mj_resetDataKeyframe(m, d, 0);
-    if (!o.scene.is_null())
-      apply_scene_spawn(m, d, o.scene, o.scene_spawn);
+    if (scene_spawn)
+      apply_scene_spawn(m, d, *scene_spawn);
     mj_forward(m, d);
     const Json config = catalog["controllers"].value(o.robot + "-" + controller,
                                                      Json::object());
+    model_sha256 = catalog["models"].at(o.robot + "-" + controller).at("sha256");
+    policy_sha256 = config.value("policy_sha256", std::string());
     control = make_controller({o, controller, config, catalog, m, d});
     if(spec.flight_control)payload=std::make_unique<FlightPayload>(m);
     base_site = id(m, mjOBJ_SITE, "base_origin");
@@ -279,6 +288,9 @@ void Simulation::step() {
     p.control->update(p.policy_command);
   }
   mj_step(p.m, p.d);
+  if (p.step_observer)
+    p.step_observer(p.m, p.d);
+  p.control->after_step();
   p.steps++;
   mj_forward(p.m, p.d);
   p.mid360_imu.advance(p.m, p.d, stamp_ns());
@@ -288,6 +300,10 @@ void Simulation::step() {
       throw std::runtime_error("Nonfinite physics state");
   if (std::abs(p.d->time - p.steps * p.m->opt.timestep) > 1e-6)
     throw std::runtime_error("MuJoCo reset time");
+}
+void Simulation::set_physics_step_observer(
+    std::function<void(const mjModel *, const mjData *)> observer) {
+  p_->step_observer = std::move(observer);
 }
 std::uint64_t Simulation::stamp_ns() const {
   return std::llround(p_->steps * p_->m->opt.timestep * 1e9);
@@ -343,10 +359,20 @@ const std::string &Simulation::controller_name() const {
   return p_->controller;
 }
 const Json &Simulation::terrain_metadata() const { return p_->terrain; }
+Json Simulation::controller_diagnostics() const { return p_->control->diagnostics(); }
 Json Simulation::deployment_metadata() const {
+  const double policy_period = p_->control->state.policy_period > 0.
+                                   ? p_->control->state.policy_period : .02;
   return {
       {"robot", p_->o.robot},
+      {"physics_backend", "mujoco"}, {"physics_device", "cpu"},
+      {"physics_version", mj_versionString()},
       {"controller", p_->controller},
+      {"control_mode", p_->o.control_mode},
+      {"model_sha256", p_->model_sha256},
+      {"policy_sha256", p_->policy_sha256},
+      {"command_observation_delay_s", p_->control->state.command_observation_delay_s},
+      {"observation_command", p_->control->state.observation_command},
       {"runtime_language", "C++17"},
       {"go2_torque_mode", p_->o.go2_torque_mode},
       {"go2_startup", p_->o.go2_startup},
@@ -354,7 +380,7 @@ Json Simulation::deployment_metadata() const {
       {"physics_period_s", p_->m->opt.timestep},
       {"policy_calls", p_->control->state.policy_steps
                            ? 1 + (p_->control->state.policy_steps - 1) /
-                                     std::lround(.02 / p_->m->opt.timestep)
+                                     std::lround(policy_period / p_->m->opt.timestep)
                            : 0},
       {"pd_calls", p_->control->state.pd_calls},
       {"startup_steps", p_->control->state.startup_count},

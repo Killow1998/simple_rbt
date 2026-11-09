@@ -7,7 +7,7 @@ import (
 )
 
 func (a *app) navigate(page string) {
-	if a.stage != "configure" {
+	if a.stage != "configure" || a.fixedConfig {
 		return
 	}
 	a.checkpoint()
@@ -41,13 +41,13 @@ func (a *app) navigation(c *ui.Context) {
 			if a.page == p.id && a.stage == "configure" {
 				label = "• " + label
 			}
-			ui.Button(c.Key("page-"+p.id), label).Disabled(a.stage != "configure").OnClick(a.action("navigation."+p.id, func() { a.navigate(p.id) }))
+			ui.Button(c.Key("page-"+p.id), label).Disabled(a.stage != "configure" || a.fixedConfig).OnClick(a.action("navigation."+p.id, func() { a.navigate(p.id) }))
 		}
 		if a.stage != "configure" {
 			ui.Text(c, a.tr("• Runtime", "• 运行操作台")).Bold()
 		}
 		ui.Button(c, a.tr("Logs", "日志")).OnClick(a.action("logs.open", func() { a.stopManual(); a.diagnostics.Open = !a.diagnostics.Open; a.refreshDiagnostics() }))
-		ui.Button(c, a.tr("Tutorials", "教程")).OnClick(a.action("tutorial.open", func() {
+		ui.Button(c, a.tr("Tutorials", "教程")).Disabled(a.fixedConfig).OnClick(a.action("tutorial.open", func() {
 			if a.manualMode() {
 				a.stopManual()
 			}
@@ -55,7 +55,9 @@ func (a *app) navigation(c *ui.Context) {
 			a.diagnostics.Open = false
 		}))
 		ui.Text(c, "").Grow(1)
-		if a.robotDirty() || a.sceneDirty() {
+		if a.fixedConfig {
+			ui.Text(c, a.tr("Fixed reproduction profile", "固定复现配置")).FontSize(12).TextColor(c.Theme().TextMuted)
+		} else if a.robotDirty() || a.sceneDirty() {
 			ui.Text(c, a.tr("Drafts retained · save to update presets", "草稿已保留 · 保存后更新预设")).FontSize(12).TextColor(c.Theme().TextMuted)
 		}
 	})
@@ -67,6 +69,16 @@ func (a *app) sidebarWidth() float32 {
 	return 380
 }
 func (a *app) pageSidebar(c *ui.Context) {
+	if a.fixedConfig {
+		section(c, a.tr("Reproduction profile", "复现配置"), func() {
+			ui.Text(c, a.cfg.Robot+" · "+a.cfg.Controller+" · "+a.cfg.ControlMode)
+			if a.cfg.Scene != nil {
+				ui.Text(c, a.cfg.Scene.Name)
+			}
+			ui.Text(c, a.tr("Restart the launcher to choose another terrain.", "通过启动入口选择其他地形。")).FontSize(12).TextColor(c.Theme().TextMuted)
+		})
+		return
+	}
 	switch a.page {
 	case "robot":
 		section(c, a.tr("Preset", "预设"), func() {
@@ -92,15 +104,14 @@ func (a *app) pageAction(c *ui.Context) {
 	switch a.page {
 	case "scene":
 		ui.PrimaryButton(c, a.tr("Use scene", "使用此场景")).FillWidth().OnClick(a.action("ui_pages.use_scene", func() {
-			a.useScene()
-			if validateScene(&a.sceneDraft) == nil {
+			if a.useScene() {
 				a.navigate("home")
 			}
 		}))
 	case "robot":
 		ui.PrimaryButton(c, a.tr("Back to launch", "返回启动页")).FillWidth().OnClick(a.action("ui_pages.back_to_launch", func() { a.navigate("home") }))
 	default:
-		ui.PrimaryButton(c, a.tr("Start session", "进入操控")).FillWidth().Disabled(a.loading || a.viewLoading || a.preparing || a.checking || !a.preflight.Ready || a.manager.Busy() || a.meta.State != "config").OnClick(a.action("ui_pages.start_session", a.startOperating))
+		ui.PrimaryButton(c, a.tr("Start session", "进入操控")).FillWidth().Disabled(a.loading || a.viewLoading || a.preparing || a.checking || !a.preflight.Ready || a.manager.Busy() || !a.coreConfigReady()).OnClick(a.action("ui_pages.start_session", a.startOperating))
 	}
 }
 func (a *app) launchSettings(c *ui.Context) {

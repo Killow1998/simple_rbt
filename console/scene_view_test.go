@@ -4,8 +4,43 @@ import (
 	"bytes"
 	"github.com/egoist/mygo/ui"
 	"math"
+	"os"
+	"simple-rbt/console/session"
 	"testing"
 )
+
+func TestStructuredScenePreviewAndSelection(t *testing.T) {
+	worker := os.Getenv("SIMPLE_RBT_CPP_WORKER")
+	if worker == "" {
+		t.Skip("requires the host standalone C++ core")
+	}
+	a := newApp(session.Options{WorkerPath: worker, StateDir: t.TempDir()}, defaultConfig())
+	_ = newApp(session.Options{WorkerPath: "/missing-worker", StateDir: t.TempDir()}, defaultConfig())
+	a.page = "scene"
+	a.sceneLookat = Vec3{0, 0, 0}
+	a.viewport = viewport{Azimuth: -135, Elevation: 40, Distance: 25}
+	a.hiddenFloors = map[string]bool{}
+	a.sceneDraft = a.newStructuredScene()
+	tt := ui.NewTester(func(c *ui.Context) {
+		ui.Box(c).Fill().Background(viewportBackground).Draw(func(p *ui.Painter, r ui.Rect) {
+			a.viewport.Width, a.viewport.Height = float64(r.W), float64(r.H)
+			p.Clip(r, 0, func() { a.drawScene(p, r) })
+		})
+	}, 740, 635)
+	if a.status != "" || a.scenePreview.bitmap == nil {
+		t.Fatalf("structured preview failed: %s", a.status)
+	}
+	a.pickStructured(point{X: 370, Y: 317})
+	if a.sceneObject != "floor" {
+		t.Fatalf("selected %q instead of floor", a.sceneObject)
+	}
+	before := append([]byte(nil), tt.Image().Pix...)
+	a.hiddenFloors["floor"] = true
+	tt.Frame()
+	if bytes.Equal(before, tt.Image().Pix) {
+		t.Fatal("hiding floor did not change structured preview")
+	}
+}
 
 func TestScenePreviewGeometry(t *testing.T) {
 	a := &app{page: "scene", sceneDraft: newScene(true), sceneLookat: Vec3{4, 0, 1}, viewport: viewport{Azimuth: -135, Elevation: 40, Distance: 25}, hiddenFloors: map[string]bool{}}
@@ -124,7 +159,7 @@ func TestConnectionPropertiesGenerateStairsAndRamp(t *testing.T) {
 		t.Fatal("incline/run coupling failed")
 	}
 	a.sceneDraft.Floors[1].Height = 4
-	if err := validateScene(&a.sceneDraft); err != nil {
+	if err := validateScene(&a.sceneDraft, &a.sceneResolver); err != nil {
 		t.Fatal(err)
 	}
 	box := a.sceneDraft.boxes()[2]

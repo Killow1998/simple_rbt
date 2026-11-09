@@ -77,7 +77,9 @@ Json run_session(const Json &config, const std::filesystem::path &directory,
       else throw std::invalid_argument("Unknown camera calibration frame");
     }
   }
-  args.backend = config.value("backend", std::string("auto"));
+  if(config.value("physics_backend", std::string("mujoco")) != "mujoco")
+    throw std::invalid_argument("Warp physics runs as an independent batch job, not this C++ session");
+  args.backend = config.value("sensor_backend", config.value("backend", std::string("auto")));
   args.camera_hz = config.value("camera_hz", 10.);
   args.rays = config.value("rays", std::size_t(0));
   args.settle = config.value("settle_s", 1.);

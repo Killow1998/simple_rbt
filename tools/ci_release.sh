@@ -26,8 +26,11 @@ Install / 安装：sudo apt install ./$package
 Launch / 启动：sprobo
 Headless framework / 无头框架：simple-rbt-sim
 
-Light/dark appearance and English/Simplified Chinese are selectable in the top-right corner and remembered across launches. Linux LCD font colours are corrected; native-window checks cover readability, switching and control behavior.
-右上角可切换浅色／深色与英文／简体中文，重启后保留选择。修正 Linux LCD 字体颜色；真实窗口验收覆盖可读性、切换与操控行为。
+The release includes the arm and quadrotor, scene editing, independent ROS 1/ROS 2 adapters, and a hardware depth-sampling correction. Light/dark appearance and English/Simplified Chinese are selectable and remembered.
+本版本包含机械臂、四旋翼、场景编辑、独立 ROS 1／ROS 2 适配器，以及硬件深度采样修复。可切换并保存浅色／深色与英文／简体中文。
+
+The optional Go2W SuperMimic controller requires a separately prepared model and policy. Its tracked mode uses ideal simulated velocity feedback; very-low-speed tracking remains approximate.
+可选 Go2W SuperMimic 控制器需要单独准备模型和策略。tracked 模式使用理想仿真速度反馈；极低速跟踪仍有误差。
 
 CUDA acceleration and automatic CPU fallback are included. CI builds both CPU-only and CUDA-capable variants, then verifies installation, all registered robots on CPU, the native window, normal shutdown and removal in a clean Ubuntu container. A GPU-free CI runner does not validate physical GPU performance.
 包含 CUDA 加速和自动 CPU 回退。CI 检查两种构建，并在干净 Ubuntu 容器中验收安装、全部注册机器人、原生窗口、正常关闭及卸载；无显卡 runner 不作为宿主 GPU 性能验收。

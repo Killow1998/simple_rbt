@@ -12,21 +12,24 @@ Vec3 unit(Vec3 v) {
   mju_normalize3(v.data());
   return v;
 }
+enum class FlightMode {
+  Grounded, Disarmed, TakeoffBlocked, Takeoff, Hover, Velocity, Landing, Fault
+};
 class Flight final : public Controller {
   mjModel *m;
   mjData *d;
   int body;
   std::array<int, 4> motors{}, sites{};
   FlightCommand input;
-  std::string mode = "grounded";
+  FlightMode mode = FlightMode::Grounded;
   FlightAction previous_action = FlightAction::Hold;
   Vec3 target{}, integral{}, desired_velocity{};
   double heading = 0., ground = 0., landed_for = 0.;
   bool horizontal_hold = true, vertical_hold = true, saturated = false;
   std::array<double, 4> thrust{};
   bool stopped() const {
-    return mode == "grounded" || mode == "disarmed" ||
-           mode == "takeoff_blocked" || mode == "fault";
+    return mode == FlightMode::Grounded || mode == FlightMode::Disarmed ||
+           mode == FlightMode::TakeoffBlocked || mode == FlightMode::Fault;
   }
   void stop_rotors() {
     desired_velocity = {};
@@ -53,7 +56,7 @@ class Flight final : public Controller {
     heading = yaw();
     horizontal_hold = vertical_hold = true;
   }
-  void transition(const std::string &next) {
+  void transition(FlightMode next) {
     if (mode == next)
       return;
     mode = next;
@@ -119,7 +122,9 @@ public:
     input.yaw_rate = clamp(c.yaw_rate, -1., 1.);
   }
   Json flight_status() const override {
-    return {{"state", mode},
+    static constexpr const char *states[] = {"grounded", "disarmed", "takeoff_blocked",
+                                             "takeoff", "hover", "velocity", "landing", "fault"};
+    return {{"state", states[static_cast<unsigned>(mode)]},
             {"frame", "world_enu"},
             {"velocity", desired_velocity},
             {"yaw_rate", input.yaw_rate},
@@ -137,16 +142,16 @@ public:
     const Vec3 p = position();
     const auto *r = d->xmat + 9 * body;
     if (input.action == FlightAction::Disarm) {
-      transition("disarmed");
+      transition(FlightMode::Disarmed);
       hold();
     }
     if (input.action == FlightAction::Takeoff && previous_action != FlightAction::Takeoff &&
-        (mode == "grounded" || mode == "disarmed")) {
+        (mode == FlightMode::Grounded || mode == FlightMode::Disarmed)) {
       Vec3 origin = p;
       origin[2] += .05;
       const double distance = ray(origin, -1);
       if (distance < 0 || distance > .35 || r[8] < .95) {
-        transition("takeoff_blocked");
+        transition(FlightMode::TakeoffBlocked);
       } else {
         ground = origin[2] - distance;
         hold();
@@ -158,16 +163,16 @@ public:
             const double ceiling = ray(top, 1);
             clear &= ceiling < 0 || ceiling > target[2] - p[2] + .08;
           }
-        transition(clear ? "takeoff" : "takeoff_blocked");
+        transition(clear ? FlightMode::Takeoff : FlightMode::TakeoffBlocked);
       }
     }
     if (input.action == FlightAction::Hold && previous_action != FlightAction::Hold && !stopped()) {
       hold();
-      transition("hover");
+      transition(FlightMode::Hover);
     }
     if (input.action == FlightAction::Land && previous_action != FlightAction::Land && !stopped()) {
       hold();
-      transition("landing");
+      transition(FlightMode::Landing);
     }
     previous_action = input.action;
     if (stopped()) {
@@ -175,7 +180,7 @@ public:
       return;
     }
     if (r[8] < std::cos(70. * pi / 180.)) {
-      transition("fault");
+      transition(FlightMode::Fault);
       stop_rotors();
       return;
     }
@@ -200,18 +205,18 @@ public:
       if (z)
         desired_velocity[2] = clamp(1.8 * (target[2] - p[2]), -.6, .6);
       heading = std::remainder(heading + input.yaw_rate * dt, 2 * pi);
-      transition(xy && z && input.yaw_rate == 0. ? "hover" : "velocity");
+      transition(xy && z && input.yaw_rate == 0. ? FlightMode::Hover : FlightMode::Velocity);
     } else {
       for (int i = 0; i < 3; ++i)
         desired_velocity[i] = clamp(1.8 * (target[i] - p[i]),
                                     i == 2 ? -.6 : -1., i == 2 ? .6 : 1.);
-      if (mode == "landing")
+      if (mode == FlightMode::Landing)
         desired_velocity[2] = -.3;
-      if (mode == "takeoff" && std::abs(target[2] - p[2]) < .04 &&
+      if (mode == FlightMode::Takeoff && std::abs(target[2] - p[2]) < .04 &&
           std::abs(velocity[2]) < .08)
-        transition("hover");
+        transition(FlightMode::Hover);
     }
-    if (mode == "landing") {
+    if (mode == FlightMode::Landing) {
       Vec3 origin = p;
       origin[2] += .05;
       const double distance = ray(origin, -1);
@@ -220,7 +225,7 @@ public:
               ? landed_for + dt
               : 0.;
       if (landed_for > .25) {
-        transition("grounded");
+        transition(FlightMode::Grounded);
         stop_rotors();
         return;
       }

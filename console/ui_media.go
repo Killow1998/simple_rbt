@@ -37,6 +37,9 @@ func (a *app) media(c *ui.Context) {
 				x, y, over := view.PointerPosition()
 				a.viewport.Pointer, a.viewport.Hovering = point{float64(x), float64(y)}, over
 				view.Draw(func(p *ui.Painter, r ui.Rect) {
+					external := a.stage != "configure" && a.cfg.Sensors.ExternalCamera && a.viewMode != "Observer / 自由观察"
+					hasFrame := (!external && a.observer != nil) || (external && a.externalCamera != nil)
+					defer a.drawDisconnectedView(p, r, hasFrame)
 					width, height := float64(r.W), float64(r.H)
 					changed := a.viewport.Width != width || a.viewport.Height != height
 					a.viewport.Width = width
@@ -44,7 +47,7 @@ func (a *app) media(c *ui.Context) {
 					if changed {
 						a.requestView()
 					}
-					if a.stage != "configure" && a.cfg.Sensors.ExternalCamera && a.viewMode != "Observer / 自由观察" {
+					if external {
 						if a.externalCamera != nil {
 							p.Image(a.externalCamera, r, ui.Contain)
 						} else {
@@ -61,7 +64,7 @@ func (a *app) media(c *ui.Context) {
 						return
 					}
 					p.Image(a.observer, r, ui.Contain)
-					if a.stage == "configure" && a.page != "home" && !a.loading && !a.viewLoading {
+					if a.stage == "configure" && a.page != "home" && !a.loading && !a.viewLoading && a.coreConfigReady() {
 						a.drawGizmo(p, r)
 					}
 					if a.viewLoading {
@@ -86,6 +89,7 @@ func (a *app) media(c *ui.Context) {
 				}
 				ui.Text(c, title).FontSize(12).TextColor(c.Theme().TextMuted)
 				ui.Box(c.Key("camera-view")).Bind(&a.driveHandles[2]).Focusable().HandleInput(a.keyboardInput).Grow(1).MinHeight(180).Radius(10).Background(viewportBackground).Draw(func(p *ui.Painter, r ui.Rect) {
+					defer a.drawDisconnectedView(p, r, a.camera != nil)
 					if a.camera != nil {
 						p.Image(a.camera, r, ui.Contain)
 					} else {
@@ -95,4 +99,16 @@ func (a *app) media(c *ui.Context) {
 			})
 		}
 	})
+}
+
+func (a *app) drawDisconnectedView(p *ui.Painter, r ui.Rect, hasFrame bool) {
+	if a.loading || a.meta.State != "" {
+		return
+	}
+	label := a.tr("Disconnected", "未连接")
+	if hasFrame {
+		label = a.tr("Disconnected · last frame", "未连接 · 显示上一帧")
+	}
+	p.Fill(ui.Rect{X: r.X, Y: r.Y, W: r.W, H: 44}, viewportBackground, 0)
+	p.Text(r.X+16, r.Y+13, label, 14, viewportText)
 }

@@ -111,6 +111,6 @@ func (a *app) pickScene(p point) {
 	if id != "" {
 		a.sceneObject = id
 		a.sceneFloor = a.sceneDraft.object(id).Floor
-		a.viewport.Orbit = false
+		a.viewport.gesture = gestureIdle
 	}
 }

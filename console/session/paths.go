@@ -17,6 +17,7 @@ func DefaultOptions() Options {
 	// Keep a launcher and its sibling core/assets together before consulting PATH.
 	if worker := filepath.Join(filepath.Dir(executable), "simple-rbt-sim"); exists(worker) {
 		result.WorkerPath = worker
+		roots = append(roots, filepath.Clean(filepath.Join(filepath.Dir(executable), "../share/simple-rbt")))
 		for path := filepath.Dir(executable); path != "/" && path != "."; path = filepath.Dir(path) {
 			roots = append(roots, path)
 		}

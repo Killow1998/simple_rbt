@@ -90,7 +90,7 @@ func (a *app) initWorkspace(restore bool) {
 	if err == nil {
 		valid := w.Version == 1 && w.Robots != nil && w.Scenes != nil && w.RobotDrafts != nil && w.SceneDrafts != nil
 		for _, scene := range w.Scenes {
-			if validateScene(&scene) != nil {
+			if validateScene(&scene, &a.sceneResolver) != nil {
 				valid = false
 			}
 		}
@@ -202,7 +202,7 @@ func (a *app) saveRobot(copy bool) {
 		a.reportError(fmt.Errorf("Enter a preset name / 请输入预设名称"))
 		return
 	}
-	if err := validateConfig(a.cfg, a.catalog); err != nil {
+	if err := validateConfig(a.cfg, a.catalog, &a.sceneResolver); err != nil {
 		a.reportError(err)
 		return
 	}
@@ -228,7 +228,7 @@ func (a *app) chooseRobot(id string) {
 	if a.catalog.Robots[candidate.Robot].Continuous && (candidate.Terrain == "stairs" || candidate.Terrain == "rough") {
 		candidate.Terrain = "flat"
 	}
-	if err := validateConfig(candidate, a.catalog); err != nil {
+	if err := validateConfig(candidate, a.catalog, &a.sceneResolver); err != nil {
 		a.reportError(err)
 		return
 	}
@@ -238,7 +238,7 @@ func (a *app) chooseRobot(id string) {
 	a.checkpoint()
 }
 func (a *app) saveScene(copy bool) {
-	if err := validateScene(&a.sceneDraft); err != nil {
+	if err := validateScene(&a.sceneDraft, &a.sceneResolver); err != nil {
 		a.reportError(err)
 		return
 	}
@@ -249,10 +249,10 @@ func (a *app) saveScene(copy bool) {
 	a.workspace.Scenes[a.sceneDraft.ID] = clone(a.sceneDraft)
 	a.checkpoint()
 }
-func (a *app) useScene() {
-	if err := validateScene(&a.sceneDraft); err != nil {
+func (a *app) useScene() bool {
+	if err := validateScene(&a.sceneDraft, &a.sceneResolver); err != nil {
 		a.reportError(err)
-		return
+		return false
 	}
 	if a.sceneDraft.Version == 2 && a.sceneDraft.object(a.cfg.SceneSpawn) == nil {
 		a.cfg.SceneSpawn = ""
@@ -260,4 +260,5 @@ func (a *app) useScene() {
 	a.cfg.Scene = clone(&a.sceneDraft)
 	a.startConfig()
 	a.checkpoint()
+	return true
 }

@@ -1,5 +1,5 @@
 #pragma once
-#include "simple_rbt/core.hpp"
+#include "scene.hpp"
 #include "simple_rbt/scene_geometry.hpp"
 #include <tinyxml2.h>
 namespace simple_rbt::structured {
@@ -14,6 +14,7 @@ Json planar_parts(const Json &);
 Json polyhedron(const std::vector<Vec3> &,
                 const std::vector<std::vector<int>> &);
 Json preview(Json part);
-Json spawn_document(const Json &, const std::string &);
+ScenePlacement spawn_placement(const Json &, const Json &compiled,
+                               const std::string &);
 void append(tinyxml2::XMLDocument &, const Json &);
 } // namespace simple_rbt::structured

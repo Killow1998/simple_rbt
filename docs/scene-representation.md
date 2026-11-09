@@ -28,6 +28,16 @@ not the scene geometry. Robot presets, sensors and command ownership remain
 separate. 无几何分组也可作为命名出生点；选择标记及增加机器人离地高度由会话负责，
 不会因场景中出现一个标记就自动启动机器人。
 
+On load, the C++ core validates the scene and resolves its geometry once. Model
+generation and robot placement consume the same prepared result. Each editor
+instance owns its scene resolver and cache, so its worker and draft do not depend
+on another instance. The editor and standalone core remain separate input
+boundaries; each validates the scene it receives.
+
+加载时，C++ 核心只校验和展开场景一次，物理模型与机器人出生点使用同一份结果。
+每个编辑器实例独立持有场景解析器和缓存，互不改变核心程序路径或草稿。编辑器与独立
+核心是不同的输入入口，各自校验收到的场景。
+
 | Option / 方案 | Decision / 取舍 |
 | --- | --- |
 | Existing v1 boxes / 现有盒体格式 | Preserve as a compatible runtime format; it cannot express arbitrary boundaries or an open stair underside. 保留兼容入口。 |

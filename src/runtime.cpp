@@ -6,6 +6,7 @@
 #include "runtime_lidar.hpp"
 #include "sensor_devices.hpp"
 #include "simple_rbt/event_log.hpp"
+#include "simple_rbt/paths.hpp"
 #include "simple_rbt/transport.hpp"
 #include "simple_rbt/viewer.hpp"
 #include <algorithm>
@@ -20,6 +21,10 @@ namespace simple_rbt {
 Json run_simulation(const RunOptions &options, RunObserver *observer,
                     const TransportFactory &transport_factory) {
   RunOptions args = options;
+  if (args.simulation.project_root.empty())
+    args.simulation.project_root = default_project_root();
+  args.simulation.project_root =
+      std::filesystem::absolute(args.simulation.project_root);
   const auto &device = lidar_spec(args.simulation.lidar_model);
   if (args.rays == 0) args.rays = device.point_rate / 10;
   ResourceMeter run_meter;
@@ -203,6 +208,7 @@ Json run_simulation(const RunOptions &options, RunObserver *observer,
       {"controller", sim.controller_name()},
       {"terrain", sim.terrain_metadata()},
       {"control_mode", args.simulation.control_mode},
+      {"tracker_updates", sim.tracker_metadata().at("updates")},
       {"command_tracking", args.simulation.control_mode == "tracked"
                                ? sim.tracker_metadata()
                                : Json(nullptr)},

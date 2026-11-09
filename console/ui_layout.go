@@ -51,7 +51,7 @@ func (a *app) view(c *ui.Context) {
 						a.pageAction(c)
 					} else {
 						a.motionButtons(c)
-						ui.Button(c, a.tr("New configuration", "返回配置")).FillWidth().OnClick(a.action("ui_layout.new_configuration", func() { a.stage = "configure"; a.page = "home"; a.startConfig() }))
+						ui.Button(c, a.tr("New configuration", "返回配置")).FillWidth().Disabled(a.fixedConfig).OnClick(a.action("ui_layout.new_configuration", func() { a.stage = "configure"; a.page = "home"; a.startConfig() }))
 					}
 				})
 			})
@@ -65,6 +65,9 @@ func (a *app) view(c *ui.Context) {
 		})
 		ui.Row(c).Padding(7, 18).Gap(10).Background(panelBackground(c)).BorderWidth(1, 0, 0, 0).BorderColor(panelDivider(c)).Children(func() {
 			ui.Text(c, a.sessionLabel()).TextColor(theme.TextMuted).Grow(1)
+			if core := a.preflight.Core; core != nil && core.ExecutableSHA256 != "" {
+				ui.Text(c, "Core "+core.Version+" · "+core.ExecutableSHA256[:min(12, len(core.ExecutableSHA256))]).FontSize(11).TextColor(theme.TextMuted)
+			}
 			if a.meta.State != "" {
 				ui.Text(c, fmt.Sprintf(a.tr("Core · CPU %.1f%% · RAM %.1f MiB · RTF %.3f", "仿真 · CPU %.1f%% · 内存 %.1f MiB · 实时倍率 %.3f"), a.meta.Resources.CPU, a.meta.Resources.RAM, a.meta.Resources.RTF)).FontSize(12)
 			} else {

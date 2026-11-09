@@ -5,6 +5,8 @@ std::unique_ptr<Controller> make_arm_controller(const ControllerContext &);
 std::unique_ptr<Controller> make_flight_controller(const ControllerContext &);
 std::unique_ptr<Controller> make_go2_controller(const ControllerContext &);
 std::unique_ptr<Controller> make_go2w_controller(const ControllerContext &);
+std::unique_ptr<Controller> make_supermimic_controller(const ControllerContext &);
+std::unique_ptr<Controller> make_external_controller(const ControllerContext &);
 std::unique_ptr<Controller>
 make_diffdrive_controller(const ControllerContext &);
 std::unique_ptr<Controller>
@@ -27,6 +29,8 @@ std::unique_ptr<Controller> make_controller(const ControllerContext &c) {
       {"himloco", make_go2_controller},
       {"legacy", make_go2_controller},
       {"rl_sar", make_go2w_controller},
+      {"supermimic", make_supermimic_controller},
+      {"external", make_external_controller},
       {"none", make_diffdrive_controller},
       {"diff_drive", make_diffdrive_controller},
       {"skid_steer", make_scout_mini_controller},

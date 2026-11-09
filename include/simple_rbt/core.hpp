@@ -3,6 +3,7 @@
 #include "simple_rbt/lidar_model.hpp"
 #include "simple_rbt/types.hpp"
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <mujoco/mujoco.h>
@@ -49,6 +50,9 @@ public:
                      const std::string &parent = "base_origin") const;
   Pose mount_parent(const std::string &module) const;
   void step();
+  // Read-only observation at mj_step return, before mj_forward, for any controller.
+  void set_physics_step_observer(
+      std::function<void(const mjModel *, const mjData *)>);
   // Configuration only; the controller body IMU is never modified.
   void set_mount(const std::string& module, const Pose&);
   mjModel *model() const;
@@ -72,6 +76,7 @@ public:
   const std::string &controller_name() const;
   const Json &terrain_metadata() const;
   Json deployment_metadata() const;
+  Json controller_diagnostics() const;
   Json tracker_metadata() const;
   std::string xml() const;
 

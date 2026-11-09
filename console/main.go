@@ -17,17 +17,62 @@ import (
 
 func main() {
 	options := session.DefaultOptions()
+	physicsJobPath := flag.String("physics-job", "", "Bounded physics/training job JSON; independent optional Warp process")
+	physicsBackend := flag.String("physics-backend", "mujoco", "Physical solver for --physics-job: mujoco or warp")
+	physicsTask := flag.String("physics-task", "batch", "Bounded task: batch or train-smoke")
+	jobHeadless := flag.Bool("job-headless", false, "Run --physics-job without a window; emit result")
 	worker := flag.String("worker", "", "Independent C++ simulator executable")
 	assets := flag.String("assets", "", "Robot assets directory")
 	configPath := flag.String("config", "", "Initial session JSON")
+	bundle := flag.String("bundle", "", "Portable reproduction bundle directory")
+	profile := flag.String("profile", "", "Named profile within --bundle")
 	capture := flag.String("capture", "", "Native screenshot PNG then exit")
 	delay := flag.Int("capture-after-ms", 6500, "Screenshot delay (milliseconds)")
 	smoke := flag.Bool("smoke-test", false, "Verify configuration and editor without display/GPU")
 	operate := flag.Bool("operate", false, "Start the configured motion session")
+	fixedConfig := flag.Bool("fixed-config", false, "Start --config as an immutable reproduction profile")
 	e2e := flag.String("e2e-test", "", "Exercise headless MyGo widget callbacks against the real C++ core; write JSON")
 	dependencies := flag.Bool("check-dependencies", false, "Check Ubuntu, framework MuJoCo/assets and optional container ROS; emit JSON without display/GPU")
 	ros := flag.String("ros", "", "Optional container checks: ros1,ros2 (Noetic,Humble); host ROS is not required")
 	flag.Parse()
+	if *physicsJobPath != "" {
+		if *worker != "" {
+			options.WorkerPath = *worker
+		}
+		if err := physicsJobMain(*physicsJobPath, *physicsBackend, *physicsTask, *jobHeadless, options); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		return
+	}
+	if *bundle != "" {
+		if *assets != "" || *configPath != "" {
+			fmt.Fprintln(os.Stderr, "--bundle supplies --assets and --config")
+			os.Exit(2)
+		}
+		root, config, err := bundleProfile(*bundle, *profile)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(2)
+		}
+		*assets, *configPath, *fixedConfig = filepath.Join(root, "assets"), config, true
+	} else if *profile != "" {
+		fmt.Fprintln(os.Stderr, "--profile requires --bundle")
+		os.Exit(2)
+	}
+	if *fixedConfig {
+		if *configPath == "" {
+			fmt.Fprintln(os.Stderr, "--fixed-config requires --config")
+			os.Exit(2)
+		}
+		if !*dependencies && !*smoke {
+			if err := isolateReproduction(&options); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+		}
+		*operate = true
+	}
 	if flag.NArg() != 0 {
 		fmt.Fprintf(os.Stderr, "Unexpected argument %q / 无法识别参数。Option names must not have leading spaces / 选项前不能带空格。Use --help for usage.\n", flag.Arg(0))
 		os.Exit(2)
@@ -72,6 +117,7 @@ func main() {
 		os.Exit(report.ExitCode())
 	}
 	a := newApp(options, cfg)
+	a.fixedConfig = *fixedConfig
 	a.initWorkspace(*configPath == "" && !*smoke && *e2e == "" && !*dependencies)
 	cfg = a.cfg
 	if *smoke {

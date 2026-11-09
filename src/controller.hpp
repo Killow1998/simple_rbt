@@ -7,11 +7,15 @@ struct ControlState {
   std::string phase = "policy";
   std::uint64_t policy_steps = 0, pd_calls = 0, startup_count = 0;
   double policy_period = 0.;
+  double command_observation_delay_s = 0.;
+  Vec3 observation_command{};
 };
 class Controller {
 public:
+  virtual Json diagnostics() const { return Json::object(); }
   virtual ~Controller() = default;
   virtual void update(const Vec3 &command) = 0;
+  virtual void after_step() {}
   virtual void set_flight(const FlightCommand &) {
     throw std::invalid_argument("Robot has no flight interface");
   }

@@ -2,9 +2,9 @@
 
 ## Processes / 进程
 
-`simple-rbt-sim` owns the `simple_rbt` C++ framework: MuJoCo physics, control, sensors, rendering and session state. `sprobo` starts the **SpRobo** native Go/MyGo UI. ROS 1 and ROS 2 use separate C++ adapters, normally in separate public-image containers. Core and console do not link ROS or start Python.
+`simple-rbt-sim` owns the `simple_rbt` C++ framework: MuJoCo physics, control, sensors, rendering and session state. `sprobo` starts the **SpRobo** native Go/MyGo UI. ROS 1 and ROS 2 use separate C++ adapters, normally in separate public-image containers. The native interactive core and console do not link ROS or start Python. Optional [Warp batch/training jobs](dual-physics.md) use an explicitly selected independent mjlab process.
 
-`simple-rbt-sim` 运行 `simple_rbt` C++ 框架，负责物理、控制、传感器时序、离屏渲染和会话状态；`sprobo` 启动 **SpRobo** 原生 Go／MyGo 界面。ROS 1、ROS 2 使用独立 C++ 适配器，通常各自运行在公开镜像容器内。核心与操作台不链接 ROS，也不启动 Python。
+`simple-rbt-sim` 运行 `simple_rbt` C++ 框架，负责物理、控制、传感器时序、离屏渲染和会话状态；`sprobo` 启动 **SpRobo** 原生 Go／MyGo 界面。ROS 1、ROS 2 使用独立 C++ 适配器，通常各自运行在公开镜像容器内。原生交互核心与操作台不链接 ROS，也不启动 Python。可选 [Warp 批量／训练任务](dual-physics.md) 使用用户明确选择的独立 mjlab 进程。
 
 ```text
 MyGo console ── control / live views ── C++ headless core
@@ -15,9 +15,9 @@ MyGo console ── control / live views ── C++ headless core
                               container      container
 ```
 
-The protocol uses separate control and data Unix sockets, fixed little-endian packet fields and bounded queues. The GUI consumes the latest observation frames; ROS adapters receive sensor samples for publication. A command owner is selected explicitly. Disconnect, malformed commands and the 0.5 s deadman clear motion commands. Stop clears the owner and commands zero while physics remains active; Pause freezes simulation time. Returning to configuration restarts the owned session.
+The protocol uses separate control and data Unix sockets, fixed little-endian packet fields and bounded queues. The GUI consumes the latest observation frames; ROS adapters receive sensor samples for publication. A command owner is selected explicitly. Disconnect, malformed commands and the 0.5 s deadman clear motion commands. Stop returns ownership to the GUI and commands zero while physics remains active; Pause freezes simulation time. Returning to configuration restarts the owned session. The [state inventory](state-machines.md) lists the independent process, control and interaction lifecycles.
 
-协议使用分离的控制／数据 Unix socket、固定的小端字段和有界队列。GUI 消费最新观察画面；ROS 适配器接收传感器样本并发布消息。指令来源显式选择；断开、非法指令和 0.5 秒超时会清零。停车清除指令来源并给出零指令，物理仍运行；暂停冻结仿真时间。返回配置会重启操作台拥有的会话。
+协议使用分离的控制／数据 Unix socket、固定的小端字段和有界队列。GUI 消费最新观察画面；ROS 适配器接收传感器样本并发布消息。指令来源显式选择；断开、非法指令和 0.5 秒超时会清零。停车将控制权交回 GUI 并给出零指令，物理仍运行；暂停冻结仿真时间。返回配置会重启操作台拥有的会话。[运行状态清单](state-machines.md)列出了各进程、控制与交互流程。
 
 The physical quadrotor adds a typed world-ENU flight command and a C++ rotor
 controller. Optional mapping tutorials use a separate C++ calibration tool and
@@ -71,6 +71,16 @@ and real-socket tests remain separate.
 对照，编解码使用 IPC CTest，界面使用原生窗口 E2E。共享协议变化再运行双 ROS
 集成测试。配色、语言和键盘由原生窗口验证；数值、持久化和真实套接字测试独立保留。
 
+External CPU controllers use an application-owned shared library. Observation
+conversion and native actuator targets belong to the application; the framework
+imposes no policy input width. `Simulation::set_physics_step_observer` records
+native step forces for external and built-in controllers at the same phase.
+See [external controllers](external-controllers.md) for the ABI and video API.
+
+外部 CPU 控制器通过共享库接入，负责观测转换与原生执行器目标。框架不限定策略
+输入维度。内置与外部控制器共用物理步观察回调，在同一阶段记录原生力。
+接口与视频录制方式见[外部控制器](external-controllers.md)。
+
 ## Software camera rendering / 软件相机渲染
 
 Perspective RGB/depth remains 320×240, panorama RGB/radial depth remains
@@ -79,8 +89,10 @@ LiDAR scans (MID360: 20,000 rays; Avia: 24,000 rays), with enabled IMUs at 200 H
 in simulation time; a slow software renderer also slows the simulation.
 
 Software llvmpipe/softpipe keeps shadows with a 2048-pixel shadow-map cap;
-smaller model settings are preserved. Output resolution, depth arithmetic,
-multisampling, physics and sensor sampling do not change. Hardware
+smaller model settings are preserved. Resolution, physics, sensor sampling and
+RGB multisampling are unchanged. For depth, the segmentation pass renders into
+MuJoCo's single-sample resolve framebuffer so values represent pixel centres;
+this also avoids renderer-dependent multisample depth resolves. Hardware
 rendering retains the model's shadow setting. Perspective and panorama views
 share one lazily created render context and one physical scene snapshot.
 
@@ -130,8 +142,9 @@ See [dependency provenance](../third_party/meshoptimizer/README.md).
 透视 RGB／深度保持 320×240，全景 RGB／径向深度保持 720×360，由六个
 256×256 视面生成。桌面相机和雷达保持仿真时间 10 Hz（MID360 每次 20,000、Avia 每次 24,000
 条射线），两组启用的 IMU 均为 200 Hz。软件绘制跟不上时，整个仿真会慢于墙钟。
-软件模式保留阴影，将阴影贴图上限设为 2048；输出分辨率、深度精度、多重采样、
-物理和传感器时序均不降低。RGB 按距离选择简化网格，使用带余量的半像素投影
+软件模式保留阴影，将阴影贴图上限设为 2048；输出分辨率、RGB 多重采样、物理和
+传感器时序均不改变。深度分割绘制使用 MuJoCo 已有的单采样 resolve 缓冲，使深度
+对应像素中心，避免不同渲染器解析多重采样深度时产生偏差。RGB 按距离选择简化网格，使用带余量的半像素投影
 误差估计；这不是严格的几何上界，也不保证阴影或颜色差异小于半像素。阴影使用
 独立的 1 mm 简化误差估计；深度保留全部原始三角形，物理、雷达和模型资产不变。
 常用双方向光下的不透明、无纹理网格合并两次光照绘制，其余情况保留原生着色。
@@ -184,6 +197,29 @@ The robot registry comes from `simple-rbt-sim --list-robots` without initializin
 The `tracked` mode adds simulator velocity/heading feedback. `native` retains the chassis controller alone. Command limits are conservative simulator limits; speed on terrain is measured rather than guaranteed. Sensor selections independently enable the selected LiDAR/IMU, RGB, depth and panorama.
 
 `tracked` 模式增加模拟器速度／航向反馈；`native` 只使用底盘自身控制器。指令上限是保守的仿真上限，不保证所有地形上的实际速度。所选雷达／IMU、RGB、深度和全景输出可以分别选择。
+
+An external Go2W catalog may select `supermimic` with `tracked` or `native`
+control. `tracked` uses simulator velocity feedback to improve low-speed
+tracking; `native` preserves the direct frozen policy. Both use the supplied
+position/velocity actuators. The default Go2W controller remains `rl_sar`.
+See [SuperMimic validation](go2w-supermimic-validation-20261029.md).
+
+外部 Go2W catalog 可在 `tracked` 或 `native` 模式下选择 `supermimic`。`tracked` 使用仿真速度反馈改善低速跟踪；`native` 保留直接使用冻结策略的行为。两种模式均使用原模型的位置／速度执行器。默认 Go2W 仍使用 `rl_sar`。资源契约与验证入口见上述记录。
+
+For prepared local SuperMimic assets, `tools/run_supermimic.sh up` opens an
+isolated development console from `build/integration` and the portable bundle at
+`~/.local/share/simple-rbt/bundles/go2w-supermimic`. `SIMPLE_RBT_BUILD` and
+`SIMPLE_RBT_BUNDLE` override them. `--bundle DIRECTORY --profile NAME` selects
+a named immutable profile. `--fixed-config --config SESSION_JSON` starts an
+immutable reproduction profile; terrain/model editing is disabled while manual
+controls remain available. The current checkpoint accepts body-plane
+`vx/vy/yaw_rate`, without height or pitch commands. Its production controller
+consumes each boundary-sampled command one 20 ms policy period later; GUI, ROS
+and direct callers share that timing. The console displays core version/hash
+and controller identity.
+
+本地资源已准备时，上述入口可直接打开独立展示窗口。切换原始地形使用启动参数；
+具体地形、按键、速度和验证证据见 [交互启动](go2w-supermimic-validation-20261029.md#interactive-launch--交互启动)。
 
 A chassis sensor mount pose is relative to the robot base, with quaternion order `[w,x,y,z]`. Numeric Euler controls and projected 3D handles write the same pose. MID360's internal IMU is fixed at `[0.011,0.02329,-0.04412]` m in the LiDAR housing frame, with identical orientation. Moving the device preserves that relationship. The controller's body IMU is a different site and is never moved by sensor configuration. Mount editing is available before the first Start.
 
@@ -608,9 +644,9 @@ simple-rbt-sim --help
 
 `--cmd VX VY WZ` 单位为 m/s、m/s、rad/s。`--session-config JSON --session-dir PATH` 启动桌面／ROS 会话。配置可选择各传感器、初始外参、指令来源和有限运行时长；未指定时长则运行到关闭。核心不提供同进程 ROS 启动模式，应启动独立适配器。
 
-MID360 produces 10 Hz scans with 20,000 CSV-ordered rays per frame and a synthetic 200 kHz point clock; Avia uses 24,000 rays and 240 kHz in its selected non-repetitive single-return mode. IMU samples are 200 Hz. Rolling scans interpolate rigid pose at each point timestamp and are not deskewed. Robot self-occlusion is excluded. CUDA supports the current static plane/box terrain. `auto` attempts CUDA and reports a CPU fallback when unavailable; `cpu` is an explicit independent raycasting path. CPU fallback can be slower than real time. `warp` remains a compatibility name for native CUDA.
+MID360 produces 10 Hz scans with 20,000 CSV-ordered rays per frame and a synthetic 200 kHz point clock; Avia uses 24,000 rays and 240 kHz in its selected non-repetitive single-return mode. IMU samples are 200 Hz. Rolling scans interpolate rigid pose at each point timestamp and are not deskewed. Robot self-occlusion is excluded. CUDA supports the current static plane/box terrain. `auto` attempts CUDA and reports a CPU fallback when unavailable; `cpu` is an explicit independent raycasting path. CPU fallback can be slower than real time. The legacy `--backend warp` remains a compatibility name for native CUDA LiDAR, with CPU physics. `--physics-backend mujoco` and `--sensor-backend` name these separately; real Warp physics uses the independent job entry.
 
-MID360 为 10 Hz 扫描，每帧 20,000 条 CSV 顺序射线，使用合成的 200 kHz 点时钟；Avia 非重复单回波模式为每帧 24,000 条、240 kHz。有效返回数受场景和量程影响。IMU 为 200 Hz。rolling 逐点插值刚体位姿，不做去畸变；排除机器人自身遮挡。CUDA 支持当前静态 plane／box 地形。`auto` 尝试 CUDA，无法使用时报告 CPU 回退；`cpu` 是显式的独立射线路径，回退后可能低于实时速度。`warp` 保留为原生 CUDA 的兼容名称。
+MID360 为 10 Hz 扫描，每帧 20,000 条 CSV 顺序射线，使用合成的 200 kHz 点时钟；Avia 非重复单回波模式为每帧 24,000 条、240 kHz。有效返回数受场景和量程影响。IMU 为 200 Hz。rolling 逐点插值刚体位姿，不做去畸变；排除机器人自身遮挡。CUDA 支持当前静态 plane／box 地形。`auto` 尝试 CUDA，无法使用时报告 CPU 回退；`cpu` 是显式的独立射线路径，回退后可能低于实时速度。旧 `--backend warp` 保留为 CUDA 雷达兼容名称，物理仍在 CPU；真实 Warp 物理使用独立任务入口。
 
 Both simulated IMUs (the selected MID360/Avia and D435i) measure completed native physics intervals.
 Specific force comes from the change in each site's world velocity, including its

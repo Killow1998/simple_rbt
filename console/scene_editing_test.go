@@ -66,18 +66,18 @@ func TestSceneSnapAlignmentAndOpenings(t *testing.T) {
 		t.Fatal("grid/angle snap failed")
 	}
 	o.Opening = &SlabOpening{Center: [2]float64{1, 0}, Size: [2]float64{2, 2}}
-	if len(o.openingBoxes()) != 4 || validateScene(&a.sceneDraft) != nil {
+	if len(o.openingBoxes()) != 4 || validateScene(&a.sceneDraft, &a.sceneResolver) != nil {
 		t.Fatal("opening not represented by four solid rims")
 	}
 	a.alignTarget = a.sceneDraft.Objects[0].ID
 	a.alignSceneObject("right")
-	low, _, _ := a.sceneDraft.bounds(o.ID)
-	_, target, _ := a.sceneDraft.bounds(a.alignTarget)
+	low, _, _ := a.sceneDraft.bounds(o.ID, &a.sceneResolver)
+	_, target, _ := a.sceneDraft.bounds(a.alignTarget, &a.sceneResolver)
 	if math.Abs(low[0]-target[0]) > 1e-6 {
 		t.Fatal("rotated slab edge alignment failed")
 	}
 	o.Opening.Size[0] = 30
-	if validateScene(&a.sceneDraft) == nil {
+	if validateScene(&a.sceneDraft, &a.sceneResolver) == nil {
 		t.Fatal("oversized opening accepted")
 	}
 }
@@ -92,7 +92,7 @@ func TestTurningFlightsEndAtUpperFloor(t *testing.T) {
 	for _, turn := range []int{-90, 90, 180} {
 		o.Connection.Turn = turn
 		s.Objects[2] = o
-		if err := validateScene(&s); err != nil {
+		if err := validateScene(&s, &sceneResolver{}); err != nil {
 			t.Fatal(err)
 		}
 		boxes := s.flightBoxes(o)

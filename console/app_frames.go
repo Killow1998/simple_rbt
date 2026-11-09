@@ -79,8 +79,17 @@ func (a *app) consume() {
 		}
 	}
 	if !a.manager.Client.Connected() {
-		a.stopManual()
-		a.loading = true
+		a.relinquishManual()
+		if a.meta.State != "" || a.manager.CoreExited() {
+			for name := range a.pending {
+				if accepted, ok := a.meta.Mounts[name]; ok {
+					a.cfg.Mounts[name] = accepted
+				}
+			}
+			clear(a.pending)
+			a.meta.State = ""
+			a.loading = false
+		}
 	}
 }
 func framePixels(frame session.CameraFrame) *image.RGBA {

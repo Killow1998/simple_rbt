@@ -31,7 +31,7 @@ func TestProfileValidation(t *testing.T) {
 			cfg := defaultConfig()
 			cfg.Robot = "go2w"
 			tc.change(&cfg)
-			if err := validateConfig(cfg, catalog); (err == nil) != tc.valid {
+			if err := validateConfig(cfg, catalog, &sceneResolver{}); (err == nil) != tc.valid {
 				t.Fatalf("valid=%v error=%v", tc.valid, err)
 			}
 		})

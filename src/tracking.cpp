@@ -45,7 +45,8 @@ Vec3 CommandTracker::update(const Vec3 &target, const Vec3 &linear,
   bool any = false;
   Vec3 cap{.4, .3, .6};
   for (int i = 0; i < 3; i++) {
-    double kp = i == 2 ? 1. : .8, ki = i == 2 ? .5 : .8;
+    double kp = i == 2 ? 1. : .8,
+           ki = i == 2 ? .5 : (i == 1 ? lateral_integral_gain : .8);
     if (i == 1 && !lateral)
       kp = ki = 0.;
     double error = desired[i] - filtered[i],

@@ -12,12 +12,14 @@
 并从当前传感器安装位姿生成标定。算法镜像需单独准备；当前固定 FAST-LIVO2 版本仍需
 本地源码。详见[建图教程](docs/tutorials.md)。
 
+可选 [CPU／GPU 物理任务](docs/dual-physics.md) 共用解析后的场景和控制契约。原生交互继续使用 C++ MuJoCo；独立 Warp 进程复用 mjlab 和现有 SuperMimic 训练器，目前支持无头批量 step/reset 与有界训练烟测。
+
 ## 安装与启动
 
 当前安装包面向 Ubuntu 22.04 amd64：
 
 ```sh
-sudo apt install ./sprobo_0.2.1_amd64.deb
+sudo apt install ./sprobo_0.2.2_amd64.deb
 sprobo
 ```
 

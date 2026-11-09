@@ -18,6 +18,17 @@ type observerInfo struct {
 	Width, Height int
 }
 type metadata struct {
+	Deployment struct {
+		PhysicsBackend     string  `json:"physics_backend"`
+		PhysicsDevice      string  `json:"physics_device"`
+		PhysicsVersion     string  `json:"physics_version"`
+		Controller         string  `json:"controller"`
+		ControlMode        string  `json:"control_mode"`
+		ModelSHA256        string  `json:"model_sha256"`
+		PolicySHA256       string  `json:"policy_sha256"`
+		CommandDelay       float64 `json:"command_observation_delay_s"`
+		ObservationCommand Vec3    `json:"observation_command"`
+	} `json:"deployment"`
 	Flight         flightStatus    `json:"flight"`
 	LidarIMUOffset Vec3            `json:"lidar_imu_offset"`
 	JointControls  []jointAxis     `json:"joint_controls"`
@@ -45,6 +56,7 @@ type metadata struct {
 	} `json:"resources"`
 }
 type app struct {
+	fixedConfig             bool
 	tutorialOpen            bool
 	flightHandles           [4]ui.Handle
 	flightCommand           *session.FlightCommand
@@ -62,6 +74,7 @@ type app struct {
 	sceneHistory            sceneHistory
 	sceneField, alignTarget string
 	scenePreview            sceneRaster
+	sceneResolver           sceneResolver
 	viewError               string
 	page                    string
 	workspace               Workspace
@@ -122,7 +135,6 @@ type app struct {
 }
 
 func newApp(options session.Options, cfg Config) *app {
-	setSceneWorker(options.WorkerPath)
 	if cfg.Mounts == nil {
 		cfg.Mounts = map[string]Pose{}
 	}
@@ -130,6 +142,7 @@ func newApp(options session.Options, cfg Config) *app {
 		cfg.Adapters = map[string]bool{}
 	}
 	a := &app{manualScale: .5, cfg: cfg, pending: map[string]Pose{}, selected: "mid360", tool: "Move / 平移", space: "Base / 机身", viewMode: "Both / 双视角", sourceLabel: "Manual / 手动", stage: "configure", updates: make(chan struct{}, 1), done: make(chan struct{}), adapterStarted: map[string]bool{}, adaptersVerified: map[string]bool{}, options: options}
+	a.sceneResolver.worker = options.WorkerPath
 	a.preferences = loadPreferences()
 	a.viewport = viewport{Azimuth: -135, Elevation: 25, Distance: 1.8}
 	a.manager = session.NewManager(options, func() {
@@ -142,7 +155,7 @@ func newApp(options session.Options, cfg Config) *app {
 }
 func (a *app) startConfig() {
 	a.checkpoint()
-	if err := validateConfig(a.cfg, a.catalog); err != nil {
+	if err := validateConfig(a.cfg, a.catalog, &a.sceneResolver); err != nil {
 		a.status = err.Error()
 		a.showLog = true
 		return
@@ -312,8 +325,12 @@ func (a *app) applyMetadata(value metadata) {
 		a.requestView()
 	}
 }
+func (a *app) coreConfigReady() bool {
+	return a.meta.State == "config" && a.manager.Client.Connected()
+}
+
 func (a *app) editMount(name string, pose Pose) {
-	if a.stage != "configure" || a.loading {
+	if a.stage != "configure" || a.loading || !a.coreConfigReady() {
 		return
 	}
 	pose.Quaternion = qnormalize(pose.Quaternion)

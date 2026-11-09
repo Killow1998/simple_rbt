@@ -9,19 +9,17 @@ namespace simple_rbt::session_detail {
 void SessionObserver::requests() {
   for (const auto &r : server_->take_requests()) {
     try {
-      if (closing_)
+      if (state_ == State::Closed)
         continue;
       const auto op = r.at("op").get<std::string>();
       if (op == "logging") {
         if(r.contains("modules")) diagnostics::log().set_modules(r.at("modules").get<std::vector<std::string>>());
         diagnostics::log().set_trace(r.at("trace").get<bool>());
       } else if (op == "shutdown") {
-        closing_ = true;
-        running_ = false;
+        state_ = State::Closed;
         server_->set_running(false);
       } else if (op == "start") {
-        running_ = true;
-        started_ = true;
+        state_ = State::Running;
         view_.follow = true;
         server_->set_running(true);
         dirty_ = true;
@@ -31,10 +29,11 @@ void SessionObserver::requests() {
         source_ = "gui";
         sim_->set_command({});
         sim_->hold_joints();
-        server_->set_running(running_);
+        server_->set_running(running());
         dirty_ = true;
       } else if (op == "pause") {
-        running_ = false;
+        if (running())
+          state_ = State::Paused;
         server_->set_running(false);
         sim_->set_command({});
         sim_->hold_joints();
@@ -44,7 +43,7 @@ void SessionObserver::requests() {
         server_->set_source(next);
         source_ = next;
       } else if (op == "mount") {
-        if (started_)
+        if (state_ != State::Config)
           throw std::invalid_argument(
               "Restart configuration before editing a started session");
         sim_->set_mount(r.at("sensor"), parse_pose(r));
@@ -79,7 +78,7 @@ void SessionObserver::requests() {
             finite(v, -100000, 100000);
         }
         candidate.enabled = r.value("enabled", candidate.enabled);
-        candidate.follow = r.value("follow", running_);
+        candidate.follow = r.value("follow", running());
         dirty_ = true;
         view_ = candidate;
       } else
@@ -95,7 +94,7 @@ void SessionObserver::requests() {
 }
 SessionObserver::SessionObserver(const RunOptions &options, std::string source,
                                  bool running, volatile std::sig_atomic_t &interrupted)
-    : options_(options), running_(running), started_(running),
+    : options_(options), state_(running ? State::Running : State::Config),
       source_(std::move(source)), interrupted_(interrupted) {}
 void SessionObserver::configure(Simulation &s, Transport *t) {
   sim_ = &s;
@@ -105,22 +104,22 @@ void SessionObserver::configure(Simulation &s, Transport *t) {
   view_.lookat = s.pose().position;
   view_.lookat[2] += s.joint_controls().empty() ? .07 : .45;
   server_->set_source(source_);
-  server_->set_running(running_);
+  server_->set_running(running());
   server_->update_extrinsics(sensor_extrinsics(
       s, (options_.camera_enabled || options_.depth_enabled ||
           options_.panorama_enabled)));
   publish_metadata(monotonic_seconds());
-  while (!running_ && !should_stop(s)) {
+  while (!running() && !should_stop(s)) {
     tick();
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
   }
 }
 bool SessionObserver::before_step(Simulation &, Transport *) {
   tick();
-  return running_ && !closing_;
+  return running();
 }
 bool SessionObserver::should_stop(Simulation &) {
-  return closing_ || interrupted_;
+  return state_ == State::Closed || interrupted_;
 }
 void SessionObserver::finish(Json &summary) {
   const auto robot = options_.simulation.robot;

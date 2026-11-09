@@ -7,7 +7,7 @@ import (
 )
 
 func smokeTest(a *app) error {
-	if err := validateConfig(a.cfg, a.catalog); err != nil {
+	if err := validateConfig(a.cfg, a.catalog, &a.sceneResolver); err != nil {
 		return err
 	}
 	if len(a.catalog.Robots) < 7 {

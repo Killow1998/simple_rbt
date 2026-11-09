@@ -10,6 +10,8 @@ sudo -n apt-get install -y --no-install-recommends "./output/packages/sprobo_${v
 mkdir -p output/ci
 export LIBGL_ALWAYS_SOFTWARE=1 EGL_PLATFORM=surfaceless
 export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
+python3 tools/test_session_lifecycle.py --core /usr/bin/simple-rbt-sim \
+  --project-root /usr/share/simple-rbt --output output/ci/session-lifecycle
 xvfb-run -a -s '-screen 0 1600x1100x24' /bin/bash -c '
   exec python3 tools/test_console_native.py --display "$DISPLAY" \
     --console /usr/bin/sprobo --core /usr/bin/simple-rbt-sim \
@@ -43,6 +45,7 @@ PY
 output/ci/camera-fixture output/ci/camera
 build/ci-release/camera_render_consistency > output/ci/camera/render-consistency.txt
 build/ci-release/camera_snapshot > output/ci/camera/snapshot-consistency.txt
+build/ci-release/camera_depth_accuracy > output/ci/camera/depth-accuracy.txt
 build/ci-release/sensor_devices --render > output/ci/camera/sensor-devices.txt
 build/ci-release/camera_oracle output/ci/camera/model.mjb output/ci/camera/state.bin \
   output/ci/camera/pose.bin output/ci/camera/render 80 60 160 80 64 90

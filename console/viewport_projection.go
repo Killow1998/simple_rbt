@@ -19,15 +19,22 @@ func segmentDistance(p, a, b point) float64 {
 	return math.Hypot(p.X-a.X-t*d.X, p.Y-a.Y-t*d.Y)
 }
 
+type viewportGesture uint8
+
+const (
+	gestureIdle viewportGesture = iota
+	gestureOrbit
+	gesturePan
+	gestureTransform
+)
+
 type viewport struct {
 	Width, Height                float64
 	Azimuth, Elevation, Distance float64
 	Handles                      []handle
 	Pointer                      point
 	Hovering                     bool
-	Dragging                     bool
-	Orbit                        bool
-	Pan                          bool
+	gesture                      viewportGesture
 	Current                      handle
 	Initial                      Pose
 	Start, Previous              point

@@ -11,7 +11,7 @@ Supported robots: Go2, Go2W, TurtleBot3 Waffle Pi, Scout Mini, FR-mini, Ridgebac
 The current package target is Ubuntu 22.04 amd64:
 
 ```sh
-sudo apt install ./sprobo_0.2.1_amd64.deb
+sudo apt install ./sprobo_0.2.2_amd64.deb
 sprobo
 ```
 
@@ -23,6 +23,11 @@ when you reopen SpRobo. The initial appearance is dark; the initial language
 follows the system locale (English or Simplified Chinese).
 
 Select a robot, terrain preset and sensor outputs in the configuration screen. Numeric position/rotation fields and the 3D translation/rotation handles edit the same mount. The selected MID360 or Avia LiDAR and its internal IMU move as one rigid device; their relative transform cannot be edited. Press Start to enter first/third-person viewing and joystick control. Return to configuration creates a fresh session. Settings and results use the user's XDG directories.
+
+Optional [CPU/GPU physics jobs](docs/dual-physics.md) share the resolved scene and
+control contract. Native interaction stays in C++; independent Warp jobs reuse
+mjlab and the existing SuperMimic trainer. GPU jobs currently cover headless batch
+step/reset and bounded training smoke.
 
 ## ROS connection
 
